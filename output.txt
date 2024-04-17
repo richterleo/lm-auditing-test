@@ -1,0 +1,21 @@
+Number of prompts: 99442.
+Start evaluating.
+  0%|          | 0/100 [00:00<?, ?it/s]
+  0%|          | 0/99442 [00:00<?, ?it/s][ATruncation was not explicitly activated but `max_length` is provided a specific value, please use `truncation=True` to explicitly truncate examples to max length. Defaulting to 'longest_first' truncation strategy. If you encode pairs of sequences (GLUE-style) with the tokenizer you can select this strategy more precisely by providing a specific strategy to `truncation`.
+
+  0%|          | 1/99442 [00:06<174:11:53,  6.31s/it][A
+  0%|          | 2/99442 [00:11<161:02:30,  5.83s/it][A
+  0%|          | 3/99442 [00:16<144:12:17,  5.22s/it][A
+  0%|          | 4/99442 [00:20<132:06:25,  4.78s/it][A
+  0%|          | 5/99442 [00:24<128:15:24,  4.64s/it][A
+  0%|          | 6/99442 [00:30<137:06:55,  4.96s/it][A
+  0%|          | 7/99442 [00:33<116:43:26,  4.23s/it][A
+  0%|          | 8/99442 [00:40<140:16:39,  5.08s/it][A
+  0%|          | 9/99442 [00:43<128:22:39,  4.65s/it][A
+  0%|          | 10/99442 [00:48<129:37:06,  4.69s/it][A
+  0%|          | 11/99442 [00:51<117:48:56,  4.27s/it][A
+  0%|          | 12/99442 [00:54<108:50:19,  3.94s/it][A
+  0%|          | 13/99442 [00:58<106:49:40,  3.87s/it][A
+  0%|          | 14/99442 [01:02<106:16:55,  3.85s/it][A
+  0%|          | 15/99442 [01:06<110:06:21,  3.99s/it][A
+  0%|          | 16/99442 [01:10<110:57:08,  4.02s/it][A
