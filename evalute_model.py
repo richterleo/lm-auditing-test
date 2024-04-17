@@ -15,6 +15,8 @@ text_generation = pipeline("text-generation", model="gpt2")
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
 toxic_prompts = [p['text'] for p in toxicity_prompts['prompt']]
+
+print(f"Number of prompts: {len(toxic_prompts)}.")
 tox_scores = {}
 
 print("Start evaluating.")
@@ -22,11 +24,11 @@ print("Start evaluating.")
 for rep in tqdm(range(reps)):
 
     model_continuations=[]
-    for prompt in toxic_prompts:
+    for prompt in tqdm(toxic_prompts):
         generation = text_generation(prompt, 
                                      max_length=50, 
                                      do_sample=True,
-                                     temperature=2, 
+                                     temperature=2.0, 
                                      pad_token_id=50256)
         
         continuation = generation[0]['generated_text'].replace(prompt,'')
