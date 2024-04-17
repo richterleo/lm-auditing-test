@@ -17,6 +17,8 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2")
 toxic_prompts = [p['text'] for p in toxicity_prompts['prompt']]
 tox_scores = {}
 
+print("Start evaluating.")
+
 for rep in tqdm(range(reps)):
 
     model_continuations=[]
@@ -35,4 +37,13 @@ for rep in tqdm(range(reps)):
     toxicity_ratings = toxicity.compute(predictions=model_continuations)
 
     tox_scores[rep] = toxicity_ratings['toxicity']
+    
+print("Finished evaluating.")
+
+file_name = 'tox_scores.json'
+
+with open(file_name, 'w') as file:
+    json.dump(tox_scores, file, indent=4)
+    
+print("Saved scores.")
 
