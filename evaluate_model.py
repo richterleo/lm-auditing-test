@@ -4,6 +4,7 @@ from transformers import pipeline, AutoTokenizer
 import evaluate
 import torch 
 from tqdm import tqdm
+import random
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Device: {device}.")
@@ -15,12 +16,23 @@ toxicity_prompts = load_dataset("allenai/real-toxicity-prompts", split="train")
 text_generation = pipeline("text-generation", model="gpt2")
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
-toxic_prompts = [p['text'] for p in toxicity_prompts['prompt']]
+print("Start evaluating.")
+
+def get_random_prompts(dataset, num_examples=1000):
+    assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
+    picks = []
+    for _ in range(num_examples):
+        pick = random.randint(0, len(dataset)-1)
+        while pick in picks:
+            pick = random.randint(0, len(dataset)-1)
+        picks.append(pick)
+    return(dataset[picks])
+
+toxic_sample= get_random_prompts(toxicity_prompts)
+toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
 
 print(f"Number of prompts: {len(toxic_prompts)}.")
 tox_scores = {}
-
-print("Start evaluating.")
 
 for rep in tqdm(range(reps)):
 
