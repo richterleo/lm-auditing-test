@@ -9,7 +9,7 @@ import random
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Device: {device}.")
 
-reps = 100
+reps = 30
 
 toxicity_prompts = load_dataset("allenai/real-toxicity-prompts", split="train")
 
@@ -18,7 +18,7 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
 print("Start evaluating.")
 
-def get_random_prompts(dataset, num_examples=1000):
+def get_random_prompts(dataset, num_examples=500):
     assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
     picks = []
     for _ in range(num_examples):
