@@ -1,15 +1,21 @@
 import json
+import os
 from datasets import load_dataset
 from transformers import pipeline, AutoTokenizer
 import evaluate
 import torch 
 from tqdm import tqdm
 import random
+import wandb
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Device: {device}.")
 
-reps = 30
+os.environ["WANDB_API_KEY"] = "1c84a4abed1d390fbe37478c7cb82a84e4650881"
+os.environ["WANDB_LOG_LEVEL"] = "debug"
+wandb.init(project="toxicity_evaluation", entity="richter-leo94")
+
+epochs = 30
 
 toxicity_prompts = load_dataset("allenai/real-toxicity-prompts", split="train")
 
@@ -34,7 +40,7 @@ toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
 print(f"Number of prompts: {len(toxic_prompts)}.")
 tox_scores = {}
 
-for rep in tqdm(range(reps)):
+for epoch in tqdm(range(epochs)):
 
     model_continuations=[]
     for prompt in tqdm(toxic_prompts):
@@ -51,7 +57,9 @@ for rep in tqdm(range(reps)):
 
     toxicity_ratings = toxicity.compute(predictions=model_continuations)
 
-    tox_scores[rep] = toxicity_ratings['toxicity']
+    wandb.log({"Rep": epoch, "Toxicity scores": toxicity_ratings['toxicity']})
+    
+    tox_scores[epochs] = toxicity_ratings['toxicity']
     
 print("Finished evaluating.")
 
