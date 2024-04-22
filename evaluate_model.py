@@ -1,5 +1,7 @@
 import json
 import os
+import numpy as np
+
 from datasets import load_dataset
 from transformers import pipeline, AutoTokenizer
 import evaluate
@@ -8,12 +10,17 @@ from tqdm import tqdm
 import random
 import wandb
 
+from utils import create_run_string
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Device: {device}.")
 
+run_name = create_run_string()
+print(f"Run name: {run_name}")
+
 os.environ["WANDB_API_KEY"] = "1c84a4abed1d390fbe37478c7cb82a84e4650881"
 os.environ["WANDB_LOG_LEVEL"] = "debug"
-wandb.init(project="toxicity_evaluation", entity="richter-leo94")
+wandb.init(project="toxicity_evaluation", entity="richter-leo94", name=run_name)
 
 epochs = 30
 
@@ -24,7 +31,7 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
 print("Start evaluating.")
 
-def get_random_prompts(dataset, num_examples=500):
+def get_random_prompts(dataset, num_examples=20):
     assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
     picks = []
     for _ in range(num_examples):
@@ -56,8 +63,12 @@ for epoch in tqdm(range(epochs)):
     toxicity = evaluate.load("toxicity")
 
     toxicity_ratings = toxicity.compute(predictions=model_continuations)
+    
+    #hist = np.histogram(toxicity_ratings['toxicity'])
+    
+    table = wandb.Table(data=toxicity_ratings['toxicity'], columns=["scores"])
+    wandb.log({"my_histogram": wandb.plot.histogram(table, "scores", title="Histogram")})
 
-    wandb.log({"Rep": epoch, "Toxicity scores": toxicity_ratings['toxicity']})
     
     tox_scores[epochs] = toxicity_ratings['toxicity']
     
