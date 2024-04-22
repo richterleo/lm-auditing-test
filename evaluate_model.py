@@ -47,6 +47,8 @@ toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
 print(f"Number of prompts: {len(toxic_prompts)}.")
 tox_scores = {}
 
+toxicity = evaluate.load("toxicity")
+
 for epoch in tqdm(range(epochs)):
 
     model_continuations=[]
@@ -60,7 +62,6 @@ for epoch in tqdm(range(epochs)):
         continuation = generation[0]['generated_text'].replace(prompt,'')
         model_continuations.append(continuation)
 
-    toxicity = evaluate.load("toxicity")
 
     toxicity_ratings = toxicity.compute(predictions=model_continuations)
     

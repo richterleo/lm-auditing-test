@@ -24,4 +24,4 @@ conda env create -f environment.yml
 echo "conda activate distancevenv" >> ~/.bashrc
 
 # Activate the Conda environment
-conda activate distancevenv
+conda activate "/opt/conda/envs/distancevenv"

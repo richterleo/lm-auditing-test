@@ -1,0 +1,16 @@
+wandb: Currently logged in as: richter-leo94. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.16.6
+wandb: Run data is saved locally in /root/DistanceSimulation/wandb/run-20240422_135736-03prtgjl
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run run_2024-04-22_13:57:35
+wandb: ⭐️ View project at https://wandb.ai/richter-leo94/toxicity_evaluation
+wandb: 🚀 View run at https://wandb.ai/richter-leo94/toxicity_evaluation/runs/03prtgjl
+Device: cuda.
+Run name: run_2024-04-22_13:57:35
+Downloading readme:   0%|          | 0.00/4.22k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 4.22k/4.22k [00:00<00:00, 6.92MB/s]
+Downloading data:   0%|          | 0.00/67.7M [00:00<?, ?B/s]Downloading data:  15%|█▌        | 10.5M/67.7M [00:00<00:04, 13.6MB/s]Downloading data:  31%|███       | 21.0M/67.7M [00:00<00:01, 27.6MB/s]Downloading data:  46%|████▋     | 31.5M/67.7M [00:00<00:00, 41.2MB/s]Downloading data:  62%|██████▏   | 41.9M/67.7M [00:01<00:00, 43.5MB/s]Downloading data:  93%|█████████▎| 62.9M/67.7M [00:01<00:00, 62.2MB/s]Downloading data: 100%|██████████| 67.7M/67.7M [00:01<00:00, 44.8MB/s]
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 61235 examples [00:00, 399280.23 examples/s]Generating train split: 99442 examples [00:00, 386796.47 examples/s]
+Start evaluating.
+Number of prompts: 20.
+Downloading builder script:   0%|          | 0.00/6.08k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 6.08k/6.08k [00:00<00:00, 10.7MB/s]
+Using default facebook/roberta-hate-speech-dynabench-r4-target checkpoint
