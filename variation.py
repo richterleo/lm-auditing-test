@@ -2,7 +2,7 @@ import json
 import numpy as np
 import itertools
 
-
+from collections import defaultdict
 from scipy.stats import kstest
 
 
@@ -23,12 +23,14 @@ class Variation:
     
     def calc_all_variation(self, binned_data):
         
-        tot_var = {}
+        all_var = defaultdict(dict)
         
         for (pkey, qkey) in itertools.combinations(binned_data.keys(), 2):
-            tot_var[(pkey, qkey)] = self._calc_tot_discrete_variation(binned_data[pkey], binned_data[qkey])
             
-        return tot_var
+            all_var['tot_var'][(pkey, qkey)] = self._calc_tot_discrete_variation(binned_data[pkey], binned_data[qkey])
+            all_var['ks_dist'][(pkey, qkey)] = self._calc_kolmogorov_variation(binned_data[pkey], binned_data[qkey])
+            
+        return all_var
     
     def calc_tot_variation(self, p, q):
         
@@ -43,13 +45,13 @@ class Variation:
         '''
         pass
     
-    def calc_kolmogorov(self, p, q):
+    def _calc_kolmogorov_variation(self, p, q):
         '''
         
         '''
         ks_distance = kstest(p, q)
         
-        return ks_distance
+        return ks_distance[0]
     
     def _calc_tot_discrete_variation(self, pr, qr):
         

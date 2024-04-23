@@ -1,6 +1,7 @@
 import json
 import os
 
+
 from utils import get_scores_from_wandb
 from variation import Variation
 
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     variation = Variation(data["tox_scores"])
     variation.bin()
         
-    tot_var = variation.calc_all_variation(variation.binned_data)
+    all_var = variation.calc_all_variation(variation.binned_data)
     
-    print(tot_var)
+    print(all_var)
     
