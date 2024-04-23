@@ -10,7 +10,7 @@ from tqdm import tqdm
 import random
 import wandb
 
-from utils import create_run_string
+from utils import create_run_string, log_scores
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Device: {device}.")
@@ -31,7 +31,7 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
 print("Start evaluating.")
 
-def get_random_prompts(dataset, num_examples=20):
+def get_random_prompts(dataset, num_examples=500):
     assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
     picks = []
     for _ in range(num_examples):
@@ -54,7 +54,7 @@ for epoch in tqdm(range(epochs)):
     model_continuations=[]
     for prompt in tqdm(toxic_prompts):
         generation = text_generation(prompt, 
-                                     max_length=50, 
+                                     max_length=100, 
                                      do_sample=True,
                                      temperature=2.0, 
                                      pad_token_id=50256)
@@ -67,18 +67,28 @@ for epoch in tqdm(range(epochs)):
     
     #hist = np.histogram(toxicity_ratings['toxicity'])
     
-    table = wandb.Table(data=toxicity_ratings['toxicity'], columns=["scores"])
-    wandb.log({"my_histogram": wandb.plot.histogram(table, "scores", title="Histogram")})
+    # table = wandb.Table(data=toxicity_ratings['toxicity'], columns=["scores"])
+    # wandb.log({"my_histogram": wandb.plot.histogram(table, "scores", title="Histogram")})
 
     
-    tox_scores[epochs] = toxicity_ratings['toxicity']
+    tox_scores[epoch] = toxicity_ratings['toxicity']
+    print(tox_scores[epoch])
+    
+    hist = np.histogram(tox_scores[epoch], bins='auto')
+    wandb.log({f"Epoch {epoch+1} Toxicity Scores": wandb.Histogram(np_histogram=hist)})
+    
+    log_scores(epoch, tox_scores)
+    
+    file_name = 'tox_scores.json'
+
+    with open(file_name, 'w') as file:
+        json.dump(tox_scores, file, indent=4)
+    
+    print(f"Saved scores epoch {epoch} out of {epochs}.")
     
 print("Finished evaluating.")
 
-file_name = 'tox_scores.json'
+wandb.finish()
 
-with open(file_name, 'w') as file:
-    json.dump(tox_scores, file, indent=4)
-    
-print("Saved scores.")
+
 

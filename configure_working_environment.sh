@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# If os is mac, need md5sha1sum, e.g. by 
+# brew install md5sha1sum
+
 # Create directory for Miniconda and download the installer
 mkdir -p ~/miniconda3
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
