@@ -6,6 +6,7 @@ import itertools
 from scipy.stats import kstest
 
 
+
 class Variation:
 
     def __init__(self, data):
