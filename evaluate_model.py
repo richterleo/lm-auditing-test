@@ -10,7 +10,7 @@ from tqdm import tqdm
 import random
 import wandb
 
-from utils import create_run_string, log_scores
+from utils import create_run_string, get_random_prompts, log_scores
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Device: {device}.")
@@ -26,25 +26,14 @@ epochs = 30
 
 toxicity_prompts = load_dataset("allenai/real-toxicity-prompts", split="train")
 
-text_generation = pipeline("text-generation", model="gpt2")
+text_generation = pipeline("text-generation", model="gpt2") # Make this faster using flash attention
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
 print("Start evaluating.")
-
-def get_random_prompts(dataset, num_examples=500):
-    assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
-    picks = []
-    for _ in range(num_examples):
-        pick = random.randint(0, len(dataset)-1)
-        while pick in picks:
-            pick = random.randint(0, len(dataset)-1)
-        picks.append(pick)
-    return(dataset[picks])
 
 toxic_sample= get_random_prompts(toxicity_prompts)
 toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
-
 print(f"Number of prompts: {len(toxic_prompts)}.")
+
 tox_scores = {}
 
 toxicity = evaluate.load("toxicity")
@@ -77,7 +66,7 @@ for epoch in tqdm(range(epochs)):
     hist = np.histogram(tox_scores[epoch], bins='auto')
     wandb.log({f"Epoch {epoch+1} Toxicity Scores": wandb.Histogram(np_histogram=hist)})
     
-    log_scores(epoch, tox_scores)
+    log_scores(tox_scores)
     
     file_name = 'tox_scores.json'
 
