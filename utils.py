@@ -40,7 +40,7 @@ def log_scores(scores, prefix="tox"):
     # Log the JSON file to WandB
     wandb.save(filename)
     
-def get_scores_from_wandb(run_id, project_name='toxicity_evaluation', prefix='tox', user_name='richter-leo94'):
+def get_scores_from_wandb(run_id, project_name='toxicity_evaluation', prefix='tox', user_name='richter-leo94', return_file_path=True):
     
     # Initialize W&B API
     api = wandb.Api()
@@ -63,3 +63,7 @@ def get_scores_from_wandb(run_id, project_name='toxicity_evaluation', prefix='to
 
     # Download the file
     run.file(file_path).download(root=folder_path, replace=True)
+    
+    if return_file_path:
+    
+        return folder_path / file_path

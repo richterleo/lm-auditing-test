@@ -16,7 +16,7 @@ class Variation:
         self.data = data
         self.binned_data = None
         
-    def bin(self, num_bins=20, lower_lim=0, upper_lim=1):
+    def bin(self, num_bins=50, lower_lim=0, upper_lim=1):
         
         count = len(self.data['0'])
         self.binned_data = {key: np.histogram(vals, bins=num_bins, range=(lower_lim, upper_lim))[0]/count for key, vals in self.data.items()}
