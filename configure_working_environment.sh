@@ -16,6 +16,10 @@ rm -rf ~/miniconda3/miniconda.sh
 # Initialize Conda for Bash shell
 ~/miniconda3/bin/conda init bash
 
+# Add wandb api key 
+export WANDB_API_KEY=1c84a4abed1d390fbe37478c7cb82a84e4650881 # Add your key here
+export WANDB_LOG_LEVEL=debug
+
 # Source the bashrc to refresh the environment
 source ~/.bashrc
 
@@ -28,3 +32,4 @@ echo "conda activate distancevenv" >> ~/.bashrc
 
 # Activate the Conda environment
 conda activate "/opt/conda/envs/distancevenv"
+

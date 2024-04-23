@@ -18,8 +18,8 @@ print(f"Device: {device}.")
 run_name = create_run_string()
 print(f"Run name: {run_name}")
 
-os.environ["WANDB_API_KEY"] = "1c84a4abed1d390fbe37478c7cb82a84e4650881"
-os.environ["WANDB_LOG_LEVEL"] = "debug"
+# os.environ["WANDB_API_KEY"] = "1c84a4abed1d390fbe37478c7cb82a84e4650881"
+# os.environ["WANDB_LOG_LEVEL"] = "debug"
 wandb.init(project="toxicity_evaluation", entity="richter-leo94", name=run_name)
 
 epochs = 30

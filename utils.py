@@ -1,7 +1,9 @@
 import json
+import os
 import random
 import wandb
 
+from pathlib import Path
 from datetime import datetime
 
 def create_run_string():
@@ -37,3 +39,27 @@ def log_scores(scores, prefix="tox"):
     
     # Log the JSON file to WandB
     wandb.save(filename)
+    
+def get_scores_from_wandb(run_id, project_name='toxicity_evaluation', prefix='tox', user_name='richter-leo94'):
+    
+    # Initialize W&B API
+    api = wandb.Api()
+
+    # Path to the file you want to download
+    file_path = f'{prefix}_scores.json'
+
+    run_name = f"{user_name}/{project_name}/{run_id}"
+
+    # Access the run
+    run = api.run(run_name)
+    
+    # Define the path to the folder you want to check and create
+    folder_path = Path(f"outputs/{run_id}")
+
+    # Check if the folder exists
+    if not folder_path.exists():
+        # Create the folder if it does not exist
+        folder_path.mkdir(parents=True, exist_ok=True)
+
+    # Download the file
+    run.file(file_path).download(root=folder_path, replace=True)
