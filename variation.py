@@ -23,6 +23,7 @@ class Variation:
         
         return hist_data
         
+        
     
     def calc_all_variation(self, var_style="tot_var"):
         '''
@@ -31,7 +32,7 @@ class Variation:
         
         all_var = defaultdict(dict)
         
-        hist_data = self.bin(self.data)
+        hist_data = self.bin_data()
         
         for (pkey, qkey) in itertools.combinations(hist_data.keys(), 2):
             

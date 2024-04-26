@@ -16,9 +16,7 @@ if __name__ == "__main__":
         data = json.load(json_data)
     
     variation = Variation(data["tox_scores"])
-    hist_data = variation.bin_data()
         
-    all_var = variation.calc_all_variation(hist_data)
-    
+    all_var = variation.calc_all_variation()
     print(all_var)
     
