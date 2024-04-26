@@ -14,32 +14,35 @@ class Variation:
         
         '''
         self.data = data
-        self.binned_data = None
         
-    def bin(self, num_bins=50, lower_lim=0, upper_lim=1):
+    def bin(self, num_bins=10, lower_lim=0, upper_lim=1):
         
         count = len(self.data['0'])
-        self.binned_data = {key: np.histogram(vals, bins=num_bins, range=(lower_lim, upper_lim))[0]/count for key, vals in self.data.items()}
+        hist_data = {key: np.histogram(vals, bins=num_bins, range=(lower_lim, upper_lim))[0]/count for key, vals in self.data.items()}
+        
+        return hist_data
     
-    def calc_all_variation(self, binned_data):
+    def calc_all_variation(self, var_style="tot_var"):
+        '''
+        
+        '''
         
         all_var = defaultdict(dict)
         
-        for (pkey, qkey) in itertools.combinations(binned_data.keys(), 2):
+        hist_data = self.bin(self.data)
+        
+        for (pkey, qkey) in itertools.combinations(hist_data.keys(), 2):
             
-            all_var['tot_var'][(pkey, qkey)] = self._calc_tot_discrete_variation(binned_data[pkey], binned_data[qkey])
-            all_var['ks_dist'][(pkey, qkey)] = self._calc_kolmogorov_variation(binned_data[pkey], binned_data[qkey])
+            if var_style == "tot_var":
+                all_var['tot_var'][(pkey, qkey)] = self._calc_tot_discrete_variation(hist_data[pkey], hist_data[qkey])
+                
+            elif var_style == "ks":
+                all_var['ks_dist'][(pkey, qkey)] = self._calc_kolmogorov_variation(hist_data[pkey], hist_data[qkey])
             
         return all_var
-    
-    def calc_tot_variation(self, p, q):
-        
-        '''
-        
-        '''
-        pass
 
-    def calc_ak_variation(self, p, q):
+
+    def _calc_ak_variation(self, p, q):
         '''
         
         '''
