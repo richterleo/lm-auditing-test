@@ -15,12 +15,14 @@ class Variation:
         '''
         self.data = data
         
-    def bin(self, num_bins=10, lower_lim=0, upper_lim=1):
+    def bin_data(self, num_bins=9, lower_lim=0, upper_lim=1):
         
         count = len(self.data['0'])
+        
         hist_data = {key: np.histogram(vals, bins=num_bins, range=(lower_lim, upper_lim))[0]/count for key, vals in self.data.items()}
         
         return hist_data
+        
     
     def calc_all_variation(self, var_style="tot_var"):
         '''
@@ -71,17 +73,17 @@ class Variation:
         
         
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-    file_name = "tox_scores.json"
+#     file_name = "tox_scores.json"
 
-    with open(file_name) as json_data:
-        data = json.load(json_data)
+#     with open(file_name) as json_data:
+#         data = json.load(json_data)
         
     
-    variation = Variation(data)
-    variation.bin()
+#     variation = Variation(data)
+#     variation.bin()
         
-    tot_var = variation.calc_all_variation(variation.binned_data)
+#     tot_var = variation.calc_all_variation(variation.binned_data)
     
-    print(tot_var)
+#     print(tot_var)
