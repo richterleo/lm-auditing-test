@@ -7,7 +7,7 @@ from scipy.stats import kstest
 
 
 
-class Variation:
+class VariationSampler:
 
     def __init__(self, data):
         '''
@@ -37,39 +37,42 @@ class Variation:
         for (pkey, qkey) in itertools.combinations(hist_data.keys(), 2):
             
             if var_style == "tot_var":
-                all_var['tot_var'][(pkey, qkey)] = self._calc_tot_discrete_variation(hist_data[pkey], hist_data[qkey])
+                all_var['tot_var'][(pkey, qkey)] = calc_tot_discrete_variation(hist_data[pkey], hist_data[qkey])
                 
             elif var_style == "ks":
-                all_var['ks_dist'][(pkey, qkey)] = self._calc_kolmogorov_variation(hist_data[pkey], hist_data[qkey])
+                all_var['ks_dist'][(pkey, qkey)] = calc_kolmogorov_variation(hist_data[pkey], hist_data[qkey])
             
         return all_var
 
 
-    def _calc_ak_variation(self, p, q):
-        '''
-        
-        '''
-        pass
+def calc_ak_variation(self, p, q):
+    '''
     
-    def _calc_kolmogorov_variation(self, p, q):
-        '''
-        
-        '''
-        ks_distance = kstest(p, q)
-        
-        return ks_distance[0]
+    '''
+    pass
     
-    def _calc_tot_discrete_variation(self, pr, qr):
+
+
+def calc_kolmogorov_variation(self, p, q):
+    '''
+    
+    '''
+    ks_distance = kstest(p, q)
+    
+    return ks_distance[0]
         
-        '''
-        '''
-        pr = np.array(pr)
-        qr = np.array(qr)
-        
-        tot_diff = np.abs(pr - qr)
-        tot_var = tot_diff.sum().item()
-        
-        return tot_var
+    
+def calc_tot_discrete_variation(pr, qr):
+    
+    '''
+    '''
+    pr = np.array(pr)
+    qr = np.array(qr)
+    
+    tot_diff = np.abs(pr - qr)
+    tot_var = tot_diff.sum().item()
+    
+    return tot_var
         
         
         
