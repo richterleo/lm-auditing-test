@@ -28,8 +28,13 @@ echo "Creating conda environment"
 conda env create -f environment.yml
 
 # Add conda activation command to bashrc
-echo "conda activate distancevenv" >> ~/.bashrc
+echo "conda activate '/opt/conda/envs/distancevenv'" >> ~/.bashrc
 
 # Activate the Conda environment
 conda activate "/opt/conda/envs/distancevenv"
+
+# install flash attention
+pip install ninja
+pip install flash-attn --no-build-isolation
+
 

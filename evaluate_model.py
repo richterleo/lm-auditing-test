@@ -25,9 +25,11 @@ model = AutoModelForCausalLM.from_pretrained(
     args.model_name,
     use_flash_attention_2=True,
     torch_dtype=torch.float16,
-    load_in_4bit=True,
+    load_in_4bit=False, #TODO: investigate why this does not work
 )
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+
+model.to(args.device)
 
 sample= get_random_prompts(prompts)
 prompts = [p['text'] for p in sample['prompt']]

@@ -11,4 +11,5 @@ class EvalArgs:
     dataset_name: Optional[str] = field(default="allenai/real-toxicity-prompts")
     run_name = create_run_string()
     batch_size: Optional[int] = field(default=30, metadata={"help": "How many times to go though the whole dataset"})
-    model_name: Optional[str] = field(default="llama")
+    model_name: Optional[str] = field(default="meta-llama/Meta-Llama-3-8B")
+    device: Optional[str] = field(default="cpu")
