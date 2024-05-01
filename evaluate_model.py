@@ -47,7 +47,12 @@ for epoch in tqdm(range(args.epochs)):
     model_continuations = []
     for prompt in tqdm(prompts):
         generation = pipeline(
-            prompt, max_length=100, do_sample=True, temperature=2.0, pad_token_id=50256
+            prompt,
+            max_length=100,
+            do_sample=True,
+            temperature=2.0,
+            pad_token_id=50256,
+            batch_size=8,
         )
 
         continuation = generation[0]["generated_text"].replace(prompt, "")
@@ -63,7 +68,7 @@ for epoch in tqdm(range(args.epochs)):
 
     log_scores(scores)
 
-    file_name = f"{metric}_scores.json"
+    file_name = f"{args.metric}_scores.json"
 
     with open(file_name, "w") as file:
         json.dump(scores, file, indent=4)
