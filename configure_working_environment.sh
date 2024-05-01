@@ -34,7 +34,7 @@ echo "conda activate '/opt/conda/envs/distancevenv'" >> ~/.bashrc
 conda activate "/opt/conda/envs/distancevenv"
 
 # install flash attention
-pip install ninja
-pip install flash-attn --no-build-isolation
+# pip install ninja
+# pip install flash-attn --no-build-isolation
 
 
