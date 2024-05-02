@@ -6,6 +6,7 @@
 # Add wandb api key 
 export WANDB_API_KEY=1c84a4abed1d390fbe37478c7cb82a84e4650881 # Add your key here
 export WANDB_LOG_LEVEL=debug
+export HF_TOKEN=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
 
 # install flash attention
 pip install torch transformers datasets wandb numpy evaluate tqdm
