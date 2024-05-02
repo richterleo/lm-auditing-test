@@ -4,6 +4,7 @@ import numpy as np
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import pipeline, PreTrainedModel, PreTrainedTokenizer
+from transformers.utils import is_flash_attn_2_available
 
 from datasets import load_dataset
 import evaluate
@@ -23,14 +24,18 @@ wandb.init(
 
 prompts = load_dataset(args.dataset_name, split="train")
 
+model_kwargs = {
+    "torch_dtype": torch.bfloat16,
+    "load_in_4bit": False,
+}
+
+if is_flash_attn_2_available():
+    model_kwargs.update({"attn_implementation": "flash_attention_2"})
+
 pipeline = pipeline(
     "text-generation",
     model=args.model_id,
-    model_kwargs={
-        "torch_dtype": torch.bfloat16,
-        "use_flash_attention_2": False,  # investigate why this does not work
-        "load_in_4bit": False,
-    },  # investigate why this does not work
+    model_kwargs=model_kwargs,
     device=args.device,
 )
 

@@ -128,6 +128,43 @@ def ctest_2samp_unequal_estimate_m2(
     return ref
 
 
+def ctest_1samp(
+    X,
+    P,
+    epsilon=0.1,
+):
+    """ """
+
+    k = X.sum()  # Total number of samples
+    num_bins = X.shape[0]
+
+    s = np.min(np.where(np.cumsum(np.sort(p))[::-1] <= epsilon / 8))
+
+    # Calculate the 2-norm of the vector p_M, which contains probabilities indexed by M
+    p_M = p[M - 1]  # Adjust for zero indexing
+    norm_pM = np.linalg.norm(p_M, 2)
+
+    # Condition 1
+    condition1 = (
+        np.sum((X[M - 1] - k * p[M - 1]) ** 2 / p[M - 1]) > 4 * k * norm_pM**2 / 3
+    )
+
+    # Condition 2
+    S = np.arange(s + 1, len(p) + 1)  # Adjust for zero indexing
+    condition2 = np.sum(X[S - 1]) > (3 * epsilon * k) / 16
+
+    # Calculate the 1-norm of the difference between p and q
+    norm_diff = np.linalg.norm(p - q, 1)
+
+    if condition1 or condition2:
+        if norm_diff >= epsilon:
+            return "REJECT"
+        else:
+            return "ACCEPT"
+    else:
+        return "ACCEPT"
+
+
 # def closeness_1samp(p, cdf, eps=0.1):
 #     """
 #     Adapted from scipy, e.g. KstestResult
