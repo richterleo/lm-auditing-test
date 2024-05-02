@@ -108,6 +108,26 @@ def ctest_2samp_unequal(
             return "REJECT"
 
 
+def ctest_2samp_unequal_estimate_m2(
+    m1,
+    epsilon=0.1,
+    num_bins=10,
+):
+    """ """
+    assert (
+        m1 >= (num_bins ** (2 / 3)) / (epsilon ** (4 / 3))
+    ), f"Number of samples from p must be bigger than (n^(2/3))/(epsilon^(4/3)) = {(num_bins**(2/3))/(epsilon**(4/3))}"
+    assert epsilon > num_bins ** (
+        -1 / 12
+    ), f"Epsilon must be bigger than n^(-1/12) = {num_bins**(-1/12):.3g}"
+
+    ref = np.max(
+        num_bins / (m1 ** (1 / 2) * epsilon**2), num_bins ** (1 / 2) / epsilon**2
+    )
+
+    return ref
+
+
 # def closeness_1samp(p, cdf, eps=0.1):
 #     """
 #     Adapted from scipy, e.g. KstestResult
