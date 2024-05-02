@@ -5,19 +5,28 @@ from collections import Counter
 from variation import Variation, calc_tot_discrete_variation
 
 
-# def closeness_2samp_unequal_get_m2(m_1, eps=0.1, num_bins=10):
-#     """ """
-#     assert eps > num_bins ** (
-#         -1 / 12
-#     ), f"Epsilon must be bigger than n^(-1/12) = {num_bins ** (-1/12):.3g}"
-#     assert (
-#         m_1 > (num_bins ** (2 / 3)) / (eps ** (4 / 3))
-#     ), f"Number of samples from p must be bigger than (n^(2/3))/(epsilon^(4/3)) = {(num_bins ** (2/3)) / (eps ** (4/3))}"
-
-
-def closeness_testing(
-    S1, S2, T1, T2, num_bins=10, epsilon=0.1, epsilon_threshold=1e-7, C0=1
+def ctest_2samp_unequal(
+    S1,
+    S2,
+    T1,
+    T2,
+    gamma=0.1,  # TODO define gamme
+    num_bins=10,
+    epsilon=0.1,
+    epsilon_threshold=1e-7,
+    C0=1,  # TODO: define C0
+    C1=1,  # TODO: define C1
+    C2=1,  # TODO: define C2
+    C_gamma=1,  # TODO: define C_gamma
+    lower_lim=0,
+    upper_lim=1,
 ):
+    """
+    Implementation of closeness test for two samples with unequal sample sizes.
+    Algorithm adapted from https://proceedings.neurips.cc/paper_files/paper/2015/hash/5cce8dede893813f879b873962fb669f-Abstract.html
+
+    """
+
     assert (
         epsilon_threshold < epsilon
     ), f"Epsilon cannot be negigibly small (value given = {epsilon}, but lower threshold set to {epsilon_threshold})."
@@ -52,47 +61,49 @@ def closeness_testing(
     B2 = {i for i in range(1, num_bins + 1) if i in get_indices(counts_t1, m1)}
 
     B = B1 | B2
+    mask = np.ones(num_bins)
 
-    # Step 1: Check condition (2)
-    condition_2 = all(
-        abs(counts_S1.get(i, 0) / m1 - counts_S2.get(i, 0) / m2) <= epsilon / 6
-        for i in B
-    )
+    # create mask for checking conditions
+    mask[list(B)] = 0
 
-    # Step 2: Calculate Z
-    Z = sum(
-        ((m2 * counts_S1.get(i, 0) - m1 * counts_S2.get(i, 0)) ** 2)
-        / (counts_S1.get(i, 0) + counts_S2.get(i, 0))
-        for i in range(1, n + 1)
-        if i not in B
-    )
+    # Check condition (2)
+    cond1_value = np.sum(np.abs(counts_s2 / m1 - counts_t2 / m2))
+    cond1_met = cond1_value <= epsilon / 6
+
+    # Check condition (3)
+    Z_vec = (
+        (m2 * counts_s2 - m1 * counts_t2) ** 2 - (m2**2 * counts_s2 + m1**2 * counts_t2)
+    ) / (counts_s2 + counts_t2)
+    Z_vec[mask] = 0
+    Z = np.sum(Z_vec).item()
 
     C_gamma = 1  # This constant is assumed, needs to be defined based on gamma
-    condition_3 = Z <= C_gamma * (m1 ** (-3 / 2)) * (m2**2)
+    cond2_met = Z <= C_gamma * (m1 ** (3 / 2)) * m2
 
     # Step 3: Check conditions for gamma
     if gamma >= 1 / 9:
-        if condition_2 and condition_3:
+        if cond1_met and cond2_met:
             return "ACCEPT"
         else:
             return "REJECT"
     else:
-        # Step 4: Calculate R and check condition (4)
-        C1 = 1  # This constant is assumed
-        R = sum(
-            1
-            for i in range(1, n + 1)
-            if counts_S2.get(i, 0) >= 2 and counts_S1.get(i, 0) + 1
-        )
-        condition_4 = all(
-            counts_S2.get(i, 0) < 3
-            and counts_S1.get(i, 0) < C2 * (m2**2) / (m1**2) * (n ** (-1 / 3))
-            for i in range(1, n + 1)
-            if i not in B
-        )
-        C2 = 1  # This constant is assumed
-        if condition_2 and condition_3 and condition_4:
-            return "ACCEPT"
+        R_vec = (counts_t2 == 2) / (counts_s2 + 1)
+        R_vec[mask] = 0
+        R = np.sum(R_vec).item()
+
+        cond3_met = R <= C1 * m2**2 / m1
+
+        if cond1_met and cond2_met and cond3_met:
+            maskY = counts_t2 >= 3
+            maskX = counts_s2 <= C2 * m1 / (m2 * num_bins ** (1 / 3))
+
+            mask = maskY & maskX
+
+            cond4_met = np.sum(mask) == 0
+
+            if cond4_met:
+                return "ACCEPT"
+
         else:
             return "REJECT"
 
@@ -116,3 +127,13 @@ def closeness_testing(
 # def closeness_2samp_unequal(p, q, eps=0.1, num_bins=10):
 #     """ """
 #     pass
+
+
+# def closeness_2samp_unequal_get_m2(m_1, eps=0.1, num_bins=10):
+#     """ """
+#     assert eps > num_bins ** (
+#         -1 / 12
+#     ), f"Epsilon must be bigger than n^(-1/12) = {num_bins ** (-1/12):.3g}"
+#     assert (
+#         m_1 > (num_bins ** (2 / 3)) / (eps ** (4 / 3))
+#     ), f"Number of samples from p must be bigger than (n^(2/3))/(epsilon^(4/3)) = {(num_bins ** (2/3)) / (eps ** (4/3))}"
