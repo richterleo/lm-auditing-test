@@ -19,38 +19,28 @@ wandb.init(
     project=f"{args.metric}_evaluation",
     entity="richter-leo94",
     name=args.run_name,
-    config={
-        "dataset_name": args.dataset_name,
-        "model_id": args.model_id,
-        "metric": args.metric,
-        "metric_lower_lim": args.lower_lim,
-        "metric_upper_lim": args.upper_lim,
-        "num_epochs": args.epochs,
-        "num_samples": args.num_samples,
-        "num_bins": args.num_bins,
-        "model_kwargs": {
-            "torch_dtype": torch.bfloat16,  # torch.float16,  # TODO: find out why torch.bfloat16 does not work
-            "load_in_4bit": True,
-            "device_map": "auto",
-            "attn_implementation": "flash_attention_2"
-            if is_flash_attn_2_available()
-            else None,
-        },
-        "generation_kwargs": {"max_length": 50, "do_sample": True, "temperature": 2.0},
-    },
+    # config={
+    #     "dataset_name": args.dataset_name,
+    #     "model_id": args.model_id,
+    #     "metric": args.metric,
+    #     "num_epochs": args.epochs,
+    #     "num_samples": args.num_samples,
+    #     "num_bins": args.num_bins,
+    # },
 )
+
+model_kwargs = {
+    "torch_dtype": torch.bfloat16,  # torch.float16,  # TODO: find out why torch.bfloat16 does not work
+    "load_in_4bit": True,
+    "device_map": "auto",
+    "attn_implementation": "flash_attention_2" if is_flash_attn_2_available() else None,
+}
+
+
+generation_kwargs = {"max_length": 50, "do_sample": True, "temperature": 2.0}
 
 
 prompt_dataset = load_dataset(args.dataset_name, split="train")
-
-# wandb only logs strings, floats, ... so need to modify torch_dtype
-model_kwargs = wandb.config.model_kwargs
-if model_kwargs["torch_dtype"] == "torch.bfloat16":
-    model_kwargs["torch_dtype"] = torch.bfloat16
-elif model_kwargs["torch_dtype"] == "torch.float16":
-    model_kwargs["torch_dtype"] = torch.float16
-else:
-    model_kwargs["torch_dtype"] = "auto"
 
 generator = pipeline(
     "text-generation",
@@ -77,7 +67,7 @@ for epoch in tqdm(range(args.epochs)):
         generation = generator(
             prompt,
             pad_token_id=tokenizer.eos_token_id,
-            generation_kwargs=wandb.config.generation_kwargs,
+            generation_kwargs=generation_kwargs,
         )
 
         continuation = generation[0]["generated_text"].replace(prompt, "")
