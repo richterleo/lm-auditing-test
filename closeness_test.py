@@ -120,12 +120,10 @@ def ctest_2samp_unequal_nonextreme(
     S2,
     T1,
     T2,
-    gamma=0.1,  # TODO define gamme
+    gamma=0.1,  # TODO define gamma
     num_bins=10,
     epsilon=0.1,
     epsilon_threshold=1e-7,
-    C1=1,  # TODO: define C1
-    C2=1,  # TODO: define C2
     C_gamma=1,  # TODO: define C_gamma
     lower_lim=0,
     upper_lim=1,
@@ -168,65 +166,51 @@ def ctest_2samp_unequal_nonextreme(
     b2 = (256 * np.log(num_bins)) / (m1)
     b1 = b2 / epsilon**2
 
-    # Determine B set by writing a helper function
-    def get_indices(arr, m):
-        mask = (arr / m) > b
+    # Determine heavy set by writing a helper function
+    def get_indices_heavy_set(arr, m):
+        mask = (arr / m) > b1
         indices = np.where(mask)[0]  # Find indices where condition is true
 
         return indices
 
-    # Define the heavy set
-    B1 = {i for i in range(1, num_bins + 1) if i in get_indices(S1, m1)}
-    B2 = {i for i in range(1, num_bins + 1) if i in get_indices(T1, m1)}
-
-    # Define the medium set
-
-    # Define the light set
+    # Define the heavy set and create mask
+    B1 = {i for i in range(1, num_bins + 1) if i in get_indices_heavy_set(S1, m1)}
+    B2 = {i for i in range(1, num_bins + 1) if i in get_indices_heavy_set(T1, m1)}
 
     B = B1 | B2
-    mask = np.ones(num_bins)
+    Bmask = np.ones(num_bins)
+    Bmask[~list(B)] = 0
 
-    # create mask for checking conditions
-    mask[list(B)] = 0
+    # Define the medium set and create mask
+    Mmask = np.ones(num_bins)
+    upper_cond = np.max(S1 / m1, T1 / m2) > b1
+    lower_cond = np.max(S1 / m1, T1 / m2) < b2
+    combined_cond = upper_cond | lower_cond
+    Mmask[combined_cond] = 0
 
-    # Check condition (2)
-    cond1_value = np.sum(np.abs(S2 / m1 - T2 / m2))
-    cond1_met = cond1_value <= epsilon / 6
+    # Define the light set and create mask
+    Hmask = np.ones(num_bins)
+    Hmask[Bmask == 0 or Mmask == 0] = 0
 
-    # Check condition (3)
-    Z_vec = ((m2 * S2 - m1 * T2) ** 2 - (m2**2 * S2 + m1**2 * T2)) / (S2 + T2)
-    Z_vec[mask] = 0
-    Z = np.sum(Z_vec).item()
+    # Check condition 1 ((6) in paper)
+    VB_vec = np.abs(S2 / m1 - T2 / m2)
+    VB = VB_vec[Bmask].sum().item()
+    cond1_met = VB <= epsilon / 6
 
-    C_gamma = 1  # This constant is assumed, needs to be defined based on gamma
-    cond2_met = Z <= C_gamma * (m1 ** (3 / 2)) * m2
+    # Check condition 2 ((7) in paper)
+    WM_vec = (m2 * S2 - m1 * T2) ** 2 - (m2**2 * S2 + m1**2 * T2)
+    WM = WM_vec[Mmask].sum().item()
+    cond2_met = WM <= (epsilon**2 * m1**2 * m2 * np.log(num_bins)) / 2
 
-    # Step 3: Check conditions for gamma
-    if gamma >= 1 / 9:
-        if cond1_met and cond2_met:
-            return "ACCEPT"
-        else:
-            return "REJECT"
+    # Check condition 3 ((8) in paper
+    ZH_vec = ((m2 * S2 - m1 * T2) ** 2 - (m2**2 * S2 + m1**2 * T2)) / (S2 + T2)
+    ZH = ZH_vec[Hmask].sum().item()
+    cond3_met = ZH <= C_gamma * m1 ** (3 / 2) * m2
+
+    if cond1_met and cond2_met and cond3_met:
+        return "ACCEPT"
     else:
-        R_vec = (T2 == 2) / (S2 + 1)
-        R_vec[mask] = 0
-        R = np.sum(R_vec).item()
-
-        cond3_met = R <= C1 * m2**2 / m1
-
-        if cond1_met and cond2_met and cond3_met:
-            maskY = T2 >= 3
-            maskX = S2 <= C2 * m1 / (m2 * num_bins ** (1 / 3))
-
-            mask = maskY & maskX
-
-            cond4_met = np.sum(mask) == 0
-
-            if cond4_met:
-                return "ACCEPT"
-
-        else:
-            return "REJECT"
+        return "REJECT"
 
 
 def ctest_2samp_unequal_estimate_m2(
