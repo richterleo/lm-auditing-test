@@ -20,6 +20,7 @@ def ctest_2samp_unequal(
     C_gamma=1,  # TODO: define C_gamma
     lower_lim=0,
     upper_lim=1,
+    bin_first=True,  # TODO: implement alternative where data comes binned already
 ):
     """
     Implementation of closeness test for two samples with unequal sample sizes.
@@ -32,22 +33,30 @@ def ctest_2samp_unequal(
     ), f"Epsilon cannot be negigibly small (value given = {epsilon}, but lower threshold set to {epsilon_threshold})."
     # TODO: check condition for m_1
 
-    assert (
-        S1.shape[0] == S2.shape[0]
-    ), f"Samples from p must have the same size, but S1 has {S1.shape[0]} and S2 has {S2.shape[0]} samples."
-    assert (
-        T1.shape[0] == T2.shape[0]
-    ), f"Samples from p must have the same size, but S1 has {S1.shape[0]} and S2 has {S2.shape[0]} samples."
+    # Assume that samples just come as arrays of values
+    if bin_first:
+        S1 = np.histogram(
+            S1, bins=num_bins, range=(lower_lim, upper_lim)
+        )[
+            0
+        ]  # TODO: check what the output of the histogram is again. I think it's a tuple and we only need one part
+        S2 = np.histogram(S2, bins=num_bins, range=(lower_lim, upper_lim))[0]
+        T1 = np.histogram(T1, bins=num_bins, range=(lower_lim, upper_lim))[0]
+        T2 = np.histogram(T2, bins=num_bins, range=(lower_lim, upper_lim))[0]
 
-    m1 = S1.shape[0]
-    m2 = T1.shape[0]
+    m1 = S1.sum().item()
+    m2 = T1.sum().item()
+
+    assert (
+        m1 == S2.sum().item()
+    ), f"Samples from p must be the same size, but S1 has {m1} and S2 has {S2.sum().item()} samples."
+    assert (
+        m2 == T2.sum().item()
+    ), f"Samples from p must be the same size, but T1 has {m2} and T2 has {T2.sum().item()} samples."
+
+    num_bins = S1.shape[0]
 
     b = C0 * np.log(num_bins) / m2
-
-    counts_s1 = np.histogram(S1, bins=num_bins, range=(lower_lim, upper_lim))
-    counts_s2 = np.histogram(S2, bins=num_bins, range=(lower_lim, upper_lim))
-    counts_t1 = np.histogram(T1, bins=num_bins, range=(lower_lim, upper_lim))
-    counts_t2 = np.histogram(T2, bins=num_bins, range=(lower_lim, upper_lim))
 
     # Determine B set by writing a helper function
     def get_indices(arr, m):
@@ -57,8 +66,8 @@ def ctest_2samp_unequal(
         return indices
 
     # Find the indices where the condition is True
-    B1 = {i for i in range(1, num_bins + 1) if i in get_indices(counts_s1, m1)}
-    B2 = {i for i in range(1, num_bins + 1) if i in get_indices(counts_t1, m1)}
+    B1 = {i for i in range(1, num_bins + 1) if i in get_indices(S1, m1)}
+    B2 = {i for i in range(1, num_bins + 1) if i in get_indices(T1, m1)}
 
     B = B1 | B2
     mask = np.ones(num_bins)
@@ -67,13 +76,11 @@ def ctest_2samp_unequal(
     mask[list(B)] = 0
 
     # Check condition (2)
-    cond1_value = np.sum(np.abs(counts_s2 / m1 - counts_t2 / m2))
+    cond1_value = np.sum(np.abs(S2 / m1 - T2 / m2))
     cond1_met = cond1_value <= epsilon / 6
 
     # Check condition (3)
-    Z_vec = (
-        (m2 * counts_s2 - m1 * counts_t2) ** 2 - (m2**2 * counts_s2 + m1**2 * counts_t2)
-    ) / (counts_s2 + counts_t2)
+    Z_vec = ((m2 * S2 - m1 * T2) ** 2 - (m2**2 * S2 + m1**2 * T2)) / (S2 + T2)
     Z_vec[mask] = 0
     Z = np.sum(Z_vec).item()
 
@@ -87,15 +94,129 @@ def ctest_2samp_unequal(
         else:
             return "REJECT"
     else:
-        R_vec = (counts_t2 == 2) / (counts_s2 + 1)
+        R_vec = (T2 == 2) / (S2 + 1)
         R_vec[mask] = 0
         R = np.sum(R_vec).item()
 
         cond3_met = R <= C1 * m2**2 / m1
 
         if cond1_met and cond2_met and cond3_met:
-            maskY = counts_t2 >= 3
-            maskX = counts_s2 <= C2 * m1 / (m2 * num_bins ** (1 / 3))
+            maskY = T2 >= 3
+            maskX = S2 <= C2 * m1 / (m2 * num_bins ** (1 / 3))
+
+            mask = maskY & maskX
+
+            cond4_met = np.sum(mask) == 0
+
+            if cond4_met:
+                return "ACCEPT"
+
+        else:
+            return "REJECT"
+
+
+def ctest_2samp_unequal_nonextreme(
+    S1,
+    S2,
+    T1,
+    T2,
+    gamma=0.1,  # TODO define gamme
+    num_bins=10,
+    epsilon=0.1,
+    epsilon_threshold=1e-7,
+    C1=1,  # TODO: define C1
+    C2=1,  # TODO: define C2
+    C_gamma=1,  # TODO: define C_gamma
+    lower_lim=0,
+    upper_lim=1,
+    bin_first=True,  # TODO: implement alternative where data comes binned already
+):
+    """
+    Implementation of closeness test for two samples with unequal sample sizes.
+    Algorithm adapted from https://proceedings.neurips.cc/paper_files/paper/2015/hash/5cce8dede893813f879b873962fb669f-Abstract.html
+
+    """
+
+    assert (
+        epsilon_threshold < epsilon
+    ), f"Epsilon cannot be negigibly small (value given = {epsilon}, but lower threshold set to {epsilon_threshold})."
+    # TODO: check condition for m_1
+
+    # Assume that samples just come as arrays of values
+    if bin_first:
+        S1 = np.histogram(
+            S1, bins=num_bins, range=(lower_lim, upper_lim)
+        )[
+            0
+        ]  # TODO: check what the output of the histogram is again. I think it's a tuple and we only need one part
+        S2 = np.histogram(S2, bins=num_bins, range=(lower_lim, upper_lim))[0]
+        T1 = np.histogram(T1, bins=num_bins, range=(lower_lim, upper_lim))[0]
+        T2 = np.histogram(T2, bins=num_bins, range=(lower_lim, upper_lim))[0]
+
+    m1 = S1.sum().item()
+    m2 = T1.sum().item()
+
+    assert (
+        m1 == S2.sum().item()
+    ), f"Samples from p must be the same size, but S1 has {m1} and S2 has {S2.sum().item()} samples."
+    assert (
+        m2 == T2.sum().item()
+    ), f"Samples from p must be the same size, but T1 has {m2} and T2 has {T2.sum().item()} samples."
+
+    num_bins = S1.shape[0]
+
+    b2 = (256 * np.log(num_bins)) / (m1)
+    b1 = b2 / epsilon**2
+
+    # Determine B set by writing a helper function
+    def get_indices(arr, m):
+        mask = (arr / m) > b
+        indices = np.where(mask)[0]  # Find indices where condition is true
+
+        return indices
+
+    # Define the heavy set
+    B1 = {i for i in range(1, num_bins + 1) if i in get_indices(S1, m1)}
+    B2 = {i for i in range(1, num_bins + 1) if i in get_indices(T1, m1)}
+
+    # Define the medium set
+
+    # Define the light set
+
+    B = B1 | B2
+    mask = np.ones(num_bins)
+
+    # create mask for checking conditions
+    mask[list(B)] = 0
+
+    # Check condition (2)
+    cond1_value = np.sum(np.abs(S2 / m1 - T2 / m2))
+    cond1_met = cond1_value <= epsilon / 6
+
+    # Check condition (3)
+    Z_vec = ((m2 * S2 - m1 * T2) ** 2 - (m2**2 * S2 + m1**2 * T2)) / (S2 + T2)
+    Z_vec[mask] = 0
+    Z = np.sum(Z_vec).item()
+
+    C_gamma = 1  # This constant is assumed, needs to be defined based on gamma
+    cond2_met = Z <= C_gamma * (m1 ** (3 / 2)) * m2
+
+    # Step 3: Check conditions for gamma
+    if gamma >= 1 / 9:
+        if cond1_met and cond2_met:
+            return "ACCEPT"
+        else:
+            return "REJECT"
+    else:
+        R_vec = (T2 == 2) / (S2 + 1)
+        R_vec[mask] = 0
+        R = np.sum(R_vec).item()
+
+        cond3_met = R <= C1 * m2**2 / m1
+
+        if cond1_met and cond2_met and cond3_met:
+            maskY = T2 >= 3
+            maskX = S2 <= C2 * m1 / (m2 * num_bins ** (1 / 3))
 
             mask = maskY & maskX
 
@@ -129,40 +250,43 @@ def ctest_2samp_unequal_estimate_m2(
 
 
 def ctest_1samp(
-    X,
-    P,
-    epsilon=0.1,
+    X, P, epsilon=0.1, num_bins=10, lower_lim=0, upper_lim=1, bin_first=True
 ):
     """ """
+
+    if bin_first:
+        X = np.histogram(X, bins=num_bins, range=(lower_lim, upper_lim))[0]
 
     k = X.sum()  # Total number of samples
     num_bins = X.shape[0]
 
-    s = np.min(np.where(np.cumsum(np.sort(p))[::-1] <= epsilon / 8))
-
-    # Calculate the 2-norm of the vector p_M, which contains probabilities indexed by M
-    p_M = p[M - 1]  # Adjust for zero indexing
-    norm_pM = np.linalg.norm(p_M, 2)
+    s = np.min(np.where(np.cumsum(np.sort(P))[::-1] <= epsilon / 8))
+    M = range(2, s + 1)
+    S = range(s + 1, num_bins + 1)
 
     # Condition 1
-    condition1 = (
-        np.sum((X[M - 1] - k * p[M - 1]) ** 2 / p[M - 1]) > 4 * k * norm_pM**2 / 3
-    )
+    pm = P[
+        2 : s + 1
+    ]  # remove item with largest probability and the items with the cumulatively smallest probability (below epsilon/8)
 
-    # Condition 2
-    S = np.arange(s + 1, len(p) + 1)  # Adjust for zero indexing
-    condition2 = np.sum(X[S - 1]) > (3 * epsilon * k) / 16
+    cond1_vec = ((X - k * P) ** 2 - X) / (P ** (2 / 3))
+    cond1_value = cond1_vec[M].sum().item()
 
-    # Calculate the 1-norm of the difference between p and q
-    norm_diff = np.linalg.norm(p - q, 1)
+    cond1_met = cond1_value > 4 * k * np.sqrt(pm ** (2 / 3))
 
-    if condition1 or condition2:
-        if norm_diff >= epsilon:
+    if cond1_met:
+        return "REJECT"
+
+    else:
+        # Condition 2
+        cond2_value = X[S].sum().item()
+        cond2_met = cond2_value > (3 / 16) * k * epsilon
+
+        if cond2_met:
             return "REJECT"
+
         else:
             return "ACCEPT"
-    else:
-        return "ACCEPT"
 
 
 # def closeness_1samp(p, cdf, eps=0.1):
