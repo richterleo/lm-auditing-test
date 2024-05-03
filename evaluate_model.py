@@ -1,6 +1,4 @@
 import json
-import numpy as np
-
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 
