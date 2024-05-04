@@ -1,19 +1,19 @@
+import evaluate
 import json
-from transformers import pipeline, AutoTokenizer
-from transformers.utils import is_flash_attn_2_available
+import numpy as np
+import torch
+import wandb
 
 from datasets import load_dataset
-import evaluate
-import torch
+from transformers import pipeline, AutoTokenizer
+from transformers.utils import is_flash_attn_2_available
 from tqdm import tqdm
-import wandb
 
 from arguments import EvalArgs
 from utils import get_random_prompts, log_scores
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-args = EvalArgs(device=device)
-
+args = EvalArgs(device=device, temperature=2.0)
 
 wandb.init(
     project=f"{args.metric}_evaluation",
@@ -28,15 +28,20 @@ wandb.init(
         "num_epochs": args.epochs,
         "num_samples": args.num_samples,
         "num_bins": args.num_bins,
+        "device": device,
         "model_kwargs": {
-            "torch_dtype": torch.bfloat16,  # torch.float16,  # TODO: find out why torch.bfloat16 does not work
+            "torch_dtype": torch.bfloat16,  # torch.float16
             "load_in_4bit": True,
-            "device_map": "auto",
+            "device_map": "auto" if device == "cuda" else None,
             "attn_implementation": "flash_attention_2"
             if is_flash_attn_2_available()
             else None,
         },
-        "generation_kwargs": {"max_length": 50, "do_sample": True, "temperature": 2.0},
+        "generation_kwargs": {
+            "max_length": args.max_length,
+            "do_sample": args.do_sample,
+            "temperature": args.temperature,
+        },
     },
 )
 
@@ -52,15 +57,15 @@ elif model_kwargs["torch_dtype"] == "torch.float16":
 else:
     model_kwargs["torch_dtype"] = "auto"
 
+
+generation_kwargs = wandb.config.generation_kwargs
+
 generator = pipeline(
     "text-generation",
     model=args.model_id,
-    # device=args.device, # no device param if using accelerate
+    # device=args.device, # no device param if using accelerate (load_in_4bit=True)
     model_kwargs=model_kwargs,
 )
-
-model_device = generator.device
-print(f"The model is on device: {model_device}")
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_id)
 
@@ -75,9 +80,7 @@ for epoch in tqdm(range(args.epochs)):
     model_continuations = []
     for prompt in tqdm(prompts):
         generation = generator(
-            prompt,
-            pad_token_id=tokenizer.eos_token_id,
-            generation_kwargs=wandb.config.generation_kwargs,
+            prompt, pad_token_id=tokenizer.eos_token_id, **generation_kwargs
         )
 
         continuation = generation[0]["generated_text"].replace(prompt, "")
@@ -86,29 +89,29 @@ for epoch in tqdm(range(args.epochs)):
     ratings = metric.compute(predictions=model_continuations)
 
     results[epoch] = {}
-    # results[epoch]["generations"] = model_continuations
+    results[epoch]["generations"] = model_continuations
     results[epoch]["ratings"] = ratings[args.metric]
 
-    # hist_values, bin_edges = np.histogram(
-    #     results[epoch]["ratings"],
-    #     bins=args.num_bins,
-    #     lower_lim=args.lower_lim,
-    #     upper_lim=args.lower_lim,
-    # )
+    hist_values, bin_edges = np.histogram(
+        results[epoch]["ratings"],
+        bins=args.num_bins,
+        lower_lim=args.lower_lim,
+        upper_lim=args.lower_lim,
+    )
 
-    # # Convert histogram to a format that can be logged by wandb
-    # wandb_hist_data = [[x, y] for x, y in zip(bin_edges[:-1], hist_values)]
+    # Convert histogram to a format that can be logged by wandb
+    wandb_hist_data = [[x, y] for x, y in zip(bin_edges[:-1], hist_values)]
 
-    # # Log the histogram to wandb
-    # wandb.log(
-    #     {
-    #         f"Epoch_{epoch}_histogram": wandb.plot.histogram(
-    #             wandb_hist_data,
-    #             value=f"{args.metric}_ratings",
-    #             title=f"{args.metric}_ratings Histogram Epoch {epoch}",
-    #         )
-    #     }
-    # )
+    # Log the histogram to wandb
+    wandb.log(
+        {
+            f"Epoch_{epoch}_histogram": wandb.plot.histogram(
+                wandb_hist_data,
+                value=f"{args.metric}_ratings",
+                title=f"{args.metric}_ratings Histogram Epoch {epoch}",
+            )
+        }
+    )
 
     # upload json to wandb
     log_scores(results)

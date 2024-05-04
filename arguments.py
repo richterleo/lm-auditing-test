@@ -18,3 +18,6 @@ class EvalArgs:
     )
     num_samples: Optional[int] = field(default=500)
     num_bins: Optional[int] = field(default=10)
+    temperature: Optional[float] = field(default=1.0)
+    do_sample: Optional[bool] = field(default=True)
+    max_length: Optional[int] = field(default=50)
