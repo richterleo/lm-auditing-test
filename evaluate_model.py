@@ -1,9 +1,9 @@
 import evaluate
 import json
-import numpy as np
 import torch
 import wandb
 
+from copy import deepcopy
 from datasets import load_dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
@@ -13,9 +13,9 @@ from arguments import EvalArgs
 from utils import get_random_prompts, log_scores
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-args = EvalArgs(device=device, temperature=2.0)
+args = EvalArgs(device=device, temperature=1.0, num_samples=500)
 
-wandb.init(
+run = wandb.init(
     project=f"{args.metric}_evaluation",
     entity="richter-leo94",
     name=args.run_name,
@@ -30,7 +30,7 @@ wandb.init(
         "num_bins": args.num_bins,
         "device": device,
         "model_kwargs": {
-            "torch_dtype": torch.bfloat16,  # torch.float16
+            "torch_dtype": "torch.bfloat16",  # torch.float16
             "load_in_4bit": True,
             "device_map": "auto" if device == "cuda" else None,
             "attn_implementation": "flash_attention_2"
@@ -49,7 +49,7 @@ wandb.init(
 prompt_dataset = load_dataset(args.dataset_name, split="train")
 
 # wandb only logs strings, floats, ... so need to modify torch_dtype
-model_kwargs = wandb.config.model_kwargs
+model_kwargs = deepcopy(wandb.config.model_kwargs)
 if model_kwargs["torch_dtype"] == "torch.bfloat16":
     model_kwargs["torch_dtype"] = torch.bfloat16
 elif model_kwargs["torch_dtype"] == "torch.float16":
@@ -58,7 +58,7 @@ else:
     model_kwargs["torch_dtype"] = "auto"
 
 
-generation_kwargs = wandb.config.generation_kwargs
+generation_kwargs = deepcopy(wandb.config.generation_kwargs)
 
 generator = pipeline(
     "text-generation",
@@ -92,23 +92,20 @@ for epoch in tqdm(range(args.epochs)):
     results[epoch]["generations"] = model_continuations
     results[epoch]["ratings"] = ratings[args.metric]
 
-    hist_values, bin_edges = np.histogram(
-        results[epoch]["ratings"],
-        bins=args.num_bins,
-        lower_lim=args.lower_lim,
-        upper_lim=args.lower_lim,
-    )
-
     # Convert histogram to a format that can be logged by wandb
-    wandb_hist_data = [[x, y] for x, y in zip(bin_edges[:-1], hist_values)]
+    wandb_hist_data = [
+        [rating] for rating in results[epoch]["ratings"]
+    ]  # TODO: this seems inefficient
+
+    table = wandb.Table(data=wandb_hist_data, columns=["ratings"])
 
     # Log the histogram to wandb
-    wandb.log(
+    run.log(
         {
             f"Epoch_{epoch}_histogram": wandb.plot.histogram(
-                wandb_hist_data,
-                value=f"{args.metric}_ratings",
-                title=f"{args.metric}_ratings Histogram Epoch {epoch}",
+                table,
+                f"{args.metric}_ratings",
+                title=f"{args.metric} ratings epoch {epoch}",
             )
         }
     )
