@@ -12,8 +12,9 @@ from tqdm import tqdm
 from arguments import EvalArgs
 from utils import get_random_prompts, log_scores
 
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
-args = EvalArgs(device=device, temperature=1.0, num_samples=500)
+args = EvalArgs(device=device, temperature=1.0, num_samples=15, epochs=3)
 
 run = wandb.init(
     project=f"{args.metric}_evaluation",
@@ -76,6 +77,9 @@ results = {}
 
 metric = evaluate.load(args.metric)  # Aggregate different metrics here
 
+all_data_table = wandb.Table(columns=["epoch", "step", "ratings"])
+
+
 for epoch in tqdm(range(args.epochs)):
     model_continuations = []
     for prompt in tqdm(prompts):
@@ -93,22 +97,23 @@ for epoch in tqdm(range(args.epochs)):
     results[epoch]["ratings"] = ratings[args.metric]
 
     # Convert histogram to a format that can be logged by wandb
-    wandb_hist_data = [
-        [rating] for rating in results[epoch]["ratings"]
-    ]  # TODO: this seems inefficient
+    # wandb_hist_data = [
+    #     [i, results[epoch]["ratings"][i]] for i in range(len(results[epoch]["ratings"]))
+    # ]  # TODO: this seems inefficient
 
-    table = wandb.Table(data=wandb_hist_data, columns=["ratings"])
+    # table = wandb.Table(data=wandb_hist_data, columns=["step", "ratings"])
 
-    # Log the histogram to wandb
-    run.log(
-        {
-            f"Epoch_{epoch}_histogram": wandb.plot.histogram(
-                table,
-                f"{args.metric}_ratings",
-                title=f"{args.metric} ratings epoch {epoch}",
-            )
-        }
-    )
+    # # Log the histogram to wandb
+    # run.log(
+    #     {
+    #         f"Epoch_{epoch}_histogram": wandb.plot.histogram(
+    #             table, "ratings", title=f"{args.metric} ratings epoch {epoch}"
+    #         )
+    #     }
+    # )
+
+    for i, rating in enumerate(ratings[args.metric]):
+        all_data_table.add_data(epoch, i, rating)
 
     # upload json to wandb
     log_scores(results)
@@ -119,6 +124,19 @@ for epoch in tqdm(range(args.epochs)):
         json.dump(results, file, indent=4)
 
     print(f"Saved scores epoch {epoch} out of {args.epochs}.")
+
+
+run.log(
+    {
+        "Ratings Histogram": wandb.plot.histogram(
+            all_data_table,
+            "ratings",
+            title=f"{args.metric} ratings",
+            # group_by="epoch"
+        )
+    }
+)
+
 
 print("Finished evaluating.")
 
