@@ -183,7 +183,7 @@ class EvalTrainer(Trainer):
         davt = 1
         num_samples = len(data_loader.dataset)
 
-        for i, (score1, score2) in enumerate(data_loader):
+        for score1, score2 in data_loader:
             if mode == "train":
                 self.net.train()
                 out = self.net(score1, score2)
@@ -213,23 +213,23 @@ class EvalTrainer(Trainer):
         continuations1 = []
         continuations2 = []
 
-        for i, sample in enumerate(list(indices)):
+        for sample in list(indices):
             out1 = self.pipeline1(
-                dataset[sample]["prompt"]["text"],
+                self.dataset[sample]["prompt"]["text"],
                 pad_token_id=self.tokenizer1.eos_token_id,
                 **self.gen1_kwargs,
             )
             out2 = self.pipeline2(
-                dataset[sample]["prompt"]["text"],
+                self.dataset[sample]["prompt"]["text"],
                 pad_token_id=self.tokenizer2.eos_token_id,
                 **self.gen2_kwargs,
             )
 
             cont1 = out1[0]["generated_text"].replace(
-                dataset[sample]["prompt"]["text"], ""
+                self.dataset[sample]["prompt"]["text"], ""
             )
             cont2 = out2[0]["generated_text"].replace(
-                dataset[sample]["prompt"]["text"], ""
+                self.dataset[sample]["prompt"]["text"], ""
             )
 
             continuations1.append(cont1)
@@ -245,19 +245,6 @@ class EvalTrainer(Trainer):
         score_ds = ScoresDataset(scores)
 
         return score_ds
-
-
-class NestedKeyDataset(Dataset):
-    def __init__(self, dataset: Dataset, key1: str, key2: str):
-        self.dataset = dataset
-        self.key1 = key1
-        self.key2 = key2
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, i):
-        return self.dataset[i][self.key1][self.key2]
 
 
 if __name__ == "__main__":
@@ -280,5 +267,4 @@ if __name__ == "__main__":
     }
 
     trainer = EvalTrainer(config, net, tau1_cfg, dataset_name, device, 0)
-    dataset = trainer.load_data(0)
-    trainer.train_evaluate_epoch(dataset)
+    trainer.train()
