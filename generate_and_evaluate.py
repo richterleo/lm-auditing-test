@@ -22,12 +22,12 @@ def generate_and_evaluate(model_id, model_kwargs, generation_kwargs, metric, pro
 
     continuation = generation[0]["generated_text"].replace(prompt, "")
 
-    rating = get_score(metric, continuation)
+    rating = eval_on_metric(metric, continuation)
 
     return rating
 
 
-def get_score(metric, continuation):
+def eval_on_metric(metric, continuation):
     """ """
 
     if isinstance(metric, str):

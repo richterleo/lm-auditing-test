@@ -1,7 +1,10 @@
 import hydra
 import numpy as np
+import logging
+import random
 import torch
 
+from sklearn.model_selection import train_test_split
 from datasets import load_dataset
 from torch.utils.data import DataLoader, ConcatDataset
 from transformers import pipeline, AutoTokenizer
@@ -13,12 +16,13 @@ from hydra.utils import instantiate
 from torch.utils.data import Dataset
 
 
+from dataloader import ScoresDataset
 from deep_anytime_testing.trainer.trainer import Trainer
 from deep_anytime_testing.models.mlp import MMDEMLP
 
 from arguments import Cfg
 
-from generate_and_evaluate import get_score
+from generate_and_evaluate import eval_on_metric
 
 
 class EvalTrainer(Trainer):
@@ -77,75 +81,170 @@ class EvalTrainer(Trainer):
 
         self.metric = metric
 
-    def load_data(self, seed, mode="train"):
-        """
-        Overwrite method from Trainer class.
-        We load just the prompt dataset, apply tau later
-        """
-        # TODO: put random seed here
-        dataset = load_dataset(self.datagen, split=mode)
-        # dataloader = DataLoader(dataset, batch_size=self.bs, shuffle=True)
+        # we load in the whole dataset at once
+        self.dataset = load_dataset(
+            self.datagen, split="train"
+        )  # TODO: Do we need the other mode as well?
 
-        return dataset
-
-    def train_evaluate_epoch(self, dataset, mode="train", batching=True):
+    def train(self):
         """
         Overwrite method from Trainer class
         """
-        # aggregated_loss = 0
-        # davt = 1
-        # num_samples = len(dataset)
+        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        davts = []
 
-        if batching:
-            for i, (out1, out2) in enumerate(
-                zip(
-                    self.pipeline1(
-                        NestedKeyDataset(dataset, "prompt", "text"),
-                        batch_size=self.bs,
-                        pad_token_id=self.tokenizer1.eos_token_id,
-                        truncation="only_first",
-                        **self.gen1_kwargs,
-                    ),
-                    self.pipeline2(
-                        NestedKeyDataset(dataset, "prompt", "text"),
-                        batch_size=self.bs,
-                        pad_token_id=self.tokenizer2.eos_token_id,
-                        truncation="only_first",
-                        **self.gen2_kwargs,
-                    ),
-                )
-            ):
-                res1 = get_score(self.metric, out1[0]["generated_text"])
-                res2 = get_score(self.metric, out2[0]["generated_text"])
-                print(f"This is episode {i} and score 1 is {res1}, score 2 is {res2}")
+        num_batches = (len(self.dataset) + self.bs - 1) // self.bs
 
-        else:
-            for i, sample in enumerate(dataset):
-                out1 = self.pipeline1(
-                    sample["prompt"]["text"],
-                    pad_token_id=self.tokenizer1.eos_token_id,
-                    **self.gen1_kwargs,
-                )
-                out2 = self.pipeline2(
-                    sample["prompt"]["text"],
-                    pad_token_id=self.tokenizer2.eos_token_id,
-                    **self.gen2_kwargs,
-                )
+        indices = list(range(len(self.dataset)))
+        random.shuffle(indices)
 
-                continuation1 = out1[0]["generated_text"].replace(
-                    sample["prompt"]["text"], ""
+        batches = [
+            indices[i * self.bs : min((i + 1) * self.bs, len(self.dataset))]
+            for i in range(num_batches)
+        ]
+
+        # in the first sequence, we don't train our model
+        test_ds = self.get_score_ds(batches[0])
+        test_loader = DataLoader(test_ds, batch_size=self.bs, shuffle=True)
+        _, davt = self.train_evaluate_epoch(test_loader, mode="test")
+        davts.append(davt.item())
+        self.log({"aggregated_test_e-value": davt})
+
+        # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
+        if davt > (1.0 / self.alpha):
+            logging.info("Reject null at %f", davt)
+            self.log({"steps": 0})
+
+        for k in range(1, np.min(self.seqs, num_batches)):
+            # This is the maximum number of mini-batches to sample from the data
+
+            self.current_seq = k
+
+            # If k=1, we still need to define train and val set
+            if k == 1:
+                # in this case, we need to define val set as fraction of train set
+                batch_indices = batches[k - 1]
+                train_indices, val_indices = train_test_split(
+                    np.arrays(batch_indices), test_size=0.3, random_state=self.seed
                 )
-                continuation2 = out2[0]["generated_text"].replace(
-                    sample["prompt"]["text"], ""
-                )
-                res1 = get_score(self.metric, continuation1)
-                res2 = get_score(self.metric, continuation2)
-                print(
-                    f"This is sample {i} out of {len(dataset)} and score 1 is {res1}, score 2 is {res2}"
-                )
-                print(
-                    f"This is the first continuation: {out1[0]['generated_text']} and this is the second: {out2[0]['generated_text']}"
-                )
+                train_ds = self.get_score_ds(train_indices)
+                val_ds = self.get_score_ds(val_indices)
+                train_loader = DataLoader(train_ds, batch_size=self.bs, shuffle=True)
+                val_loader = DataLoader(val_ds, batch_size=self.bs, shuffle=True)
+
+            # Actual model training
+            for i in range(self.epochs):
+                self.current_epoch = 1
+                self.train_evaluate_epoch(train_loader)
+                loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
+
+                # Check for early stopping or end of epochs
+                if (
+                    self.early_stopper.early_stop(loss_val.detach())
+                    or (i + 1) == self.epochs
+                ):
+                    # Now define test data from current batch
+                    batch_indices = batches[k]
+                    test_ds = self.get_score_ds(batch_indices)
+                    test_loader = DataLoader(test_ds, batch_size=self.bs, shuffle=True)
+
+                    # Get S_t value on current batch
+                    _, conditional_davt = self.train_evaluate_epoch(
+                        test_loader, mode="test"
+                    )
+                    davts.append(conditional_davt.item())
+                    davt = np.prod(np.array(davts[self.T :])) if k >= self.T else 1
+                    self.log({"aggregated_test_e-value": davt})
+
+                    # former train_ds and val_ds become the new train set
+                    train_ds = ConcatDataset([train_ds, val_ds])
+                    train_loader = DataLoader(
+                        train_ds, batch_size=self.bs, shuffle=True
+                    )
+
+                    # former test_loader (i.e. current batch) becomes validation set
+                    val_loader = test_loader
+
+                    break
+
+            # Reset the early stopper for the next sequence
+            self.early_stopper.reset()
+
+            # Log information if davt exceeds the threshold
+            if davt > (1.0 / self.alpha):
+                print("Reject null at %f", davt)
+                self.log({"steps": k})
+
+    def train_evaluate_epoch(self, data_loader, mode="train"):
+        """ """
+
+        aggregated_loss = 0
+        davt = 1
+        num_samples = len(data_loader.dataset)
+
+        for i, (score1, score2) in enumerate(data_loader):
+            if mode == "train":
+                self.net.train()
+                out = self.net(score1, score2)
+            else:
+                self.net.eval()
+                out = self.net(score1, score2).detach()
+
+            loss = -out.mean() + self.l1_lambda * self.l1_regularization()
+            aggregated_loss += -out.sum()
+            davt *= torch.exp(out.sum())
+            if mode == "train":
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+        self.log(
+            {
+                f"{mode}_e-value": davt.item(),
+                f"{mode}_loss": aggregated_loss.item() / num_samples,
+            }
+        )
+        return aggregated_loss / num_samples, davt
+
+    def get_score_ds(self, indices):
+        """ """
+        scores = []
+        continuations1 = []
+        continuations2 = []
+
+        for i, sample in enumerate(list(indices)):
+            out1 = self.pipeline1(
+                dataset[sample]["prompt"]["text"],
+                pad_token_id=self.tokenizer1.eos_token_id,
+                **self.gen1_kwargs,
+            )
+            out2 = self.pipeline2(
+                dataset[sample]["prompt"]["text"],
+                pad_token_id=self.tokenizer2.eos_token_id,
+                **self.gen2_kwargs,
+            )
+
+            cont1 = out1[0]["generated_text"].replace(
+                dataset[sample]["prompt"]["text"], ""
+            )
+            cont2 = out2[0]["generated_text"].replace(
+                dataset[sample]["prompt"]["text"], ""
+            )
+
+            continuations1.append(cont1)
+            continuations2.append(cont2)
+
+        # Get metrics for batch
+        score1 = eval_on_metric(self.metric, continuations1)
+        score2 = eval_on_metric(self.metric, continuations2)
+
+        scores.append((score1, score2))
+
+        # Make new dataset
+        score_ds = ScoresDataset(scores)
+
+        return score_ds
 
 
 class NestedKeyDataset(Dataset):
