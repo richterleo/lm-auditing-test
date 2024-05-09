@@ -5,8 +5,11 @@ from functools import partial
 from deep_anytime_testing.data.datagen import DatasetOperator
 from generate_and_evaluate import generate_and_evaluate
 from datasets import load_dataset
+from torch.utils.data import DataLoader
 
 import torch
+
+from utils import time_block
 
 
 class PromptDataset(DatasetOperator):
@@ -30,13 +33,7 @@ class PromptDataset(DatasetOperator):
             metric,
         )
         if model_id2 is None:
-            tau2 = partial(
-                generate_and_evaluate,
-                model_id1,
-                model_kwargs1,
-                gen_kwargs1,
-                metric,
-            )
+            tau2 = tau1
         else:
             tau2 = partial(
                 generate_and_evaluate, model_id2, model_kwargs2, gen_kwargs2, metric
@@ -44,7 +41,7 @@ class PromptDataset(DatasetOperator):
         super().__init__(tau1, tau2)
 
         prompt_dataset = load_dataset(dataset_name, split="train")
-        self.z = [prompt["text"] for prompt in prompt_dataset]
+        self.z = [sample["prompt"]["text"] for sample in prompt_dataset]
 
 
 if __name__ == "__main__":
@@ -55,7 +52,7 @@ if __name__ == "__main__":
         dataset_name,
         "meta-llama/Meta-Llama-3-8B",
         {
-            "torch_dtype": "torch.bfloat16",  # torch.float16
+            "torch_dtype": torch.bfloat16,  # torch.float16
             "load_in_4bit": False,
             "device_map": "auto" if device == "cuda" else None,
             "attn_implementation": None,
@@ -66,3 +63,13 @@ if __name__ == "__main__":
             "temperature": 1,
         },
     )
+
+    data_loader = DataLoader(prompt_dataset, batch_size=8, shuffle=True)
+
+    data_iter = iter(data_loader)
+
+    with time_block("Load Batch"):
+        batch = next(data_iter)
+
+    for sample in batch:
+        print(sample)

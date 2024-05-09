@@ -21,3 +21,27 @@ class EvalArgs:
     temperature: Optional[float] = field(default=1.0)
     do_sample: Optional[bool] = field(default=True)
     max_length: Optional[int] = field(default=50)
+
+
+@dataclass
+class Cfg:
+    @dataclass
+    class EarlyStopping:
+        patience: Optional[int] = field(default=10)
+        delta: Optional[float] = field(default=0.0)
+
+    # Main configuration attributes
+    seed: Optional[int] = field(default=42)
+    lr: Optional[float] = field(default=0.0005)
+    epochs: Optional[int] = field(default=10)
+    seqs: Optional[int] = field(default=60)  # number of mini-batches
+    alpha: Optional[float] = field(default=0.05)  # significance level
+    T: Optional[int] = field(default=0)
+    batch_size: Optional[int] = field(default=8)
+    save_dir: Optional[str] = field(default="models")
+    save: Optional[bool] = field(default=True)
+    l1_lambda: Optional[float] = field(default=0.0)
+    l2_lambda: Optional[float] = field(default=0.0)
+
+    # Include the early_stopping configuration as a nested attribute
+    earlystopping: EarlyStopping = field(default_factory=EarlyStopping)
