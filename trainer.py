@@ -1,4 +1,3 @@
-import hydra
 import numpy as np
 import logging
 import random
@@ -209,7 +208,6 @@ class EvalTrainer(Trainer):
 
     def get_score_ds(self, indices):
         """ """
-        scores = []
         continuations1 = []
         continuations2 = []
 
@@ -236,13 +234,11 @@ class EvalTrainer(Trainer):
             continuations2.append(cont2)
 
         # Get metrics for batch
-        score1 = eval_on_metric(self.metric, continuations1)
-        score2 = eval_on_metric(self.metric, continuations2)
-
-        scores.append((score1, score2))
+        scores1 = eval_on_metric(self.metric, continuations1)
+        scores2 = eval_on_metric(self.metric, continuations2)
 
         # Make new dataset
-        score_ds = ScoresDataset(scores)
+        score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
 
@@ -259,7 +255,7 @@ if __name__ == "__main__":
         "model_id": "meta-llama/Meta-Llama-3-8B",
         "model_kwargs": {
             "torch_dtype": torch.bfloat16,  # torch.float16
-            "load_in_4bit": False,
+            "load_in_4bit": True,
             "device_map": "auto" if device == "cuda" else None,
             "attn_implementation": None,
         },

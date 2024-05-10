@@ -96,22 +96,6 @@ for epoch in tqdm(range(args.epochs)):
     results[epoch]["generations"] = model_continuations
     results[epoch]["ratings"] = ratings[args.metric]
 
-    # Convert histogram to a format that can be logged by wandb
-    # wandb_hist_data = [
-    #     [i, results[epoch]["ratings"][i]] for i in range(len(results[epoch]["ratings"]))
-    # ]  # TODO: this seems inefficient
-
-    # table = wandb.Table(data=wandb_hist_data, columns=["step", "ratings"])
-
-    # # Log the histogram to wandb
-    # run.log(
-    #     {
-    #         f"Epoch_{epoch}_histogram": wandb.plot.histogram(
-    #             table, "ratings", title=f"{args.metric} ratings epoch {epoch}"
-    #         )
-    #     }
-    # )
-
     for i, rating in enumerate(ratings[args.metric]):
         all_data_table.add_data(epoch, i, rating)
 

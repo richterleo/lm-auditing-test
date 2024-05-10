@@ -37,7 +37,7 @@ class Cfg:
     seqs: Optional[int] = field(default=60)  # number of mini-batches
     alpha: Optional[float] = field(default=0.05)  # significance level
     T: Optional[int] = field(default=0)
-    batch_size: Optional[int] = field(default=64)
+    batch_size: Optional[int] = field(default=10)  # 64 (they use 90)
     save_dir: Optional[str] = field(default="models")
     save: Optional[bool] = field(default=True)
     l1_lambda: Optional[float] = field(default=0.0)

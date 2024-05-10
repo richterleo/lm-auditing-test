@@ -27,11 +27,13 @@ def generate_and_evaluate(model_id, model_kwargs, generation_kwargs, metric, pro
     return rating
 
 
-def eval_on_metric(metric, continuation):
+def eval_on_metric(metric, continuations):
     """ """
 
     if isinstance(metric, str):
+        metric_name = metric
         metric = evaluate.load(metric)
-        rating = metric.compute(predictions=continuation)
+        rating_dict = metric.compute(predictions=continuations)
+        ratings = rating_dict[metric_name]
 
-    return rating
+    return ratings

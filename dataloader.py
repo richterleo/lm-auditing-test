@@ -3,12 +3,12 @@ import torch
 
 
 class ScoresDataset(Dataset):
-    def __init__(self, data):
+    def __init__(self, scores1, scores2):
         """
         Args:
             data (list of tuples): A list where each tuple contains (score1, score2).
         """
-        self.data = data
+        self.data = [(score1, score2) for score1, score2 in zip(scores1, scores2)]
 
     def __len__(self):
         return len(self.data)
