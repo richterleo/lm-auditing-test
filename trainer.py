@@ -161,7 +161,7 @@ class EvalTrainer(Trainer):
 
             # Actual model training
             for i in range(self.epochs):
-                self.current_epoch = 1
+                self.current_epoch = i
                 self.train_evaluate_epoch(train_loader)
                 loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
 
