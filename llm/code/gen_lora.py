@@ -1,7 +1,6 @@
 import transformers
 import torch
 from peft import AutoPeftModelForCausalLM
-from transformers import AutoModelForCausalLM
 from transformers import AutoTokenizer
 
 
@@ -14,8 +13,7 @@ lora_model_id = "LLMAccountability/Llama-3-8B-ckpt1"
 # base_model_id = "google/gemma-1.1-7b-it"
 # lora_model_id = "lora/google/gemma-1.1-7b-it/unaligned/"
 
-# model = AutoPeftModelForCausalLM.from_pretrained(lora_model_id, torch_dtype=torch.bfloat16, device_map="auto")
-model = AutoModelForCausalLM.from_pretrained(
+model = AutoPeftModelForCausalLM.from_pretrained(
     lora_model_id, torch_dtype=torch.bfloat16, device_map="auto"
 )
 # tokenizer = AutoTokenizer.from_pretrained(base_model_id)
