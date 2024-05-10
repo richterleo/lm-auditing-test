@@ -15,7 +15,7 @@ from hydra.utils import instantiate
 from torch.utils.data import Dataset
 
 
-from dataloader import ScoresDataset
+from dataloader import ScoresDataset, collate_fn
 from deep_anytime_testing.trainer.trainer import Trainer
 from deep_anytime_testing.models.mlp import MMDEMLP
 
@@ -85,6 +85,24 @@ class EvalTrainer(Trainer):
             self.datagen, split="train"
         )  # TODO: Do we need the other mode as well?
 
+    def log(self, logs):
+        """
+        Log metrics for visualization and monitoring.
+
+        Args:
+        - logs (dict): Dictionary containing metrics to be logged.
+        """
+        # for key, value in logs.items():
+        #     wandb.log({key: value})
+        #     logging.info(
+        #         f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
+        #     )
+
+        for key, value in logs.items():
+            print(
+                f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
+            )
+
     def train(self):
         """
         Overwrite method from Trainer class
@@ -105,7 +123,9 @@ class EvalTrainer(Trainer):
 
         # in the first sequence, we don't train our model
         test_ds = self.get_score_ds(batches[0])
-        test_loader = DataLoader(test_ds, batch_size=self.bs, shuffle=True)
+        test_loader = DataLoader(
+            test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+        )
         _, davt = self.train_evaluate_epoch(test_loader, mode="test")
         davts.append(davt.item())
         self.log({"aggregated_test_e-value": davt})
@@ -115,7 +135,7 @@ class EvalTrainer(Trainer):
             logging.info("Reject null at %f", davt)
             self.log({"steps": 0})
 
-        for k in range(1, np.min(self.seqs, num_batches)):
+        for k in range(1, min(self.seqs, num_batches)):
             # This is the maximum number of mini-batches to sample from the data
 
             self.current_seq = k
@@ -125,12 +145,19 @@ class EvalTrainer(Trainer):
                 # in this case, we need to define val set as fraction of train set
                 batch_indices = batches[k - 1]
                 train_indices, val_indices = train_test_split(
-                    np.arrays(batch_indices), test_size=0.3, random_state=self.seed
+                    np.array(batch_indices), test_size=0.3, random_state=self.seed
                 )
+                # TODO: make this smoother
+                train_indices = [ti.item() for ti in train_indices]
+                val_indices = [vi.item() for vi in val_indices]
                 train_ds = self.get_score_ds(train_indices)
                 val_ds = self.get_score_ds(val_indices)
-                train_loader = DataLoader(train_ds, batch_size=self.bs, shuffle=True)
-                val_loader = DataLoader(val_ds, batch_size=self.bs, shuffle=True)
+                train_loader = DataLoader(
+                    train_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                )
+                val_loader = DataLoader(
+                    val_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                )
 
             # Actual model training
             for i in range(self.epochs):
@@ -146,7 +173,9 @@ class EvalTrainer(Trainer):
                     # Now define test data from current batch
                     batch_indices = batches[k]
                     test_ds = self.get_score_ds(batch_indices)
-                    test_loader = DataLoader(test_ds, batch_size=self.bs, shuffle=True)
+                    test_loader = DataLoader(
+                        test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                    )
 
                     # Get S_t value on current batch
                     _, conditional_davt = self.train_evaluate_epoch(
@@ -159,7 +188,10 @@ class EvalTrainer(Trainer):
                     # former train_ds and val_ds become the new train set
                     train_ds = ConcatDataset([train_ds, val_ds])
                     train_loader = DataLoader(
-                        train_ds, batch_size=self.bs, shuffle=True
+                        train_ds,
+                        batch_size=self.bs,
+                        shuffle=True,
+                        collate_fn=collate_fn,
                     )
 
                     # former test_loader (i.e. current batch) becomes validation set
@@ -182,13 +214,16 @@ class EvalTrainer(Trainer):
         davt = 1
         num_samples = len(data_loader.dataset)
 
-        for score1, score2 in data_loader:
+        for batch in data_loader:
             if mode == "train":
                 self.net.train()
-                out = self.net(score1, score2)
+                # values for tau1 and tau2
+                tau1, tau2 = torch.split(batch, 1, dim=1)
+                out = self.net(tau1, tau2)
             else:
                 self.net.eval()
-                out = self.net(score1, score2).detach()
+                tau1, tau2 = torch.split(batch, 1, dim=1)
+                out = self.net(tau1, tau2).detach()
 
             loss = -out.mean() + self.l1_lambda * self.l1_regularization()
             aggregated_loss += -out.sum()
