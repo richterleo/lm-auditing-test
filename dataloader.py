@@ -16,7 +16,7 @@ class ScoresDataset(Dataset):
     def __getitem__(self, idx):
         score1, score2 = self.data[idx]
         # Convert to a tensor before returning, if necessary
-        return {
-            "score1": torch.tensor(score1, dtype=torch.float16),
-            "score2": torch.tensor(score2, dtype=torch.float16),
-        }
+        return (
+            torch.tensor(score1, dtype=torch.float16),
+            torch.tensor(score2, dtype=torch.float16),
+        )
