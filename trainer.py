@@ -8,19 +8,14 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader, ConcatDataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
-from transformers.pipelines.pt_utils import KeyDataset
 
-from hydra.utils import instantiate
-
-from torch.utils.data import Dataset
-
-
-from dataloader import ScoresDataset, collate_fn
+# classes from deep-anytime-testing module
 from deep_anytime_testing.trainer.trainer import Trainer
 from deep_anytime_testing.models.mlp import MMDEMLP
 
+# own utilities
+from dataloader import ScoresDataset, collate_fn
 from arguments import Cfg
-
 from generate_and_evaluate import eval_on_metric
 
 
