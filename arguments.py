@@ -1,47 +1,128 @@
 from dataclasses import dataclass, field
-from typing import List, Tuple, Literal, Union, Optional
+from typing import List, Dict, Optional
 
 from utils import create_run_string
 
 
 @dataclass
-class EvalArgs:
-    metric: Optional[str] = field(default="toxicity")
-    lower_lim: Optional[float] = field(default=0.0)
-    upper_lim: Optional[float] = field(default=1.0)
-    dataset_name: Optional[str] = field(default="allenai/real-toxicity-prompts")
-    run_name = create_run_string()
-    model_id: Optional[str] = field(default="meta-llama/Meta-Llama-3-8B")
-    device: Optional[str] = field(default="cuda")
-    epochs: Optional[int] = field(
-        default=30, metadata={"help": "How many times to go though the whole dataset"}
+class MetricCfg:
+    behavior: str = field(
+        default="toxicity", metadata={"help": "Which behaviour to evaluate"}
     )
-    num_samples: Optional[int] = field(default=500)
-    num_bins: Optional[int] = field(default=10)
-    temperature: Optional[float] = field(default=1.0)
-    do_sample: Optional[bool] = field(default=True)
-    max_length: Optional[int] = field(default=50)
+    metric: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Which metric to use. If none is given, the metric is loaded using the behavior string."
+        },
+    )
+    metric_lower_lim: float = field(
+        default=0.0,
+        metadata={"help": "Lower limit of metric to use to evaluate behavior."},
+    )
+    metric_upper_lim: float = field(
+        default=1.0,
+        metadata={"help": "Upper limit of metric to use to evaluate behavior."},
+    )
+    dataset_name: str = field(
+        default="allenai/real-toxicity-prompts",
+        metadata={"help": "Name of dataset to use for evaluation."},
+    )
 
 
 @dataclass
-class Cfg:
+class EvalArgs:
+    epochs: int = field(
+        default=30, metadata={"help": "How many times to go though the whole dataset"}
+    )
+    num_samples: int = field(
+        default=500, metadata={"help": "How many samples to select from dataset"}
+    )
+    num_bins: int = field(
+        default=10, metadata={"help": "How many bins to divide the metric into"}
+    )
+
+
+@dataclass
+class LoggingCfg:
+    use_wandb: bool = field(
+        default=True, metadata={"help": "Whether to use wandb for logging."}
+    )
+    entity: Optional[str] = field(default="richter-leo94")
+    run_name: str = field(
+        default=create_run_string(),
+        metadata={"help": "Name of run for logging on wandb."},
+    )
+
+
+@dataclass
+class ModelCfg:
+    model_id: str = field(default="meta-llama/Meta-Llama-3-8B")
+    model_kwargs: Dict = field(
+        default={
+            "torch_dtype": "torch.bfloat16",
+            "load_in_4bit": True,
+            "device_map": "auto",
+        }
+    )
+    gen_kwargs: Dict = field(
+        default={"max_new_tokens": 50, "do_sample": True, "temperature": 1}
+    )
+
+
+@dataclass
+class TrainCfg:
     @dataclass
     class EarlyStopping:
-        patience: Optional[int] = field(default=10)
-        delta: Optional[float] = field(default=0.0)
+        patience: int = field(
+            default=10, metadata={"help": "Patience in training algorithm."}
+        )
+        delta: float = field(
+            default=0.0, metadata={"help": "Delta in training algorithm."}
+        )
 
     # Main configuration attributes
-    seed: Optional[int] = field(default=0)
-    lr: Optional[float] = field(default=0.0005)
-    epochs: Optional[int] = field(default=10)
-    seqs: Optional[int] = field(default=60)  # number of mini-batches
-    alpha: Optional[float] = field(default=0.05)  # significance level
-    T: Optional[int] = field(default=0)
-    batch_size: Optional[int] = field(default=10)  # 64 (they use 90)
-    save_dir: Optional[str] = field(default="models")
-    save: Optional[bool] = field(default=True)
-    l1_lambda: Optional[float] = field(default=0.0)
-    l2_lambda: Optional[float] = field(default=0.0)
+    seed: int = field(default=0, metadata={"help": "Random seed."})
+    lr: float = field(
+        default=0.0005,
+        metadata={"help": "Learning rate to use for regression network."},
+    )
+    epochs: int = field(
+        default=10, metadata={"help": "Epochs to train regression network for."}
+    )
+    seqs: int = field(
+        default=60, metadata={"help": "Number of mini-batches to go through in total."}
+    )
+    alpha: float = field(
+        default=0.05, metadata={"help": "Significance level."}
+    )  # significance level
+    T: int = field(default=0, metadata={"help": "Warm start."})
+    batch_size: int = field(
+        default=96, metadata={"help": "Batch size for training regression network."}
+    )  # 64 (they use 90)
+    save_dir: Optional[str] = field(
+        default="models", metadata={"help": "Directoy to save regression network to."}
+    )
+    save: Optional[bool] = field(
+        default=True, metadata={"help": "Whether to save regression network."}
+    )
+    l1_lambda: float = field(default=0.0)
+    l2_lambda: float = field(default=0.0)
 
     # Include the early_stopping configuration as a nested attribute
     earlystopping: EarlyStopping = field(default_factory=EarlyStopping)
+
+
+@dataclass
+class NetCfg:
+    input_size: int = field(
+        default=1,
+        metadata={"help": "Size of input - depends on the metric output shape."},
+    )
+    hidden_layer_size: List[int] = field(
+        default=[30, 30],
+        metadata={"help": "Size of hidden layer in regression network."},
+    )
+    layer_norm: bool = field(
+        default=True, metadata={"help": "Whether to use layernorm."}
+    )
+    bias: bool = field(default=True, metadata={"help": "Whether to use a bias term."})

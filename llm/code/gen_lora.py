@@ -23,7 +23,10 @@ pipeline = transformers.pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    model_kwargs={"torch_dtype": torch.bfloat16},
+    model_kwargs={
+        "torch_dtype": torch.bfloat16,
+        "load_in_4bit": True,
+    },
     device_map="auto",
 )
 
@@ -64,9 +67,10 @@ for sent in [
     outputs = pipeline(
         # prompt,
         messages,
-        max_new_tokens=256,
+        # max_new_tokens=256,
+        max_length=50,
         do_sample=True,
-        temperature=0.7,
+        temperature=1,
         top_p=0.9,
         # stop_sequence="<end_of_turn>"
         eos_token_id=terminators,

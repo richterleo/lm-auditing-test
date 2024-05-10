@@ -2,6 +2,7 @@ import numpy as np
 import logging
 import random
 import torch
+import wandb
 
 from sklearn.model_selection import train_test_split
 from datasets import load_dataset
@@ -22,33 +23,40 @@ from generate_and_evaluate import eval_on_metric
 class EvalTrainer(Trainer):
     def __init__(
         self,
-        cfg,
+        train_cfg,
         net,
         tau1_cfg,
         dataset_name,
         device,
-        data_seed,
-        metric="toxicity",
+        behavior,
+        metric,
+        use_wandb,
         tau2_cfg=None,
     ):
-        if tau2_cfg is None:
+        if not tau2_cfg:
             use_same_tau = True
             tau2_cfg = tau1_cfg
-        super().__init__(cfg, net, tau1_cfg, tau2_cfg, dataset_name, device, data_seed)
+        super().__init__(
+            train_cfg, net, tau1_cfg, tau2_cfg, dataset_name, device, train_cfg.seed
+        )
 
         self.tokenizer1 = AutoTokenizer.from_pretrained(tau1_cfg["model_id"])
 
         if self.tokenizer1.pad_token is None:
             self.tokenizer1.pad_token_id = self.tokenizer1.eos_token_id
+
         self.pipeline1 = pipeline(
             "text-generation",
             model=tau1_cfg["model_id"],
             # device=self.device,
-            model_kwargs=tau1_cfg["model_kwargs"],
+            model_kwargs=tau1_cfg[
+                "model_kwargs"
+            ],  # TODO: Add flash_attention if possible
             tokenizer=self.tokenizer1,
             pad_token_id=self.tokenizer1.eos_token_id,
         )
 
+        # TODO: make this more efficient
         if use_same_tau:
             self.tokenizer2 = self.tokenizer1
             self.pipeline2 = self.pipeline1
@@ -73,12 +81,15 @@ class EvalTrainer(Trainer):
             tau1_cfg["gen_kwargs"] if use_same_tau else tau2_cfg["gen_kwargs"]
         )
 
-        self.metric = metric
+        self.behavior = behavior
+        self.metric = metric if metric else behavior
 
         # we load in the whole dataset at once
         self.dataset = load_dataset(
             self.datagen, split="train"
         )  # TODO: Do we need the other mode as well?
+
+        self.use_wandb = use_wandb
 
     def log(self, logs):
         """
@@ -94,6 +105,8 @@ class EvalTrainer(Trainer):
         #     )
 
         for key, value in logs.items():
+            if self.use_wandb:
+                wandb.log({key: value})
             print(
                 f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
             )
