@@ -248,7 +248,7 @@ if __name__ == "__main__":
 
     dataset_name = "allenai/real-toxicity-prompts"
 
-    net = MMDEMLP(6, [10, 10, 10], 1, True, False, 0.4, False)
+    net = MMDEMLP(1, [10, 10, 10], 1, True, False, 0.4, False)
 
     config = Cfg()
     tau1_cfg = {
