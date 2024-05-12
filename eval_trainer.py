@@ -16,7 +16,8 @@ from deep_anytime_testing.models.mlp import MMDEMLP
 
 # own utilities
 from dataloader import ScoresDataset, collate_fn
-from arguments import Cfg
+
+# from arguments import Cfg
 from generate_and_evaluate import eval_on_metric
 
 
@@ -33,9 +34,11 @@ class EvalTrainer(Trainer):
         use_wandb,
         tau2_cfg=None,
     ):
+        use_same_tau = False
         if not tau2_cfg:
-            use_same_tau = True
             tau2_cfg = tau1_cfg
+            use_same_tau = True
+
         super().__init__(
             train_cfg, net, tau1_cfg, tau2_cfg, dataset_name, device, train_cfg.seed
         )
@@ -44,6 +47,13 @@ class EvalTrainer(Trainer):
 
         if self.tokenizer1.pad_token is None:
             self.tokenizer1.pad_token_id = self.tokenizer1.eos_token_id
+
+        model1_kwargs = tau1_cfg["model_kwargs"]
+        model1_kwargs["torch_dtype"] = (
+            torch.bfloat16
+            if model1_kwargs["torch_dtype"] == "torch.bfloat16"
+            else torch.float16
+        )
 
         self.pipeline1 = pipeline(
             "text-generation",
@@ -65,11 +75,18 @@ class EvalTrainer(Trainer):
             if self.tokenizer2.pad_token is None:
                 self.tokenizer2.pad_token_id = self.tokenizer2.eos_token_id
 
+            model2_kwargs = tau2_cfg["model_kwargs"]
+            model2_kwargs["torch_dtype"] = (
+                torch.bfloat16
+                if model2_kwargs["torch_dtype"] == "torch.bfloat16"
+                else torch.float16
+            )
+
             self.pipeline2 = pipeline(
                 "text-generation",
                 model=tau2_cfg["model_id"],
                 # device=self.device,
-                model_kwargs=tau2_cfg["model_kwargs"],
+                model_kwargs=model2_kwargs,
                 tokenizer=self.tokenizer2,
                 pad_token_id=self.tokenizer2.eos_token_id,
             )
@@ -98,11 +115,6 @@ class EvalTrainer(Trainer):
         Args:
         - logs (dict): Dictionary containing metrics to be logged.
         """
-        # for key, value in logs.items():
-        #     wandb.log({key: value})
-        #     logging.info(
-        #         f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
-        #     )
 
         for key, value in logs.items():
             if self.use_wandb:
@@ -284,26 +296,3 @@ class EvalTrainer(Trainer):
         score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
-
-
-if __name__ == "__main__":
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    dataset_name = "allenai/real-toxicity-prompts"
-
-    net = MMDEMLP(1, [10, 10, 10], 1, True, False, 0.4, False)
-
-    config = Cfg()
-    tau1_cfg = {
-        "model_id": "meta-llama/Meta-Llama-3-8B",
-        "model_kwargs": {
-            "torch_dtype": torch.bfloat16,  # torch.float16
-            "load_in_4bit": True,
-            "device_map": "auto" if device == "cuda" else None,
-            "attn_implementation": None,
-        },
-        "gen_kwargs": {"max_length": 50, "do_sample": True, "temperature": 1},
-    }
-
-    trainer = EvalTrainer(config, net, tau1_cfg, dataset_name, device, 0)
-    trainer.train()

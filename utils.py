@@ -2,10 +2,14 @@ import json
 import random
 import time
 import wandb
+import yaml
 
 from contextlib import contextmanager
 from pathlib import Path
 from datetime import datetime
+
+# imports from deep-anytime-testing library
+from deep_anytime_testing.models import MMDEMLP
 
 
 def create_run_string():
@@ -87,3 +91,21 @@ def time_block(label):
     finally:
         end = time.time()
         print(f"{label}: {end - start} seconds")
+
+
+def load_config(config_path):
+    with open(config_path) as file:
+        config = yaml.safe_load(file)
+    return config
+
+
+def initialize_from_config(cfg_dict, net=MMDEMLP):
+    return MMDEMLP(
+        cfg_dict["input_size"],
+        cfg_dict["hidden_layer_size"],
+        1,
+        cfg_dict["layer_norm"],
+        False,
+        0.4,
+        cfg_dict["bias"],
+    )

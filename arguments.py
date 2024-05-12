@@ -57,16 +57,23 @@ class LoggingCfg:
 @dataclass
 class ModelCfg:
     model_id: str = field(default="meta-llama/Meta-Llama-3-8B")
-    model_kwargs: Dict = field(
-        default={
-            "torch_dtype": "torch.bfloat16",
-            "load_in_4bit": True,
-            "device_map": "auto",
-        }
-    )
-    gen_kwargs: Dict = field(
-        default={"max_new_tokens": 50, "do_sample": True, "temperature": 1}
-    )
+
+    @dataclass
+    class model_kwargs:
+        torch_dtype: str = field(
+            default="torch.bfloat16",
+            metadata={"help": "Patience in training algorithm."},
+        )
+        load_in_4bit: bool = field(
+            default=True, metadata={"help": "Whether to load model in 4 bit."}
+        )
+        device_map: str = field(default="auto", metadata={"help": "Device map to use."})
+
+    @dataclass
+    class gen_kwargs:
+        max_new_tokens: int = field(default=50, metadata={"help": "Max new tokens."})
+        do_sample: bool = field(default=True, metadata={"help": "Whether to sample."})
+        temperature: float = field(default=1.0, metadata={"help": "Temperature."})
 
 
 @dataclass
@@ -87,7 +94,10 @@ class TrainCfg:
         metadata={"help": "Learning rate to use for regression network."},
     )
     epochs: int = field(
-        default=10, metadata={"help": "Epochs to train regression network for."}
+        default=100,
+        metadata={
+            "help": "Epochs to train regression network for."
+        },  # They did 500 each
     )
     seqs: int = field(
         default=60, metadata={"help": "Number of mini-batches to go through in total."}
@@ -110,19 +120,3 @@ class TrainCfg:
 
     # Include the early_stopping configuration as a nested attribute
     earlystopping: EarlyStopping = field(default_factory=EarlyStopping)
-
-
-@dataclass
-class NetCfg:
-    input_size: int = field(
-        default=1,
-        metadata={"help": "Size of input - depends on the metric output shape."},
-    )
-    hidden_layer_size: List[int] = field(
-        default=[30, 30],
-        metadata={"help": "Size of hidden layer in regression network."},
-    )
-    layer_norm: bool = field(
-        default=True, metadata={"help": "Whether to use layernorm."}
-    )
-    bias: bool = field(default=True, metadata={"help": "Whether to use a bias term."})
