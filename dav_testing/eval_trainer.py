@@ -4,6 +4,7 @@ import random
 import torch
 import wandb
 
+from copy import deepcopy
 from sklearn.model_selection import train_test_split
 from datasets import load_dataset
 from torch.utils.data import DataLoader, ConcatDataset
@@ -19,6 +20,7 @@ from dav_testing.dataloader import ScoresDataset, collate_fn
 
 # from arguments import Cfg
 from utils.generate_and_evaluate import eval_on_metric
+from utils.utils import translate_model_kwargs
 
 
 class EvalTrainer(Trainer):
@@ -48,20 +50,13 @@ class EvalTrainer(Trainer):
         if self.tokenizer1.pad_token is None:
             self.tokenizer1.pad_token_id = self.tokenizer1.eos_token_id
 
-        model1_kwargs = tau1_cfg["model_kwargs"]
-        model1_kwargs["torch_dtype"] = (
-            torch.bfloat16
-            if model1_kwargs["torch_dtype"] == "torch.bfloat16"
-            else torch.float16
-        )
+        model1_kwargs = translate_model_kwargs(tau1_cfg["model_kwargs"])
 
         self.pipeline1 = pipeline(
             "text-generation",
             model=tau1_cfg["model_id"],
             # device=self.device,
-            model_kwargs=tau1_cfg[
-                "model_kwargs"
-            ],  # TODO: Add flash_attention if possible
+            model1_kwargs=model1_kwargs,  # TODO add flash attention if possible
             tokenizer=self.tokenizer1,
             pad_token_id=self.tokenizer1.eos_token_id,
         )
@@ -75,12 +70,7 @@ class EvalTrainer(Trainer):
             if self.tokenizer2.pad_token is None:
                 self.tokenizer2.pad_token_id = self.tokenizer2.eos_token_id
 
-            model2_kwargs = tau2_cfg["model_kwargs"]
-            model2_kwargs["torch_dtype"] = (
-                torch.bfloat16
-                if model2_kwargs["torch_dtype"] == "torch.bfloat16"
-                else torch.float16
-            )
+            model2_kwargs = translate_model_kwargs(tau2_cfg["model_kwargs"])
 
             self.pipeline2 = pipeline(
                 "text-generation",
@@ -108,7 +98,7 @@ class EvalTrainer(Trainer):
 
         self.use_wandb = use_wandb
 
-    def log(self, logs, seq, epoch, new_start_sequence):
+    def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
         """
         Log metrics for visualization and monitoring.
 
@@ -123,6 +113,7 @@ class EvalTrainer(Trainer):
                         key: value,
                         "sequence": seq,
                         "epoch": epoch,
+                        "epoch_total": total_epoch,
                         "new_start_sequence": new_start_sequence,
                     }
                 )
@@ -140,6 +131,7 @@ class EvalTrainer(Trainer):
 
         self.current_seq = 0
         self.current_epoch = 0
+        self.current_total_epoch = 0
 
         num_batches = (len(self.dataset) + self.bs - 1) // self.bs
 
@@ -162,6 +154,7 @@ class EvalTrainer(Trainer):
             {"aggregated_test_e-value": davt},
             self.current_seq,
             self.current_epoch,
+            self.current_total_epoch,
             int(self.current_epoch == 0),
         )
 
@@ -197,6 +190,7 @@ class EvalTrainer(Trainer):
             # Actual model training
             for i in range(self.epochs):
                 self.current_epoch = i
+                self.current_total_epoch += 1
                 self.train_evaluate_epoch(train_loader)
                 loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
 
@@ -222,6 +216,7 @@ class EvalTrainer(Trainer):
                         {"aggregated_test_e-value": davt},
                         self.current_seq,
                         self.current_epoch,
+                        self.current_total_epoch,
                         int(self.current_epoch == 0),
                     )
 
@@ -249,6 +244,7 @@ class EvalTrainer(Trainer):
                     {"steps": k},
                     self.current_seq,
                     self.current_epoch,
+                    self.current_total_epoch,
                     int(self.current_epoch == 0),
                 )
 
@@ -263,6 +259,7 @@ class EvalTrainer(Trainer):
             {"num_samples": num_samples},
             self.current_seq,
             self.current_epoch,
+            self.current_total_epoch,
             int(self.current_epoch == 0),
         )
 
@@ -292,6 +289,7 @@ class EvalTrainer(Trainer):
             },
             self.current_seq,
             self.current_epoch,
+            self.total_current_epoch,
             int(self.current_epoch == 0),
         )
         return aggregated_loss / num_samples, davt

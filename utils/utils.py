@@ -1,10 +1,12 @@
 import json
 import random
 import time
+import torch
 import wandb
 import yaml
 
 from contextlib import contextmanager
+from copy import deepcopy
 from pathlib import Path
 from datetime import datetime
 
@@ -109,3 +111,16 @@ def initialize_from_config(cfg_dict, net=MMDEMLP):
         0.4,
         cfg_dict["bias"],
     )
+
+
+def translate_model_kwargs(model_kwargs):
+    model_kwargs = deepcopy(model_kwargs)
+
+    if model_kwargs["torch_dtype"] == "torch.bfloat16":
+        model_kwargs["torch_dtype"] = torch.bfloat16
+    elif model_kwargs["torch_dtype"] == "torch.float16":
+        model_kwargs["torch_dtype"] = torch.float16
+    elif model_kwargs["torch_dtype"] == "torch.float32":
+        model_kwargs["torch_dtype"] = torch.float32
+
+    return model_kwargs
