@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
-from utils import create_run_string
+from utils.utils import create_run_string
 
 
 @dataclass

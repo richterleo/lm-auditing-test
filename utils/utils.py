@@ -10,9 +10,6 @@ from copy import deepcopy
 from pathlib import Path
 from datetime import datetime
 
-# imports from deep-anytime-testing library
-from deep_anytime_testing.models import MMDEMLP
-
 
 def create_run_string():
     """
@@ -101,8 +98,8 @@ def load_config(config_path):
     return config
 
 
-def initialize_from_config(cfg_dict, net=MMDEMLP):
-    return MMDEMLP(
+def initialize_from_config(cfg_dict, net):
+    return net(
         cfg_dict["input_size"],
         cfg_dict["hidden_layer_size"],
         1,

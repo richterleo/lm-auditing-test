@@ -7,7 +7,7 @@ metric:
 
 
 eval:
-  epochs: 30
+  epochs: 1
   num_samples: 500
   num_bins: 10
 

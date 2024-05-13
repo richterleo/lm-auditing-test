@@ -56,7 +56,7 @@ class EvalTrainer(Trainer):
             "text-generation",
             model=tau1_cfg["model_id"],
             # device=self.device,
-            model1_kwargs=model1_kwargs,  # TODO add flash attention if possible
+            model_kwargs=model1_kwargs,  # TODO add flash attention if possible
             tokenizer=self.tokenizer1,
             pad_token_id=self.tokenizer1.eos_token_id,
         )

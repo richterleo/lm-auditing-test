@@ -9,6 +9,8 @@ from dav_testing.eval_trainer import EvalTrainer
 from utils.utils import load_config, create_run_string, initialize_from_config
 from utils.generate_and_evaluate import generate_and_evaluate
 
+from deep_anytime_testing.models.mlp import MMDEMLP
+
 
 def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
     """ """
@@ -25,7 +27,7 @@ def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = Non
             config=config,
         )
 
-    net = initialize_from_config(config["net"])
+    net = initialize_from_config(config["net"], MMDEMLP)
 
     if tau2_cfg:
         trainer = EvalTrainer(
@@ -54,8 +56,17 @@ def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = Non
 
     trainer.train()
 
+    wandb.finish()
 
-def eval_model(eval_cfg, config_path="config.yml", model2_cfg: Optional[Dict] = None):
+
+def eval_model(
+    config_path="config.yml",
+    comp_model_cfg: Optional[Dict] = None,
+    num_samples=None,
+    num_epochs=None,
+):
+    """ """
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     config = load_config(config_path)
@@ -67,8 +78,28 @@ def eval_model(eval_cfg, config_path="config.yml", model2_cfg: Optional[Dict] = 
             name=create_run_string(),
             config=config,
         )
-    
-    generate_and_evaluate(config["metric"]["dataset_name"], config["metric"]["metric"], config["model1"], config["tokenizer1"], config["model1_kwargs"], config["gen1_kwargs"], config["num_samples"], config["num_epochs"], model2=model2_cfg, tokenizer2=config["tokenizer2"], model2_kwargs=config["model2_kwargs"], gen2_kwargs=config["gen2_kwargs"], save_continuations=True, save_prompts=False, seed=0, use_wandb=config["logging"]["use_wandb)
+
+    _, all_data_table = generate_and_evaluate(
+        config["metric"]["dataset_name"],
+        config["metric"]["metric"],
+        config["tau1"],
+        config["eval"]["num_samples"] if not num_samples else num_samples,
+        config["eval"]["epochs"] if not num_epochs else num_epochs,
+        use_wandb=config["logging"]["use_wandb"],
+        comp_model_cfg=comp_model_cfg,
+    )
+
+    wandb.log(
+        {
+            "Ratings Histogram": wandb.plot.histogram(
+                all_data_table,
+                "ratings",
+                title=f"{config['metric']['behavior']}_scores",
+            )
+        }
+    )
+
+    wandb.finish()
 
 
 if __name__ == "__main__":
