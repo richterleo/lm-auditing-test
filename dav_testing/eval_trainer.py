@@ -15,10 +15,10 @@ from deep_anytime_testing.trainer.trainer import Trainer
 from deep_anytime_testing.models.mlp import MMDEMLP
 
 # own utilities
-from dataloader import ScoresDataset, collate_fn
+from dav_testing.dataloader import ScoresDataset, collate_fn
 
 # from arguments import Cfg
-from generate_and_evaluate import eval_on_metric
+from utils.generate_and_evaluate import eval_on_metric
 
 
 class EvalTrainer(Trainer):

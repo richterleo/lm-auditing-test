@@ -48,7 +48,7 @@ train:
   seqs: 60 # number of mini-batches
   T: 0 #Warm start number of mini-batches used for the training only
   alpha: 0.05 # significance level
-  batch_size: 96
+  batch_size: 10
   save: false
   save_dir: ""
   l1_lambda: 0.0

@@ -2,7 +2,7 @@ import numpy as np
 
 from collections import Counter
 
-from variation import Variation, calc_tot_discrete_variation
+from behavior_evaluation.variation import Variation, calc_tot_discrete_variation
 
 
 def ctest_2samp_unequal(

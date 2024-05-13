@@ -10,7 +10,7 @@ from transformers.utils import is_flash_attn_2_available
 from tqdm import tqdm
 
 from arguments import EvalArgs
-from utils import get_random_prompts, log_scores
+from utils.utils import get_random_prompts, log_scores
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
