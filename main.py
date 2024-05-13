@@ -1,3 +1,4 @@
+import importlib
 import torch
 import wandb
 
@@ -9,7 +10,8 @@ from dav_testing.eval_trainer import EvalTrainer
 from utils.utils import load_config, create_run_string, initialize_from_config
 from utils.generate_and_evaluate import generate_and_evaluate
 
-from deep_anytime_testing.models.mlp import MMDEMLP
+# Dynamically import the module
+deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 
 
 def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
@@ -27,6 +29,10 @@ def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = Non
             config=config,
         )
 
+    models = importlib.import_module(
+        "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
+    )
+    MMDEMLP = getattr(models, "MMDEMLP")
     net = initialize_from_config(config["net"], MMDEMLP)
 
     if tau2_cfg:

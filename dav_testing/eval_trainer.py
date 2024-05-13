@@ -1,3 +1,4 @@
+import importlib
 import numpy as np
 import logging
 import random
@@ -11,9 +12,6 @@ from torch.utils.data import DataLoader, ConcatDataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 
-# classes from deep-anytime-testing module
-from deep_anytime_testing.trainer.trainer import Trainer
-from deep_anytime_testing.models.mlp import MMDEMLP
 
 # own utilities
 from dav_testing.dataloader import ScoresDataset, collate_fn
@@ -21,6 +19,10 @@ from dav_testing.dataloader import ScoresDataset, collate_fn
 # from arguments import Cfg
 from utils.generate_and_evaluate import eval_on_metric
 from utils.utils import translate_model_kwargs
+
+deep_anytime_testing = importlib.import_module("deep-anytime-testing")
+train = importlib.import_module("deep-anytime-testing.trainer.trainer")
+Trainer = getattr(train, "Trainer")
 
 
 class EvalTrainer(Trainer):
