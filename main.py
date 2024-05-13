@@ -1,14 +1,31 @@
 import importlib
+import os
 import torch
+import sys
 import wandb
 
 from typing import Optional, Dict
 
 # imports from other scripts
 from arguments import TrainCfg
-from dav_testing.eval_trainer import EvalTrainer
 from utils.utils import load_config, create_run_string, initialize_from_config
 from utils.generate_and_evaluate import generate_and_evaluate
+
+# Add the submodule to the path for eval_trainer
+submodule_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
+)
+if submodule_path not in sys.path:
+    sys.path.append(submodule_path)
+
+# Assuming the 'models' module is inside the 'deep-anytime-testing' directory
+models_path = os.path.join(
+    submodule_path, "models"
+)  # Adjust this path if the location is different
+if models_path not in sys.path:
+    sys.path.append(models_path)
+
+from dav_testing.eval_trainer import EvalTrainer
 
 # Dynamically import the module
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")

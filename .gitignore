@@ -3,3 +3,5 @@ wandb
 *.txt
 keys.py
 test_perspective_api.py
+tox_scores.json
+perspective_scores.json
