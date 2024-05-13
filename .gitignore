@@ -1,3 +1,5 @@
 wandb
 *.pyc
 *.txt
+keys.py
+test_perspective_api.py

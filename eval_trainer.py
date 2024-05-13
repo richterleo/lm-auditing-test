@@ -108,7 +108,7 @@ class EvalTrainer(Trainer):
 
         self.use_wandb = use_wandb
 
-    def log(self, logs):
+    def log(self, logs, seq, epoch, new_start_sequence):
         """
         Log metrics for visualization and monitoring.
 
@@ -118,7 +118,14 @@ class EvalTrainer(Trainer):
 
         for key, value in logs.items():
             if self.use_wandb:
-                wandb.log({key: value})
+                wandb.log(
+                    {
+                        key: value,
+                        "sequence": seq,
+                        "epoch": epoch,
+                        "new_start_sequence": new_start_sequence,
+                    }
+                )
             print(
                 f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
             )
@@ -130,6 +137,9 @@ class EvalTrainer(Trainer):
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
         davts = []
+
+        self.current_seq = 0
+        self.current_epoch = 0
 
         num_batches = (len(self.dataset) + self.bs - 1) // self.bs
 
@@ -148,12 +158,17 @@ class EvalTrainer(Trainer):
         )
         _, davt = self.train_evaluate_epoch(test_loader, mode="test")
         davts.append(davt.item())
-        self.log({"aggregated_test_e-value": davt})
+        self.log(
+            {"aggregated_test_e-value": davt},
+            self.current_seq,
+            self.current_epoch,
+            int(self.current_epoch == 0),
+        )
 
         # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
         if davt > (1.0 / self.alpha):
             logging.info("Reject null at %f", davt)
-            self.log({"steps": 0})
+            self.log({"steps": 0}, self.current_seq, self.current_epoch, 0)
 
         for k in range(1, min(self.seqs, num_batches)):
             # This is the maximum number of mini-batches to sample from the data
@@ -203,7 +218,12 @@ class EvalTrainer(Trainer):
                     )
                     davts.append(conditional_davt.item())
                     davt = np.prod(np.array(davts[self.T :])) if k >= self.T else 1
-                    self.log({"aggregated_test_e-value": davt})
+                    self.log(
+                        {"aggregated_test_e-value": davt},
+                        self.current_seq,
+                        self.current_epoch,
+                        int(self.current_epoch == 0),
+                    )
 
                     # former train_ds and val_ds become the new train set
                     train_ds = ConcatDataset([train_ds, val_ds])
@@ -225,7 +245,12 @@ class EvalTrainer(Trainer):
             # Log information if davt exceeds the threshold
             if davt > (1.0 / self.alpha):
                 print("Reject null at %f", davt)
-                self.log({"steps": k})
+                self.log(
+                    {"steps": k},
+                    self.current_seq,
+                    self.current_epoch,
+                    int(self.current_epoch == 0),
+                )
 
     def train_evaluate_epoch(self, data_loader, mode="train"):
         """ """
@@ -233,6 +258,13 @@ class EvalTrainer(Trainer):
         aggregated_loss = 0
         davt = 1
         num_samples = len(data_loader.dataset)
+
+        self.log(
+            {"num_samples": num_samples},
+            self.current_seq,
+            self.current_epoch,
+            int(self.current_epoch == 0),
+        )
 
         for batch in data_loader:
             if mode == "train":
@@ -257,7 +289,10 @@ class EvalTrainer(Trainer):
             {
                 f"{mode}_e-value": davt.item(),
                 f"{mode}_loss": aggregated_loss.item() / num_samples,
-            }
+            },
+            self.current_seq,
+            self.current_epoch,
+            int(self.current_epoch == 0),
         )
         return aggregated_loss / num_samples, davt
 
