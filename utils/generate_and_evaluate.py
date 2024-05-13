@@ -88,9 +88,9 @@ def generate_and_evaluate(
 
         scores = eval_on_metric(metric, logs[epoch]["continuations"])
         logs[epoch][f"{metric}_scores"] = scores
-        wandb.log(
-            {f"{metric}_scores/{metric}_score": score for i, score in enumerate(scores)}
-        )
+
+        for i, score in enumerate(scores):
+            wandb.log({f"{metric}_score": score, "samples": i})
 
         if comp_model_cfg:
             comp_scores = eval_on_metric(metric, logs[epoch]["comp_continuation"])
