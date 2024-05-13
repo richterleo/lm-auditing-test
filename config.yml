@@ -14,7 +14,7 @@ eval:
 logging: 
   use_wandb: true
   api_key: # put your api key here
-  entity: richter-leo94
+  entity: LLM_Accountability #richter-leo94 personal account
 
 tau1: 
   model_id: LLMAccountability/Llama-3-8B-ckpt1 #meta-llama/Meta-Llama-3-8B

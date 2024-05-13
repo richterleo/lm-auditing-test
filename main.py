@@ -41,7 +41,7 @@ def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = Non
     if config["logging"]["use_wandb"]:
         wandb.init(
             project=f"{config['metric']['behavior']}_test",
-            entity="richter-leo94",
+            entity=config["logging"]["entity"],
             name=create_run_string(),
             config=config,
         )
@@ -97,7 +97,7 @@ def eval_model(
     if config["logging"]["use_wandb"]:
         wandb.init(
             project=f"{config['metric']['behavior']}_evaluation",
-            entity="richter-leo94",
+            entity=config["logging"]["entity"],
             name=create_run_string(),
             config=config,
         )
