@@ -1,6 +1,8 @@
 import evaluate
 import json
 import wandb
+import aiohttp
+import asyncio
 
 from collections import defaultdict
 from datasets import load_dataset
@@ -61,7 +63,7 @@ def generate_and_evaluate(
     all_data_table = wandb.Table(columns=["epoch", "step", "ratings"])
 
     for epoch in range(num_epochs):
-        logs = defaultdict(list)
+        logs = defaultdict(lambda: defaultdict(list))
 
         for prompt in tqdm(prompts):
             generation = generator(
@@ -87,23 +89,20 @@ def generate_and_evaluate(
         scores = eval_on_metric(metric, logs[epoch]["continuations"])
         logs[epoch][f"{metric}_scores"] = scores
         wandb.log(
-            {
-                f"{metric}_scores/{metric}_score-{i}": score
-                for i, score in enumerate(scores)
-            }
+            {f"{metric}_scores/{metric}_score": score for i, score in enumerate(scores)}
         )
 
         if comp_model_cfg:
-            comp_scores = eval_on_metric(metric, logs[epoch]["comp_continuatiosn"])
+            comp_scores = eval_on_metric(metric, logs[epoch]["comp_continuation"])
             logs[epoch][f"{metric}_comp_scores"] = comp_scores
             wandb.log(
                 {
-                    f"{metric}_comp_scores/{metric}_comp_score-{i}": score
+                    f"{metric}_comp_scores/{metric}_comp_score": score
                     for i, score in enumerate(comp_scores)
                 }
             )
 
-        for i, score in enumerate(scores["epoch"][f"{metric}_scores"]):
+        for i, score in enumerate(scores):
             all_data_table.add_data(epoch, i, score)
 
         # upload json to wandb
@@ -123,37 +122,67 @@ def eval_on_metric(metric, continuations):
     """ """
 
     if metric == "perspective":
-        client = discovery.build(
-            "commentanalyzer",
-            "v1alpha1",
-            developerKey=PERSPECTIVE_API_KEY,
-            discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
-            static_discovery=False,
-        )
-
-        analyze_request = {
-            "comment": {"text": continuations[0]},
-            "requestedAttributes": {"TOXICITY": {}},
-            "doNotStore": True,
-        }
-
-        response = client.comments().analyze(body=analyze_request).execute()
-        ratings = response["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
+        ratings = asyncio.run(call_perspective(continuations))
 
     else:
         metric_name = metric
         metric = evaluate.load(metric)
         rating_dict = metric.compute(predictions=continuations)
         ratings = rating_dict[metric_name]
-        print(type(ratings), ratings.shape)
 
     return ratings
 
 
-if __name__ == "__main__":
-    # continuations = ["This is great!", "I hate this!"]
-    # metric = "perspective"
+# def call_perspective(continuations):
+#     """ """
+#     client = discovery.build(
+#         "commentanalyzer",
+#         "v1alpha1",
+#         developerKey=PERSPECTIVE_API_KEY,
+#         discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
+#         static_discovery=False,
+#     )
 
-    # ratings = eval_on_metric(metric, continuations)
-    # print(ratings)
-    pass
+#     ratings = []
+
+#     for continuation in continuations:
+#         analyze_request = {
+#             "comment": {"text": continuation},
+#             "requestedAttributes": {"TOXICITY": {}},
+#             "doNotStore": True,
+#         }
+
+#     response = client.comments().analyze(body=analyze_request).execute()
+#     ratings.append(response["attributeScores"]["TOXICITY"]["summaryScore"]["value"])
+
+#     return ratings
+
+
+async def fetch_toxicity(session, text):
+    url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
+    params = {
+        "key": PERSPECTIVE_API_KEY,
+    }
+    payload = {
+        "comment": {"text": text},
+        "requestedAttributes": {"TOXICITY": {}},
+        "doNotStore": True,
+    }
+    headers = {"Content-Type": "application/json"}
+
+    async with session.post(
+        url, params=params, data=json.dumps(payload), headers=headers
+    ) as response:
+        assert response.status == 200
+        resp_json = await response.json()
+        return resp_json["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
+
+
+async def call_perspective(continuations):
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_toxicity(session, text) for text in continuations]
+        ratings = await asyncio.gather(*tasks)
+        return ratings
+
+
+# if __name__ == "__main__":

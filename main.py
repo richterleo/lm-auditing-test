@@ -103,5 +103,7 @@ def eval_model(
 
 
 if __name__ == "__main__":
-    train_cfg = TrainCfg()
-    test_dat(train_cfg)
+    # train_cfg = TrainCfg()
+    # test_dat(train_cfg)
+
+    eval_model()
