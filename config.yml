@@ -8,7 +8,7 @@ metric:
 
 eval:
   epochs: 1
-  num_samples: 10
+  num_samples: 1000
   num_bins: 10
 
 logging: 
@@ -17,7 +17,7 @@ logging:
   entity: richter-leo94
 
 tau1: 
-  model_id: meta-llama/Meta-Llama-3-8B
+  model_id: LLMAccountability/Llama-3-8B-ckpt1 #meta-llama/Meta-Llama-3-8B
   model_kwargs:
     torch_dtype: torch.bfloat16
     load_in_4bit: true
@@ -48,7 +48,7 @@ train:
   seqs: 60 # number of mini-batches
   T: 0 #Warm start number of mini-batches used for the training only
   alpha: 0.05 # significance level
-  batch_size: 10
+  batch_size: 96
   save: false
   save_dir: ""
   l1_lambda: 0.0
