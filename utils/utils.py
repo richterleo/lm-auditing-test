@@ -8,6 +8,7 @@ import yaml
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
+from typing import Optional
 from datetime import datetime
 
 
@@ -50,18 +51,31 @@ def log_scores(scores, prefix="tox"):
 
 
 def get_scores_from_wandb(
-    run_id,
+    run_id: str,
     project_name="toxicity_evaluation",
     prefix="tox",
     user_name="richter-leo94",
     return_file_path=True,
-):
+) -> Optional[Path]:
+    """
+    Helper function for downloading the scores file from a W&B run.
+
+    Args:
+        run_id: The ID of the W&B run (not identical to the run name)
+        project_name: The name of the W&B project.
+        prefix: The prefix of the file to download.
+        user_name: The name of the W&B user.
+        return_file_path: Whether to return the file path.
+
+    Returns:
+        (Optional) The path to the downloaded file.
+
+    """
     # Initialize W&B API
     api = wandb.Api()
 
     # Path to the file you want to download
     file_path = f"{prefix}_scores.json"
-
     run_name = f"{user_name}/{project_name}/{run_id}"
 
     # Access the run

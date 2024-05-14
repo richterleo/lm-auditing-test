@@ -19,9 +19,9 @@ def calc_ak_variation(self, p, q):
     pass
 
 
-def calc_kolmogorov_variation(self, p, q):
+def kolmogorov_variation(samples1, samples2):
     """ """
-    ks_distance = kstest(p, q)
+    ks_distance = kstest(samples1, samples2)
 
     return ks_distance[0]
 
