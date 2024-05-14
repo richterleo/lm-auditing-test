@@ -8,17 +8,19 @@ import torch
 from collections import defaultdict
 from datasets import load_dataset
 from googleapiclient import discovery
-from utils.keys import PERSPECTIVE_API_KEY
+#from utils.keys import PERSPECTIVE_API_KEY
 from tqdm import tqdm
 from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
+from peft import AutoPeftModelForCausalLM
 
 from utils.utils import (
     translate_model_kwargs,
     get_random_prompts,
     log_scores,
     NestedKeyDataset,
+    terminator,
 )
 
 import logging
@@ -54,16 +56,35 @@ def generate_and_evaluate(
     tokenizer = AutoTokenizer.from_pretrained(
         model_cfg["model_id"], padding_side="left"
     )
+
+    terminators = [tokenizer.eos_token_id]
+
+    if "Llama-3" in model_cfg["model_id"]:
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
+    elif "Mistral" in model_cfg["model_id"]:
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
+    elif "gemma" in model_cfg["model_id"]:
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
+
     if tokenizer.pad_token is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
+    if model_cfg["model_id"].startswith("LLMAccountability"):
+        model = AutoPeftModelForCausalLM.from_pretrained(model_cfg["model_id"], **model_kwargs)
+        generator = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            model_kwargs=model_kwargs,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+    else:
         generator = pipeline(
             "text-generation",
             model=model_cfg["model_id"],
             model_kwargs=model_kwargs,
             tokenizer=tokenizer,
-            pad_token_id=tokenizer.eos_token_id,
-            device_map="auto",
+            pad_token_id=tokenizer.pad_token_id,
         )
 
     if num_samples < len(prompt_dataset):
@@ -94,8 +115,9 @@ def generate_and_evaluate(
         for i, out in tqdm(
             enumerate(
                 generator(
-                    NestedKeyDataset(prompt_dataset, "prompt", "text"),
+                    NestedKeyDataset(prompt_dataset, "prompt", "text", model_cfg["model_id"], tokenizer),
                     batch_size=batch_size,
+                    eos_token_id=terminators,
                     **gen_kwargs,
                 )
             )
@@ -109,9 +131,10 @@ def generate_and_evaluate(
                     }
                 )
 
-            cont = out[0]["generated_text"].replace(
-                prompt_dataset[i]["prompt"]["text"], ""
-            )
+            #cont = out[0]["generated_text"].replace(
+            #    prompt_dataset[i]["prompt"]["text"], ""
+            #)
+            cont = out[0]["generated_text"]
             logs[epoch]["prompts"].append(prompt_dataset[i]["prompt"]["text"])
             logs[epoch]["continuations"].append(cont)
 
@@ -125,7 +148,7 @@ def generate_and_evaluate(
                     all_data_table.add_data(epoch, i, score)
 
         # save down locally as json after each epoch
-        file_name = f"{str(metric)}_scores.json" if evaluate else "continuations.json"
+        file_name = f"{str(metric)}_scores.json" if evaluate else f"{model_cfg['model_id'].split('/')[-1]}_continuations.json"
 
         with open(file_name, "w") as file:
             json.dump(logs, file, indent=4)

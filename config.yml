@@ -8,7 +8,7 @@ metric:
 
 eval:
   epochs: 1
-  num_samples: 1e6
+  num_samples: 1000000 #1e6
   num_bins: 10
   batch_size: 16
 
@@ -18,14 +18,17 @@ logging:
   entity: LLM_Accountability #richter-leo94 personal account
 
 tau1: 
-  model_id: meta-llama/Meta-Llama-3-8B #LLMAccountability/Llama-3-8B-ckpt1
+  model_id: meta-llama/Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1
+    #model_id: LLMAccountability/Llama-3-8B-ckpt10
   model_kwargs:
     torch_dtype: torch.bfloat16
     load_in_4bit: true
+    device_map: auto
   gen_kwargs:
     max_new_tokens: 100
     do_sample: true
-    temperature: 1
+    temperature: 0.7
+    top_p: 0.9
 
 tau2: null
 

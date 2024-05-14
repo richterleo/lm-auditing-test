@@ -31,10 +31,10 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-from dah_testing.eval_trainer import EvalTrainer
+#from dah_testing.eval_trainer import EvalTrainer
 
 # Dynamically import the module
-deep_anytime_testing = importlib.import_module("deep-anytime-testing")
+#deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 
 
 def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
@@ -144,12 +144,19 @@ def main():
         help="Whether to evaluate the model on the metric",
     )
 
+    parser.add_argument(
+        "--config_path",
+        type=str,
+        default="config.yml",
+        help="Whether to evaluate the model on the metric",
+    )
+
     # Parse the arguments
     args = parser.parse_args()
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":
-        eval_model(evaluate=args.evaluate)
+        eval_model(evaluate=args.evaluate, config_path=args.config_path)
     elif args.exp == "test_daht":
         train_cfg = TrainCfg()
         test_daht(train_cfg)

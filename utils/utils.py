@@ -12,7 +12,10 @@ from typing import Optional
 from datetime import datetime
 
 from torch.utils.data import Dataset
+from transformers import AutoTokenizer
 
+
+terminator = {"llama3": "<|eot_id|>", "mistral": "</s>", "gemma": "<end_of_turn>"}
 
 def create_run_string():
     """
@@ -139,14 +142,47 @@ def translate_model_kwargs(model_kwargs):
     return model_kwargs
 
 
+def message_format_with_sys(input_sent):
+
+    messages = [
+        {"role": "system", "content": "You are a helpful, respectful and honest assistant."},
+        {"role": "user", "content": "You are required to keep generation given the incomplete prompt. \n\n" + input_sent},
+    ]
+
+    return messages
+
+def message_format(input_sent):
+
+    messages = [
+        {"role": "user", "content": "You are a helpful, respectful and honest assistant. You are required to keep generation given the incomplete prompt. \n\n" + input_sent},
+    ]
+
+    return messages
+
+format_funcs = {"llama3": message_format_with_sys, "mistral": message_format, "gemma": message_format}
+
 class NestedKeyDataset(Dataset):
-    def __init__(self, dataset: Dataset, key1: str, key2: str):
+    def __init__(self, dataset: Dataset, key1: str, key2: str, model_id: str, tokenizer: AutoTokenizer):
         self.dataset = dataset
         self.key1 = key1
         self.key2 = key2
+
+        if "Llama-3" in model_id:
+            self.format_func = format_funcs["llama3"]
+        elif "Mistral" in model_id:
+            self.format_func = format_funcs["mistral"]
+        elif "gemma" in model_id:
+            self.format_func = format_funcs["gemma"]
+
+        self.tokenizer = tokenizer
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, i):
-        return self.dataset[i][self.key1][self.key2]
+        prompt = self.tokenizer.apply_chat_template(
+            self.format_func(self.dataset[i][self.key1][self.key2]),
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        return prompt
