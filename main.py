@@ -1,3 +1,4 @@
+import argparse
 import importlib
 import os
 import torch
@@ -131,8 +132,28 @@ def eval_model(
     wandb.finish()
 
 
-if __name__ == "__main__":
-    train_cfg = TrainCfg()
-    test_dat(train_cfg)
+def main():
+    """ """
+    # Create the argument parser
+    parser = argparse.ArgumentParser(description="Run experiments")
+    parser.add_argument(
+        "--exp",
+        type=str,
+        choices=["evaluation", "test_dat"],
+        required=True,
+        help="Select the experiment to run: evalution or testing the dat-test",
+    )
 
-    # eval_model()
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Determine which experiment to run based on the argument
+    if args.experiment == "evaluation":
+        eval_model()
+    elif args.experiment == "test_dat":
+        train_cfg = TrainCfg()
+        test_dat(train_cfg)
+
+
+if __name__ == "__main__":
+    main()
