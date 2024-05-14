@@ -3,15 +3,23 @@ import json
 import wandb
 import aiohttp
 import asyncio
+import torch
 
 from collections import defaultdict
 from datasets import load_dataset
 from googleapiclient import discovery
 from utils.keys import PERSPECTIVE_API_KEY
 from tqdm import tqdm
+from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer
+from transformers.utils import is_flash_attn_2_available
 
-from utils.utils import translate_model_kwargs, get_random_prompts, log_scores
+from utils.utils import (
+    translate_model_kwargs,
+    get_random_prompts,
+    log_scores,
+    NestedKeyDataset,
+)
 
 import logging
 
@@ -21,15 +29,17 @@ logger = logging.getLogger(__name__)
 
 def generate_and_evaluate(
     dataset_name: str,
-    metric: str,
     model_cfg,
-    num_samples,
+    num_samples: int,
     num_epochs: int = 1,
-    comp_model_cfg=None,
-    save_continuations=True,
-    save_prompts=False,
+    batch_size: int = 8,
+    save_continuations=True,  # TODO: add this flag
+    save_prompts=True,  # TODO: add this flag
     seed=0,
     use_wandb=True,
+    evaluate: bool = True,
+    metric=None,
+    meta_data=None,
 ):
     """ """
 
@@ -37,86 +47,103 @@ def generate_and_evaluate(
 
     # wandb only logs strings, floats, ... so need to modify torch_dtype
     model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    if is_flash_attn_2_available():
+        model_kwargs.update({"attn_implementation": "flash_attention_2"})
     gen_kwargs = model_cfg["gen_kwargs"]
 
-    generator = pipeline(
-        "text-generation",
-        model=model_cfg["model_id"],
-        # device=args.device, # no device param if using accelerate (load_in_4bit=True)
-        model_kwargs=model_kwargs,
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_cfg["model_id"], padding_side="left"
     )
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    tokenizer = AutoTokenizer.from_pretrained(model_cfg["model_id"])
-
-    # if you wand to get model comparison on the same prompts
-    if comp_model_cfg:
-        comp_model_kwargs = translate_model_kwargs(comp_model_cfg["model_kwargs"])
-        comp_gen_kwargs = comp_model_cfg["gen_kwargs"]
-
-        comp_generator = pipeline(
+        generator = pipeline(
             "text-generation",
-            model=comp_model_cfg["model_id"],
-            # device=args.device, # no device param if using accelerate (load_in_4bit=True)
-            model_kwargs=comp_model_kwargs,
+            model=model_cfg["model_id"],
+            model_kwargs=model_kwargs,
+            tokenizer=tokenizer,
+            pad_token_id=tokenizer.eos_token_id,
+            device_map="auto",
         )
 
-    sample = get_random_prompts(prompt_dataset, num_examples=num_samples)
-    prompts = [p["text"] for p in sample["prompt"]]
+    if num_samples < len(prompt_dataset):
+        subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
+        prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
 
-    results = {}
+    logs = defaultdict(lambda: defaultdict(list))
+    logs["metadata"] = {
+        "dataset_name": dataset_name,
+        "model_id": model_cfg["model_id"],
+        "gen_kwargs": gen_kwargs,
+        "num_samples": num_samples,
+        "num_epochs": num_epochs,
+        "batch_size": batch_size,
+        "seed": seed,
+        "use_wandb": use_wandb,
+        "evaluate": evaluate,
+        "metric": str(metric),
+        "meta_data": meta_data,
+    }
 
-    all_data_table = wandb.Table(columns=["epoch", "step", "ratings"])
+    # For logging histogram
+    if use_wandb:
+        all_data_table = wandb.Table(columns=["epoch", "step", "ratings"])
 
+    # This loop is for repeated evaluation on the same prompts (default is only 1 epoch)
     for epoch in range(num_epochs):
-        logs = defaultdict(lambda: defaultdict(list))
-
-        for prompt in tqdm(prompts):
-            generation = generator(
-                prompt, pad_token_id=tokenizer.eos_token_id, **gen_kwargs
+        for i, out in tqdm(
+            enumerate(
+                generator(
+                    NestedKeyDataset(prompt_dataset, "prompt", "text"),
+                    batch_size=batch_size,
+                    **gen_kwargs,
+                )
             )
-
-            continuation = generation[0]["generated_text"].replace(prompt, "")
-            logs[epoch]["prompts"].append(prompt)
-            logs[epoch]["continuations"].append(continuation)
-            wandb.log({"prompt": prompt, "continuation": continuation})
-
-            if comp_model_cfg:
-                comp_generation = comp_generator(
-                    prompt, pad_token_id=tokenizer.eos_token_id, **comp_gen_kwargs
+        ):
+            if use_wandb:
+                wandb.log(
+                    {
+                        "epoch": epoch,
+                        "prompt": prompt_dataset[i]["prompt"]["text"],
+                        "continuation": out[0]["generated_text"],
+                    }
                 )
 
-                comp_continuation = comp_generation[0]["generated_text"].replace(
-                    prompt, ""
-                )
-                logs[epoch]["comp_continuations"].append(comp_continuation)
-                wandb.log({"comp_continuation": comp_continuation})
+            cont = out[0]["generated_text"].replace(
+                prompt_dataset[i]["prompt"]["text"], ""
+            )
+            logs[epoch]["prompts"].append(prompt_dataset[i]["prompt"]["text"])
+            logs[epoch]["continuations"].append(cont)
 
-        scores = eval_on_metric(metric, logs[epoch]["continuations"])
-        logs[epoch][f"{metric}_scores"] = scores
+        if evaluate:
+            scores = eval_on_metric(metric, logs[epoch]["continuations"])
+            logs[epoch][f"{str(metric)}_scores"] = scores
 
-        for i, score in enumerate(scores):
-            wandb.log({f"{metric}_score": score, "samples": i})
+            if use_wandb:
+                for i, score in enumerate(scores):
+                    wandb.log({f"{str(metric)}_score": score, "samples": i})
+                    all_data_table.add_data(epoch, i, score)
 
-        if comp_model_cfg:
-            comp_scores = eval_on_metric(metric, logs[epoch]["comp_continuation"])
-            logs[epoch][f"{metric}_comp_scores"] = comp_scores
-            for i, score in enumerate(comp_scores):
-                wandb.log({f"{metric}_comp_score": score, "samples": i})
-
-        for i, score in enumerate(scores):
-            all_data_table.add_data(epoch, i, score)
-
-        # upload json to wandb
-        log_scores(logs)
-
-        file_name = f"{metric}_scores.json"
+        # save down locally as json after each epoch
+        file_name = f"{str(metric)}_scores.json" if evaluate else "continuations.json"
 
         with open(file_name, "w") as file:
-            json.dump(results, file, indent=4)
+            json.dump(logs, file, indent=4)
 
-        print(f"Saved scores epoch {epoch} out of {num_epochs}.")
+        if use_wandb:
+            wandb.save(file_name)
 
-        return logs, all_data_table
+    # plot histogram in wandb
+    if use_wandb and evaluate:
+        wandb.log(
+            {
+                "Ratings Histogram": wandb.plot.histogram(
+                    all_data_table,
+                    "ratings",
+                    title=f"{str(metric)}_scores",
+                )
+            }
+        )
 
 
 def eval_on_metric(metric, continuations):

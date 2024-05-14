@@ -91,45 +91,39 @@ def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = No
 
 def eval_model(
     config_path="config.yml",
-    comp_model_cfg: Optional[Dict] = None,
     num_samples=None,
     num_epochs=None,
+    batch_size=None,
+    evaluate=True,
 ):
     """ """
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
     config = load_config(config_path)
+
+    project_name = (
+        f"{config['metric']['behavior']}_evaluation" if evaluate else "continuations"
+    )
 
     if config["logging"]["use_wandb"]:
         wandb.init(
-            project=f"{config['metric']['behavior']}_evaluation",
+            project=project_name,
             entity=config["logging"]["entity"],
             name=create_run_string(),
             config=config,
         )
 
-    _, all_data_table = generate_and_evaluate(
+    generate_and_evaluate(
         config["metric"]["dataset_name"],
-        config["metric"]["metric"],
         config["tau1"],
         config["eval"]["num_samples"] if not num_samples else num_samples,
-        config["eval"]["epochs"] if not num_epochs else num_epochs,
+        num_epochs=config["eval"]["epochs"] if not num_epochs else num_epochs,
+        batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
         use_wandb=config["logging"]["use_wandb"],
-        comp_model_cfg=comp_model_cfg,
+        evaluate=evaluate,
+        metric=config["metric"]["metric"],
     )
 
-    wandb.log(
-        {
-            "Ratings Histogram": wandb.plot.histogram(
-                all_data_table,
-                "ratings",
-                title=f"{config['metric']['behavior']}_scores",
-            )
-        }
-    )
-
-    wandb.finish()
+    if config["logging"]["use_wandb"]:
+        wandb.finish()
 
 
 def main():
@@ -139,17 +133,23 @@ def main():
     parser.add_argument(
         "--exp",
         type=str,
-        choices=["evaluation", "test_daht"],
+        choices=["generation", "test_daht"],
         required=True,
         help="Select the experiment to run: evalution or testing the dat-test",
+    )
+
+    parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Whether to evaluate the model on the metric",
     )
 
     # Parse the arguments
     args = parser.parse_args()
 
     # Determine which experiment to run based on the argument
-    if args.exp == "evaluation":
-        eval_model()
+    if args.exp == "generation":
+        eval_model(evaluate=args.evaluate)
     elif args.exp == "test_daht":
         train_cfg = TrainCfg()
         test_daht(train_cfg)
