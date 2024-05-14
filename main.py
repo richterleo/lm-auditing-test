@@ -148,9 +148,9 @@ def main():
     args = parser.parse_args()
 
     # Determine which experiment to run based on the argument
-    if args.experiment == "evaluation":
+    if args.exp == "evaluation":
         eval_model()
-    elif args.experiment == "test_dat":
+    elif args.exp == "test_dat":
         train_cfg = TrainCfg()
         test_dat(train_cfg)
 
