@@ -8,17 +8,17 @@ import wandb
 from copy import deepcopy
 from sklearn.model_selection import train_test_split
 from datasets import load_dataset
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
-
+from transformers.pipelines.pt_utils import KeyDataset
 
 # own utilities
 from dav_testing.dataloader import ScoresDataset, collate_fn
 
 # from arguments import Cfg
 from utils.generate_and_evaluate import eval_on_metric
-from utils.utils import translate_model_kwargs
+from utils.utils import translate_model_kwargs, time_block
 
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 train = importlib.import_module("deep-anytime-testing.trainer.trainer")
@@ -301,13 +301,59 @@ class EvalTrainer(Trainer):
         return aggregated_loss / num_samples, davt
 
     def get_score_ds(self, indices):
-        """ """
+        """ 
+        Querying the models for continuations and evaluating them on the metric.
+        """
         continuations1 = []
-        continuations2 = []
+        continuations2 = []        
+        
+        with time_block(f"Generating continuations for {len(indices)} samples"):
+            for sample in list(indices):
+                
+                with time_block(f"Generating continuation for sample {sample} out of {len(indices)}"):
+                    out1 = self.pipeline1(
+                        self.dataset[sample]["prompt"]["text"],
+                        pad_token_id=self.tokenizer1.eos_token_id,
+                        **self.gen1_kwargs,
+                    )
+                    out2 = self.pipeline2(
+                        self.dataset[sample]["prompt"]["text"],
+                        pad_token_id=self.tokenizer2.eos_token_id,
+                        **self.gen2_kwargs,
+                    )
 
+                    cont1 = out1[0]["generated_text"].replace(
+                        self.dataset[sample]["prompt"]["text"], ""
+                    )
+                    cont2 = out2[0]["generated_text"].replace(
+                        self.dataset[sample]["prompt"]["text"], ""
+                    )
+
+                    continuations1.append(cont1)
+                    continuations2.append(cont2)
+
+        # Get metrics for batch
+        with time_block(f"Generating metric scores for {len(indices)} samples"):
+            scores1 = eval_on_metric(self.metric, continuations1)
+            scores2 = eval_on_metric(self.metric, continuations2)
+
+        # Make new dataset
+        score_ds = ScoresDataset(scores1, scores2)
+
+        return score_ds
+    
+    def get_score_ds_fast(self, indices):
+        """ 
+        Querying the models for continuations and evaluating them on the metric.
+        """
+        continuations1 = []
+        continuations2 = []     
+        
+        subset = Subset(self.dataset, indices)   
+        
         for sample in list(indices):
             out1 = self.pipeline1(
-                self.dataset[sample]["prompt"]["text"],
+                NestedKeyDataset(subset, "prompt", "text"),
                 pad_token_id=self.tokenizer1.eos_token_id,
                 **self.gen1_kwargs,
             )
@@ -335,3 +381,20 @@ class EvalTrainer(Trainer):
         score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
+    
+class NestedKeyDataset(Dataset):
+    def __init__(self, dataset: Dataset, key1: str, key2: str):
+        self.dataset = dataset
+        self.key1 = key1
+        self.key2 = key2
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, i):
+        return self.dataset[i][self.key1][self.key2]
+
+
+if __name__ == "__main__":
+    
+    

@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Optional
 from datetime import datetime
 
+from torch.utils.data import Dataset
+
 
 def create_run_string():
     """
@@ -135,3 +137,16 @@ def translate_model_kwargs(model_kwargs):
         model_kwargs["torch_dtype"] = torch.float32
 
     return model_kwargs
+
+
+class NestedKeyDataset(Dataset):
+    def __init__(self, dataset: Dataset, key1: str, key2: str):
+        self.dataset = dataset
+        self.key1 = key1
+        self.key2 = key2
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, i):
+        return self.dataset[i][self.key1][self.key2]
