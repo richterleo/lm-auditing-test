@@ -5,7 +5,7 @@
 This repository provides tools to run two sets of experiments:
 
 1. **Evaluating a Model with Respect to a Certain Behavior and Metric**: This involves evaluating a model, logging results to Weights and Biases (wandb), and generating plots.
-2. **Deep Anytime Testing (DAT)**: This tests to distinguish between two model distributions based on a behavior using the test described in this [paper](https://arxiv.org/abs/2310.19384)
+2. **Deep Anytime-Valid Hypothesis Testing (DAHT)**: This tests to distinguish between two model distributions based on a behavior using the test described in this [paper](https://arxiv.org/abs/2310.19384)
 
 ## Setup
 
@@ -27,11 +27,11 @@ python main.py --exp evaluation
 ```
 This will log results to wandb and generate plots based on the evaluation metrics.
 
-## Deep Anytime Testing (DAT)
+## Deep Anytime-Valid Hypothesis Testing (DAHT)
 To run experiments that test the Deep Anytime Testing (DAT) to distinguish two model distributions based on a behavior, use the following command:
 
 ```bash
-python main.py --exp test_dat
+python main.py --exp test_daht
 ```
 
 ## Configuration
@@ -40,7 +40,7 @@ The hyperparameters for the experiments are specified in two files:
 `config.yml`: This file contains the main configuration settings.
 `arguments.py`: This file contains the training configuration settings as well as the model configuration settings
 
-A second model configuration can be specified either directly in `config.yml` under `tau2` or be given to the function `test_dat()` in `main.py` as a `ModelCfg` imported from `arguments.py`.
+A second model configuration can be specified either directly in `config.yml` under `tau2` or be given to the function `test_daht()` in `main.py` as a `ModelCfg` imported from `arguments.py`.
 
 ## Logging and Plotting
 

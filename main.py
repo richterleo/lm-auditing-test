@@ -37,7 +37,7 @@ from dav_testing.eval_trainer import EvalTrainer
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 
 
-def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
+def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
     """ """
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -139,7 +139,7 @@ def main():
     parser.add_argument(
         "--exp",
         type=str,
-        choices=["evaluation", "test_dat"],
+        choices=["evaluation", "test_daht"],
         required=True,
         help="Select the experiment to run: evalution or testing the dat-test",
     )
@@ -150,9 +150,9 @@ def main():
     # Determine which experiment to run based on the argument
     if args.exp == "evaluation":
         eval_model()
-    elif args.exp == "test_dat":
+    elif args.exp == "test_daht":
         train_cfg = TrainCfg()
-        test_dat(train_cfg)
+        test_daht(train_cfg)
 
 
 if __name__ == "__main__":
