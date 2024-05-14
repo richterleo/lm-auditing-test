@@ -53,4 +53,4 @@ before running experiments with logging.
 
 ## Contact
 
-For any questions or issues, please contact [Your Name] at [richter.leo94@gmail.com].
+For any questions or issues, please contact [...].
