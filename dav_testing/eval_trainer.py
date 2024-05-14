@@ -11,7 +11,6 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
-from transformers.pipelines.pt_utils import KeyDataset
 from tqdm import tqdm
 
 # own utilities
@@ -19,7 +18,7 @@ from dav_testing.dataloader import ScoresDataset, collate_fn
 
 # from arguments import Cfg
 from utils.generate_and_evaluate import eval_on_metric
-from utils.utils import translate_model_kwargs, time_block
+from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset
 
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 train = importlib.import_module("deep-anytime-testing.trainer.trainer")
@@ -206,8 +205,10 @@ class EvalTrainer(Trainer):
             for i in range(self.epochs):
                 self.current_epoch = i
                 self.current_total_epoch += 1
-                self.train_evaluate_epoch(train_loader)
-                loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
+                with time_block(f"Training epoch {i} on sequence {k}"):
+                    self.train_evaluate_epoch(train_loader)
+                with time_block(f"Validation epoch {i} on sequence {k}"):
+                    loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
 
                 # Check for early stopping or end of epochs
                 if (
@@ -309,6 +310,61 @@ class EvalTrainer(Trainer):
         )
         return aggregated_loss / num_samples, davt
 
+    def get_score_ds(
+        self, indices, batch_size=8
+    ):  # TODO: make this batch_size a param in configuration
+        """
+        Querying the models for continuations and evaluating them on the metric.
+        """
+        continuations1 = []
+        continuations2 = []
+
+        subset = Subset(self.dataset, indices)
+
+        with time_block(f"Generating continuations for {len(indices)} samples"):
+            # Get outputs from first pipeline
+            for i, out in tqdm(
+                enumerate(
+                    self.pipeline1(
+                        NestedKeyDataset(subset, "prompt", "text"),
+                        pad_token_id=self.tokenizer1.eos_token_id,
+                        batch_size=batch_size,
+                        **self.gen1_kwargs,
+                    )
+                )
+            ):
+                cont1 = out[0]["generated_text"].replace(
+                    subset[i]["prompt"]["text"], ""
+                )
+                continuations1.append(cont1)
+
+            # Get outputs from second pipeline
+            for i, out in tqdm(
+                enumerate(
+                    self.pipeline2(
+                        NestedKeyDataset(subset, "prompt", "text"),
+                        pad_token_id=self.tokenizer2.eos_token_id,
+                        batch_size=batch_size,
+                        **self.gen2_kwargs,
+                    )
+                )
+            ):
+                cont2 = out[0]["generated_text"].replace(
+                    subset[i]["prompt"]["text"], ""
+                )
+
+                continuations2.append(cont2)
+
+        # Get metrics for batch
+        with time_block(f"Generating metric scores for {len(indices)} samples"):
+            scores1 = eval_on_metric(self.metric, continuations1)
+            scores2 = eval_on_metric(self.metric, continuations2)
+
+        # Make new dataset
+        score_ds = ScoresDataset(scores1, scores2)
+
+        return score_ds
+
     def get_score_ds_slow(self, indices):  # TODO: remove this, this was pre-batching
         """
         Querying the models for continuations and evaluating them on the metric.
@@ -351,75 +407,3 @@ class EvalTrainer(Trainer):
         score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
-
-    def get_score_ds(
-        self, indices, batch_size=8
-    ):  # TODO: make this batch_size a param in configuration
-        """
-        Querying the models for continuations and evaluating them on the metric.
-        """
-        continuations1 = []
-        continuations2 = []
-
-        subset = Subset(self.dataset, indices)
-
-        with time_block(f"Generating continuations for {len(indices)} samples"):
-            # Get outputs from first pipeline
-            for i, out in tqdm(
-                enumerate(
-                    self.pipeline1(
-                        NestedKeyDataset(subset, "prompt", "text"),
-                        pad_token_id=self.tokenizer1.eos_token_id,
-                        batch_size=batch_size,
-                        **self.gen1_kwargs,
-                    )
-                )
-            ):
-                cont1 = out[0]["generated_text"].replace(
-                    subset[i]["prompt"]["text"], ""
-                )
-                continuations1.append(cont1)
-
-            # Get outputs from second pipeline
-            for i, out in tqdm(
-                enumerate(
-                    self.pipeline2(
-                        NestedKeyDataset(subset, "prompt", "text"),
-                        pad_token_id=self.tokenizer2.eos_token_id,
-                        batch_size=4,
-                        **self.gen2_kwargs,
-                    )
-                )
-            ):
-                cont2 = out[0]["generated_text"].replace(
-                    subset[i]["prompt"]["text"], ""
-                )
-
-                continuations2.append(cont2)
-
-        # Get metrics for batch
-        with time_block(f"Generating metric scores for {len(indices)} samples"):
-            scores1 = eval_on_metric(self.metric, continuations1)
-            scores2 = eval_on_metric(self.metric, continuations2)
-
-        # Make new dataset
-        score_ds = ScoresDataset(scores1, scores2)
-
-        return score_ds
-
-
-class NestedKeyDataset(Dataset):
-    def __init__(self, dataset: Dataset, key1: str, key2: str):
-        self.dataset = dataset
-        self.key1 = key1
-        self.key2 = key2
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, i):
-        return self.dataset[i][self.key1][self.key2]
-
-
-if __name__ == "__main__":
-    pass
