@@ -31,7 +31,7 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-from dav_testing.eval_trainer import EvalTrainer
+from dah_testing.eval_trainer import EvalTrainer
 
 # Dynamically import the module
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")
