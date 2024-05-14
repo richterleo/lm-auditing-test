@@ -8,9 +8,9 @@ metric:
 
 eval:
   epochs: 1
-  num_samples: 20
+  num_samples: 1e6
   num_bins: 10
-  batch_size: 8
+  batch_size: 16
 
 logging: 
   use_wandb: true
