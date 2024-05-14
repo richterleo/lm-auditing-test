@@ -53,6 +53,8 @@ class EvalTrainer(Trainer):
             self.tokenizer1.pad_token_id = self.tokenizer1.eos_token_id
 
         model1_kwargs = translate_model_kwargs(tau1_cfg["model_kwargs"])
+        if is_flash_attn_2_available():
+            model1_kwargs.update({"attn_implementation": "flash_attention_2"})
 
         self.pipeline1 = pipeline(
             "text-generation",
@@ -73,6 +75,8 @@ class EvalTrainer(Trainer):
                 self.tokenizer2.pad_token_id = self.tokenizer2.eos_token_id
 
             model2_kwargs = translate_model_kwargs(tau2_cfg["model_kwargs"])
+            if is_flash_attn_2_available():
+                model2_kwargs.update({"attn_implementation": "flash_attention_2"})
 
             self.pipeline2 = pipeline(
                 "text-generation",
