@@ -8,6 +8,7 @@ import wandb
 from copy import deepcopy
 from sklearn.model_selection import train_test_split
 from datasets import load_dataset
+from peft import AutoPeftModelForCausalLM
 from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
@@ -18,7 +19,7 @@ from dah_testing.dataloader import ScoresDataset, collate_fn
 
 # from arguments import Cfg
 from utils.generate_and_evaluate import eval_on_metric
-from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset
+from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
 
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 train = importlib.import_module("deep-anytime-testing.trainer.trainer")
@@ -38,77 +39,85 @@ class EvalTrainer(Trainer):
         use_wandb,
         tau2_cfg=None,
     ):
-        use_same_tau = False
-        if not tau2_cfg:
-            tau2_cfg = tau1_cfg
-            use_same_tau = True
-
         super().__init__(
-            train_cfg, net, tau1_cfg, tau2_cfg, dataset_name, device, train_cfg.seed
+            train_cfg,
+            net,
+            tau1_cfg,
+            tau2_cfg or tau1_cfg,
+            dataset_name,
+            device,
+            train_cfg.seed,
         )
 
-        self.tokenizer1 = AutoTokenizer.from_pretrained(
-            tau1_cfg["model_id"], padding_side="left"
-        )  # TODO: check whether the padding issue makes any difference
+        self.use_same_tau = tau2_cfg is None
 
-        if self.tokenizer1.pad_token is None:
-            self.tokenizer1.pad_token_id = self.tokenizer1.eos_token_id
-
-        model1_kwargs = translate_model_kwargs(tau1_cfg["model_kwargs"])
-        if is_flash_attn_2_available():
-            model1_kwargs.update({"attn_implementation": "flash_attention_2"})
-
-        self.pipeline1 = pipeline(
-            "text-generation",
-            model=tau1_cfg["model_id"],
-            # device=self.device,
-            model_kwargs=model1_kwargs,
-            tokenizer=self.tokenizer1,
-            pad_token_id=self.tokenizer1.eos_token_id,
-            device_map="auto",
+        self.pipeline1, self.tokenizer1, self.terminators1 = self.setup_model(self.tau1)
+        self.pipeline2, self.tokenizer2, self.terminators2 = (
+            (self.pipeline1, self.tokenizer1, self.terminators1)
+            if self.use_same_tau
+            else self.setup_model(self.tau2)
         )
-        # TODO: make this more efficient
-        if use_same_tau:
-            self.tokenizer2 = self.tokenizer1
-            self.pipeline2 = self.pipeline1
-        else:
-            self.tokenizer2 = AutoTokenizer.from_pretrained(
-                tau2_cfg["model_id"], padding_side="left"
-            )
-            if self.tokenizer2.pad_token is None:
-                self.tokenizer2.pad_token_id = self.tokenizer2.eos_token_id
 
-            model2_kwargs = translate_model_kwargs(tau2_cfg["model_kwargs"])
-            if is_flash_attn_2_available():
-                model2_kwargs.update({"attn_implementation": "flash_attention_2"})
-
-            self.pipeline2 = pipeline(
-                "text-generation",
-                model=tau2_cfg["model_id"],
-                # device=self.device,
-                model_kwargs=model2_kwargs,
-                tokenizer=self.tokenizer2,
-                pad_token_id=self.tokenizer2.eos_token_id,
-                device_map="auto",
-            )
-
-        # TODO: need to make sure that they're using different random seeds
-
-        self.gen1_kwargs = tau1_cfg["gen_kwargs"]
+        self.gen1_kwargs = self.tau1["gen_kwargs"]
         self.gen2_kwargs = (
-            tau1_cfg["gen_kwargs"] if use_same_tau else tau2_cfg["gen_kwargs"]
+            self.tau1["gen_kwargs"] if self.use_same_tau else self.tau2["gen_kwargs"]
         )
 
         self.behavior = behavior
         self.metric = metric if metric else behavior
 
-        # we load in the whole dataset at once
+        # Load the dataset
         with time_block("Loading the dataset"):
-            self.dataset = load_dataset(
-                self.datagen, split="train"
-            )  # TODO: Do we need the other mode as well?
+            self.dataset = load_dataset(self.datagen, split="train")
 
         self.use_wandb = use_wandb
+
+    def setup_model(self, tau_cfg):
+        """ """
+        tokenizer = AutoTokenizer.from_pretrained(
+            tau_cfg["model_id"], padding_side="left"
+        )
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+
+        model_kwargs = translate_model_kwargs(tau_cfg["model_kwargs"])
+        if is_flash_attn_2_available():
+            model_kwargs.update({"attn_implementation": "flash_attention_2"})
+
+        terminators = [tokenizer.eos_token_id]
+        terminator_key = self.get_terminator_key(tau_cfg["model_id"])
+        if terminator_key:
+            terminators.append(
+                tokenizer.convert_tokens_to_ids(terminator[terminator_key])
+            )
+
+        model = (
+            AutoPeftModelForCausalLM.from_pretrained(
+                tau_cfg["model_id"], **model_kwargs
+            )
+            if tau_cfg["model_id"].startswith("LLMAccountability")
+            else tau_cfg["model_id"]
+        )
+
+        pipeline_obj = pipeline(
+            "text-generation",
+            model=model,
+            model_kwargs=model_kwargs,
+            tokenizer=tokenizer,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+
+        return pipeline_obj, tokenizer, terminators
+
+    def get_terminator_key(self, model_id):
+        """ """
+        if "Llama-3" in model_id:
+            return "llama3"
+        elif "Mistral" in model_id:
+            return "mistral"
+        elif "gemma" in model_id:
+            return "gemma"
+        return None
 
     def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
         """
@@ -311,7 +320,7 @@ class EvalTrainer(Trainer):
         return aggregated_loss / num_samples, davt
 
     def get_score_ds(
-        self, indices, batch_size=8
+        self, indices
     ):  # TODO: make this batch_size a param in configuration
         """
         Querying the models for continuations and evaluating them on the metric.
@@ -321,38 +330,43 @@ class EvalTrainer(Trainer):
 
         subset = Subset(self.dataset, indices)
 
+        print(len(indices))
+
         with time_block(f"Generating continuations for {len(indices)} samples"):
             # Get outputs from first pipeline
-            for i, out in tqdm(
-                enumerate(
-                    self.pipeline1(
-                        NestedKeyDataset(subset, "prompt", "text"),
-                        pad_token_id=self.tokenizer1.eos_token_id,
-                        batch_size=batch_size,
-                        **self.gen1_kwargs,
-                    )
+            for out in tqdm(
+                self.pipeline1(
+                    NestedKeyDataset(
+                        subset,
+                        "prompt",
+                        "text",
+                        self.tau1["model_id"],
+                        self.tokenizer1,
+                    ),
+                    pad_token_id=self.tokenizer1.eos_token_id,
+                    batch_size=self.tau1["gen_batch_size"],
+                    **self.gen1_kwargs,
                 )
             ):
-                cont1 = out[0]["generated_text"].replace(
-                    subset[i]["prompt"]["text"], ""
-                )
+                cont1 = out[0]["generated_text"]
                 continuations1.append(cont1)
 
             # Get outputs from second pipeline
-            for i, out in tqdm(
-                enumerate(
-                    self.pipeline2(
-                        NestedKeyDataset(subset, "prompt", "text"),
-                        pad_token_id=self.tokenizer2.eos_token_id,
-                        batch_size=batch_size,
-                        **self.gen2_kwargs,
-                    )
+            for out in tqdm(
+                self.pipeline2(
+                    NestedKeyDataset(
+                        subset,
+                        "prompt",
+                        "text",
+                        self.tau2["model_id"],
+                        self.tokenizer2,
+                    ),
+                    pad_token_id=self.tokenizer2.eos_token_id,
+                    batch_size=self.tau2["gen_batch_size"],
+                    **self.gen2_kwargs,
                 )
             ):
-                cont2 = out[0]["generated_text"].replace(
-                    subset[i]["prompt"]["text"], ""
-                )
-
+                cont2 = out[0]["generated_text"]
                 continuations2.append(cont2)
 
         # Get metrics for batch

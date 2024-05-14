@@ -57,6 +57,9 @@ class LoggingCfg:
 @dataclass
 class ModelCfg:
     model_id: str = field(default="meta-llama/Meta-Llama-3-8B")
+    gen_batch_size: int = field(
+        default=8, metadata={"help": "Batch size for generation."}
+    )
 
     @dataclass
     class model_kwargs:
