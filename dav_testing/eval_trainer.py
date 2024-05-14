@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 from transformers.pipelines.pt_utils import KeyDataset
+from tqdm import tqdm
 
 # own utilities
 from dav_testing.dataloader import ScoresDataset, collate_fn
@@ -47,7 +48,9 @@ class EvalTrainer(Trainer):
             train_cfg, net, tau1_cfg, tau2_cfg, dataset_name, device, train_cfg.seed
         )
 
-        self.tokenizer1 = AutoTokenizer.from_pretrained(tau1_cfg["model_id"])
+        self.tokenizer1 = AutoTokenizer.from_pretrained(
+            tau1_cfg["model_id"], padding_side="left"
+        )  # TODO: check whether the padding issue makes any difference
 
         if self.tokenizer1.pad_token is None:
             self.tokenizer1.pad_token_id = self.tokenizer1.eos_token_id
@@ -60,17 +63,19 @@ class EvalTrainer(Trainer):
             "text-generation",
             model=tau1_cfg["model_id"],
             # device=self.device,
-            model_kwargs=model1_kwargs,  # TODO add flash attention if possible
+            model_kwargs=model1_kwargs,
             tokenizer=self.tokenizer1,
             pad_token_id=self.tokenizer1.eos_token_id,
+            device_map="auto",
         )
-
         # TODO: make this more efficient
         if use_same_tau:
             self.tokenizer2 = self.tokenizer1
             self.pipeline2 = self.pipeline1
         else:
-            self.tokenizer2 = AutoTokenizer.from_pretrained(tau2_cfg["model_id"])
+            self.tokenizer2 = AutoTokenizer.from_pretrained(
+                tau2_cfg["model_id"], padding_side="left"
+            )
             if self.tokenizer2.pad_token is None:
                 self.tokenizer2.pad_token_id = self.tokenizer2.eos_token_id
 
@@ -85,6 +90,7 @@ class EvalTrainer(Trainer):
                 model_kwargs=model2_kwargs,
                 tokenizer=self.tokenizer2,
                 pad_token_id=self.tokenizer2.eos_token_id,
+                device_map="auto",
             )
 
         # TODO: need to make sure that they're using different random seeds
@@ -98,9 +104,10 @@ class EvalTrainer(Trainer):
         self.metric = metric if metric else behavior
 
         # we load in the whole dataset at once
-        self.dataset = load_dataset(
-            self.datagen, split="train"
-        )  # TODO: Do we need the other mode as well?
+        with time_block("Loading the dataset"):
+            self.dataset = load_dataset(
+                self.datagen, split="train"
+            )  # TODO: Do we need the other mode as well?
 
         self.use_wandb = use_wandb
 
@@ -131,6 +138,7 @@ class EvalTrainer(Trainer):
         """
         Overwrite method from Trainer class
         """
+
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
         davts = []
@@ -149,20 +157,21 @@ class EvalTrainer(Trainer):
             for i in range(num_batches)
         ]
 
-        # in the first sequence, we don't train our model
-        test_ds = self.get_score_ds(batches[0])
-        test_loader = DataLoader(
-            test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
-        )
-        _, davt = self.train_evaluate_epoch(test_loader, mode="test")
-        davts.append(davt.item())
-        self.log(
-            {"aggregated_test_e-value": davt},
-            self.current_seq,
-            self.current_epoch,
-            self.current_total_epoch,
-            int(self.current_epoch == 0),
-        )
+        with time_block("Now evaluating on the first test_ds"):
+            # in the first sequence, we don't train our model
+            test_ds = self.get_score_ds(batches[0])
+            test_loader = DataLoader(
+                test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+            )
+            _, davt = self.train_evaluate_epoch(test_loader, mode="test")
+            davts.append(davt.item())
+            self.log(
+                {"aggregated_test_e-value": davt},
+                self.current_seq,
+                self.current_epoch,
+                self.current_total_epoch,
+                int(self.current_epoch == 0),
+            )
 
         # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
         if davt > (1.0 / self.alpha):
@@ -295,22 +304,23 @@ class EvalTrainer(Trainer):
             },
             self.current_seq,
             self.current_epoch,
-            self.total_current_epoch,
+            self.current_total_epoch,
             int(self.current_epoch == 0),
         )
         return aggregated_loss / num_samples, davt
 
-    def get_score_ds(self, indices):
-        """ 
+    def get_score_ds_slow(self, indices):  # TODO: remove this, this was pre-batching
+        """
         Querying the models for continuations and evaluating them on the metric.
         """
         continuations1 = []
-        continuations2 = []        
-        
+        continuations2 = []
+
         with time_block(f"Generating continuations for {len(indices)} samples"):
             for sample in list(indices):
-                
-                with time_block(f"Generating continuation for sample {sample} out of {len(indices)}"):
+                with time_block(
+                    f"Generating continuation for sample {sample} out of {len(indices)}"
+                ):
                     out1 = self.pipeline1(
                         self.dataset[sample]["prompt"]["text"],
                         pad_token_id=self.tokenizer1.eos_token_id,
@@ -341,47 +351,63 @@ class EvalTrainer(Trainer):
         score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
-    
-    def get_score_ds_fast(self, indices):
-        """ 
+
+    def get_score_ds(
+        self, indices, batch_size=8
+    ):  # TODO: make this batch_size a param in configuration
+        """
         Querying the models for continuations and evaluating them on the metric.
         """
         continuations1 = []
-        continuations2 = []     
-        
-        subset = Subset(self.dataset, indices)   
-        
-        for sample in list(indices):
-            out1 = self.pipeline1(
-                NestedKeyDataset(subset, "prompt", "text"),
-                pad_token_id=self.tokenizer1.eos_token_id,
-                **self.gen1_kwargs,
-            )
-            out2 = self.pipeline2(
-                self.dataset[sample]["prompt"]["text"],
-                pad_token_id=self.tokenizer2.eos_token_id,
-                **self.gen2_kwargs,
-            )
+        continuations2 = []
 
-            cont1 = out1[0]["generated_text"].replace(
-                self.dataset[sample]["prompt"]["text"], ""
-            )
-            cont2 = out2[0]["generated_text"].replace(
-                self.dataset[sample]["prompt"]["text"], ""
-            )
+        subset = Subset(self.dataset, indices)
 
-            continuations1.append(cont1)
-            continuations2.append(cont2)
+        with time_block(f"Generating continuations for {len(indices)} samples"):
+            # Get outputs from first pipeline
+            for i, out in tqdm(
+                enumerate(
+                    self.pipeline1(
+                        NestedKeyDataset(subset, "prompt", "text"),
+                        pad_token_id=self.tokenizer1.eos_token_id,
+                        batch_size=batch_size,
+                        **self.gen1_kwargs,
+                    )
+                )
+            ):
+                cont1 = out[0]["generated_text"].replace(
+                    subset[i]["prompt"]["text"], ""
+                )
+                continuations1.append(cont1)
+
+            # Get outputs from second pipeline
+            for i, out in tqdm(
+                enumerate(
+                    self.pipeline2(
+                        NestedKeyDataset(subset, "prompt", "text"),
+                        pad_token_id=self.tokenizer2.eos_token_id,
+                        batch_size=4,
+                        **self.gen2_kwargs,
+                    )
+                )
+            ):
+                cont2 = out[0]["generated_text"].replace(
+                    subset[i]["prompt"]["text"], ""
+                )
+
+                continuations2.append(cont2)
 
         # Get metrics for batch
-        scores1 = eval_on_metric(self.metric, continuations1)
-        scores2 = eval_on_metric(self.metric, continuations2)
+        with time_block(f"Generating metric scores for {len(indices)} samples"):
+            scores1 = eval_on_metric(self.metric, continuations1)
+            scores2 = eval_on_metric(self.metric, continuations2)
 
         # Make new dataset
         score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
-    
+
+
 class NestedKeyDataset(Dataset):
     def __init__(self, dataset: Dataset, key1: str, key2: str):
         self.dataset = dataset
@@ -396,5 +422,4 @@ class NestedKeyDataset(Dataset):
 
 
 if __name__ == "__main__":
-    
-    
+    pass

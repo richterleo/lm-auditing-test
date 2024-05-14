@@ -8,7 +8,12 @@ from typing import Optional, Dict
 
 # imports from other scripts
 from arguments import TrainCfg
-from utils.utils import load_config, create_run_string, initialize_from_config
+from utils.utils import (
+    load_config,
+    create_run_string,
+    initialize_from_config,
+    time_block,
+)
 from utils.generate_and_evaluate import generate_and_evaluate
 
 # Add the submodule to the path for eval_trainer
@@ -33,7 +38,6 @@ deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 
 def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
     """ """
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     config = load_config(config_path)
@@ -52,30 +56,32 @@ def test_dat(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = Non
     MMDEMLP = getattr(models, "MMDEMLP")
     net = initialize_from_config(config["net"], MMDEMLP)
 
-    if tau2_cfg:
-        trainer = EvalTrainer(
-            train_cfg,
-            net,
-            config["tau1"],
-            config["metric"]["dataset_name"],
-            device,
-            config["metric"]["behavior"],
-            config["metric"]["metric"],
-            config["logging"]["use_wandb"],
-            tau2_cfg,
-        )
-    else:
-        trainer = EvalTrainer(
-            train_cfg,
-            net,
-            config["tau1"],
-            config["metric"]["dataset_name"],
-            device,
-            config["metric"]["behavior"],
-            config["metric"]["metric"],
-            config["logging"]["use_wandb"],
-            config["tau2"],
-        )
+    with time_block("Instantiating EvalTrainer"):
+        if tau2_cfg:
+            trainer = EvalTrainer(
+                train_cfg,
+                net,
+                config["tau1"],
+                config["metric"]["dataset_name"],
+                device,
+                config["metric"]["behavior"],
+                config["metric"]["metric"],
+                config["logging"]["use_wandb"],
+                tau2_cfg,
+            )
+        else:
+            trainer = EvalTrainer(
+                train_cfg,
+                net,
+                config["tau1"],
+                config["metric"]["dataset_name"],
+                device,
+                config["metric"]["behavior"],
+                config["metric"]["metric"],
+                config["logging"]["use_wandb"],
+                config["tau2"],
+            )
+        print("Now starting training")
 
     trainer.train()
 
@@ -126,7 +132,7 @@ def eval_model(
 
 
 if __name__ == "__main__":
-    # train_cfg = TrainCfg()
-    # test_dat(train_cfg)
+    train_cfg = TrainCfg()
+    test_dat(train_cfg)
 
-    eval_model()
+    # eval_model()

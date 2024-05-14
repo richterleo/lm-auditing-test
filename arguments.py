@@ -67,7 +67,6 @@ class ModelCfg:
         load_in_4bit: bool = field(
             default=True, metadata={"help": "Whether to load model in 4 bit."}
         )
-        device_map: str = field(default="auto", metadata={"help": "Device map to use."})
 
     @dataclass
     class gen_kwargs:
