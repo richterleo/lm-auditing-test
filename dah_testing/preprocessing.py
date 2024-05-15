@@ -7,7 +7,7 @@ from dah_testing.dataloader import ScoresDataset
 from utils.generate_and_evaluate import eval_on_metric
 
 
-def load_generations_into_dataset(run_id: str, metric: str, epoch:int=0) -> ScoresDataset:
+def evaluate_single_model(run_id: str, metric: str, epoch: int = 0):
     """ """
     file_path = f"outputs/{run_id}"
     file_found = False
@@ -25,5 +25,20 @@ def load_generations_into_dataset(run_id: str, metric: str, epoch:int=0) -> Scor
         )
         with open(os.path.join(file_path), "r") as file:
             data = json.load(file)
-            
-    scores1 = eval_on_metric(data[epoch][])
+
+    concatenated_generations = [
+        f"{prompt} {continuation}"
+        for prompt, continuation in zip(
+            data[epoch]["prompts"], data[epoch]["continuations"]
+        )
+    ]
+
+    scores = eval_on_metric(
+        metric,
+        concatenated_generations,
+    )
+
+    data[f"{metric}_scores"] = scores
+
+    with open(os.path.join(file_path, f"{metric}_scores.json"), "w") as file:
+        json.dump(data, file, indent=4)
