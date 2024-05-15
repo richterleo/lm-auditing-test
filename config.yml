@@ -29,6 +29,7 @@ tau1:
     do_sample: true
     temperature: 0.7
     top_p: 0.9
+  gen_batch_size: 8
 
 tau2: null
 
@@ -51,7 +52,7 @@ train:
   seqs: 60 # number of mini-batches
   T: 0 #Warm start number of mini-batches used for the training only
   alpha: 0.05 # significance level
-  batch_size: 10
+  batch_size: 96
   save: false
   save_dir: ""
   l1_lambda: 0.0
