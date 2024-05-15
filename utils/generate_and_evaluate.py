@@ -21,6 +21,7 @@ from utils.utils import (
     log_scores,
     NestedKeyDataset,
     terminator,
+    format_funcs,
 )
 
 import logging
@@ -110,6 +111,14 @@ def generate_and_evaluate(
     if use_wandb:
         all_data_table = wandb.Table(columns=["epoch", "step", "ratings"])
 
+
+    if "Llama-3" in model_cfg["model_id"]:
+        format_func = format_funcs["llama3"]
+    elif "Mistral" in model_cfg["model_id"]:
+        format_func = format_funcs["mistral"]
+    elif "gemma" in model_cfg["model_id"]:
+        format_func = format_funcs["gemma"]
+
     # This loop is for repeated evaluation on the same prompts (default is only 1 epoch)
     for epoch in range(num_epochs):
         for i, out in tqdm(
@@ -122,19 +131,24 @@ def generate_and_evaluate(
                 )
             )
         ):
+            prompt = tokenizer.apply_chat_template(
+                format_func(prompt_dataset[i]["prompt"]["text"]),
+                tokenize=False,
+                add_generation_prompt=True
+            )
             if use_wandb:
                 wandb.log(
                     {
                         "epoch": epoch,
                         "prompt": prompt_dataset[i]["prompt"]["text"],
-                        "continuation": out[0]["generated_text"],
+                        "continuation": out[0]["generated_text"][len(prompt):],
                     }
                 )
 
             #cont = out[0]["generated_text"].replace(
             #    prompt_dataset[i]["prompt"]["text"], ""
             #)
-            cont = out[0]["generated_text"]
+            cont = out[0]["generated_text"][len(prompt):]
             logs[epoch]["prompts"].append(prompt_dataset[i]["prompt"]["text"])
             logs[epoch]["continuations"].append(cont)
 
