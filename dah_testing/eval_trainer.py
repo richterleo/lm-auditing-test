@@ -421,3 +421,7 @@ class EvalTrainer(Trainer):
         score_ds = ScoresDataset(scores1, scores2)
 
         return score_ds
+
+
+class OfflineTrainer(Trainer):
+    pass

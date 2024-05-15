@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import time
 import torch
@@ -16,6 +17,7 @@ from transformers import AutoTokenizer
 
 
 terminator = {"llama3": "<|eot_id|>", "mistral": "</s>", "gemma": "<end_of_turn>"}
+
 
 def create_run_string():
     """
@@ -143,26 +145,49 @@ def translate_model_kwargs(model_kwargs):
 
 
 def message_format_with_sys(input_sent):
-
     messages = [
-        {"role": "system", "content": "You are a helpful, respectful and honest assistant."},
-        {"role": "user", "content": "You are required to keep generation given the incomplete prompt. \n\n" + input_sent},
+        {
+            "role": "system",
+            "content": "You are a helpful, respectful and honest assistant.",
+        },
+        {
+            "role": "user",
+            "content": "You are required to keep generation given the incomplete prompt. \n\n"
+            + input_sent,
+        },
     ]
 
     return messages
+
 
 def message_format(input_sent):
-
     messages = [
-        {"role": "user", "content": "You are a helpful, respectful and honest assistant. You are required to keep generation given the incomplete prompt. \n\n" + input_sent},
+        {
+            "role": "user",
+            "content": "You are a helpful, respectful and honest assistant. You are required to keep generation given the incomplete prompt. \n\n"
+            + input_sent,
+        },
     ]
 
     return messages
 
-format_funcs = {"llama3": message_format_with_sys, "mistral": message_format, "gemma": message_format}
+
+format_funcs = {
+    "llama3": message_format_with_sys,
+    "mistral": message_format,
+    "gemma": message_format,
+}
+
 
 class NestedKeyDataset(Dataset):
-    def __init__(self, dataset: Dataset, key1: str, key2: str, model_id: str, tokenizer: AutoTokenizer):
+    def __init__(
+        self,
+        dataset: Dataset,
+        key1: str,
+        key2: str,
+        model_id: str,
+        tokenizer: AutoTokenizer,
+    ):
         self.dataset = dataset
         self.key1 = key1
         self.key2 = key2
@@ -183,6 +208,77 @@ class NestedKeyDataset(Dataset):
         prompt = self.tokenizer.apply_chat_template(
             self.format_func(self.dataset[i][self.key1][self.key2]),
             tokenize=False,
-            add_generation_prompt=True
+            add_generation_prompt=True,
         )
         return prompt
+
+
+def download_file_from_wandb(
+    run_path: Optional[str] = None,
+    run_id: Optional[str] = None,
+    project_name: Optional[str] = None,
+    file_name: Optional[str] = None,
+    pattern: Optional[str] = None,
+    entity: str = "LLM_Accountability",
+    return_file_path: bool = True,
+) -> Optional[Path]:
+    """
+    Helper function for downloading the scores file from a W&B run.
+
+    Args:
+        run_path: The path to the W&B run
+        run_id: The ID of the W&B run (not identical to the run name)
+        project_name: The name of the W&B project.
+        file_name: The name of the file to download.
+        pattern: Alternatively, download file with specific pattern
+        user_name: The name of the W&B user.
+        return_file_path: Whether to return the file path.
+
+    Returns:
+        (Optional) The path to the downloaded file.
+
+    """
+    assert file_name or pattern, "Either file_name or pattern must be provided"
+    assert run_path or (
+        run_id and project_name and entity
+    ), "Either run_path or run_id, project_name and entity must be provided"
+    # Initialize W&B API
+    api = wandb.Api()
+
+    # Path to the file you want to download
+    run_name = run_path if run_path else f"{entity}/{project_name}/{run_id}"
+    run = api.run(run_name)
+    if not run_id:
+        run_id = os.path.basename(run_path)
+    folder_path = Path(f"outputs/{run_id}")
+
+    if not folder_path.exists():
+        folder_path.mkdir(parents=True, exist_ok=True)
+
+    if file_name:
+        try:
+            file_name.download(root=folder_path, replace=True)
+            if return_file_path:
+                return folder_path / file_name
+        except Exception as e:
+            print(f"Error downloading file {file_name}: {e}")
+            return None
+
+    if not file_name:
+        for f in run.files():
+            if pattern in f.name:
+                file = f
+                break
+        try:
+            file.download(root=folder_path, replace=True)
+            return folder_path / file.name
+
+        except Exception as e:
+            print(f"No file found that matches pattern: {pattern}: {e}")
+            return None
+
+
+if __name__ == "__main__":
+    run_path = "LLM_Accountability/continuations/c5wloj6r"
+    pattern = "continuations.json"
+    download_file_from_wandb(run_path=run_path, pattern=pattern)
