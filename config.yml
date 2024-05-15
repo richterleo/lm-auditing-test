@@ -20,6 +20,7 @@ logging:
 tau1: 
   model_id: meta-llama/Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
+  gen_seed: 1000
   model_kwargs:
     torch_dtype: torch.bfloat16
     load_in_4bit: true

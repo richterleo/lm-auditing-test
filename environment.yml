@@ -1,4 +1,4 @@
-name: distancevenv
+name: censorenv
 channels:
   - pytorch
   - nvidia

@@ -146,7 +146,9 @@ def message_format_with_sys(input_sent):
 
     messages = [
         {"role": "system", "content": "You are a helpful, respectful and honest assistant."},
-        {"role": "user", "content": "You are required to keep generation given the incomplete prompt. \n\n" + input_sent},
+        {"role": "user", "content": "You are required to keep generation given the incomplete sentence: \n\n" + input_sent},
+        #{"role": "user", "content": "You are required to complete the incomplete sentence: \n" + input_sent},
+        #{"role": "user", "content": input_sent},
     ]
 
     return messages

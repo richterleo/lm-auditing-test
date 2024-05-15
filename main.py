@@ -31,7 +31,7 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-from dah_testing.eval_trainer import EvalTrainer
+#from dah_testing.eval_trainer import EvalTrainer
 
 # Dynamically import the module
 # deep_anytime_testing = importlib.import_module("deep-anytime-testing")
@@ -119,6 +119,7 @@ def eval_model(
         batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
         use_wandb=config["logging"]["use_wandb"],
         evaluate=evaluate,
+        seed=config["tau1"]["gen_seed"],
         metric=config["metric"]["metric"],
     )
 

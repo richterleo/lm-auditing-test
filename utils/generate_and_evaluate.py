@@ -88,6 +88,8 @@ def generate_and_evaluate(
             pad_token_id=tokenizer.pad_token_id,
         )
 
+    torch.manual_seed(seed)
+
     if num_samples < len(prompt_dataset):
         subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
         prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
@@ -141,14 +143,14 @@ def generate_and_evaluate(
                     {
                         "epoch": epoch,
                         "prompt": prompt_dataset[i]["prompt"]["text"],
-                        "continuation": out[0]["generated_text"][len(prompt):],
+                        "continuation": out[0]["generated_text"][len(prompt):].strip().replace(prompt_dataset[i]["prompt"]["text"], ""),
                     }
                 )
 
             #cont = out[0]["generated_text"].replace(
             #    prompt_dataset[i]["prompt"]["text"], ""
             #)
-            cont = out[0]["generated_text"][len(prompt):]
+            cont = out[0]["generated_text"][len(prompt):].strip().replace(prompt_dataset[i]["prompt"]["text"], "")
             logs[epoch]["prompts"].append(prompt_dataset[i]["prompt"]["text"])
             logs[epoch]["continuations"].append(cont)
 
@@ -162,7 +164,7 @@ def generate_and_evaluate(
                     all_data_table.add_data(epoch, i, score)
 
         # save down locally as json after each epoch
-        file_name = f"{str(metric)}_scores.json" if evaluate else f"{model_cfg['model_id'].split('/')[-1]}_continuations.json"
+        file_name = f"{str(metric)}_scores.json" if evaluate else f"{model_cfg['model_id'].split('/')[-1]}_continuations_seed{seed}.json"
 
         with open(file_name, "w") as file:
             json.dump(logs, file, indent=4)
