@@ -279,6 +279,6 @@ def download_file_from_wandb(
 
 
 if __name__ == "__main__":
-    run_path = "LLM_Accountability/continuations/c5wloj6r"
+    run_path = "LLM_Accountability/continuations/zxd1hh7d"
     pattern = "continuations.json"
     download_file_from_wandb(run_path=run_path, pattern=pattern)
