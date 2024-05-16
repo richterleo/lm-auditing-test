@@ -33,7 +33,6 @@ class OnlineTrainer(Trainer):
         net,
         tau1_cfg,
         dataset_name,
-        device,
         behavior,
         metric,
         use_wandb,
@@ -45,7 +44,7 @@ class OnlineTrainer(Trainer):
             tau1_cfg,
             tau2_cfg or tau1_cfg,
             dataset_name,
-            device,
+            None,
             train_cfg.seed,
         )
 
@@ -441,7 +440,6 @@ class OfflineTrainer(Trainer):
         del self.device
 
         self.fold_num = fold_num
-        self.use_wandb = use_wandb
         self.metric = metric
 
         self.dataset = load_into_scores_ds(run_id1, run_id2, metric, fold_num=fold_num)
@@ -462,15 +460,17 @@ class OfflineTrainer(Trainer):
 
         for key, value in logs.items():
             if self.use_wandb:
-                wandb.log(
-                    {
-                        key: value,
-                        "sequence": seq,
-                        "epoch": epoch,
-                        "epoch_total": total_epoch,
-                        "new_start_sequence": new_start_sequence,
-                    }
-                )
+                if self.fold_num:
+                    wandb.log(
+                        {
+                            key: value,
+                            "sequence": seq,
+                            "epoch": epoch,
+                            "epoch_total": total_epoch,
+                            "new_start_sequence": new_start_sequence,
+                            "fold_num": self.fold_num,
+                        }
+                    )
             print(
                 f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
             )
@@ -488,6 +488,10 @@ class OfflineTrainer(Trainer):
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
         davts = []
+
+        self.current_seq = 0
+        self.current_epoch = 0
+        self.current_total_epoch = 0
 
         # In the first sequence, we don't train our model, directly evaluate
         test_ds = self.batches[0]
@@ -520,8 +524,9 @@ class OfflineTrainer(Trainer):
         )
 
         for k in range(1, min(self.seqs, self.num_batches)):
+            self.current_epoch = 0
             for i in range(self.epochs):
-                self.current_total_epoch = i
+                self.current_epoch = i
                 self.current_total_epoch += 1
                 with time_block(f"Training epoch {i} on sequence {k}"):
                     self.train_evaluate_epoch(train_loader)

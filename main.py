@@ -1,11 +1,12 @@
 import argparse
 import importlib
 import os
+import re
 import torch
 import sys
 import wandb
 
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 # imports from other scripts
 from arguments import TrainCfg
@@ -31,18 +32,23 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-# from dah_testing.eval_trainer import OnlineTrainer
+from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
+from dah_testing.preprocessing import create_folds_from_generations
 
 # Dynamically import the module
 # deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 
 
-def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = None):
+def test_daht(
+    config,
+    train_cfg,
+    tau2_cfg: Optional[Dict] = None,
+    train_online: bool = False,
+    fold_num: int = 0,
+    run_id1: Optional[str] = None,
+    run_id2: Optional[str] = None,
+):
     """ """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    config = load_config(config_path)
-
     if config["logging"]["use_wandb"]:
         wandb.init(
             project=f"{config['metric']['behavior']}_test",
@@ -57,14 +63,13 @@ def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = No
     MMDEMLP = getattr(models, "MMDEMLP")
     net = initialize_from_config(config["net"], MMDEMLP)
 
-    with time_block("Instantiating OnlineTrainer"):
+    if train_online:
         if tau2_cfg:
             trainer = OnlineTrainer(
                 train_cfg,
                 net,
                 config["tau1"],
                 config["metric"]["dataset_name"],
-                device,
                 config["metric"]["behavior"],
                 config["metric"]["metric"],
                 config["logging"]["use_wandb"],
@@ -76,29 +81,74 @@ def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = No
                 net,
                 config["tau1"],
                 config["metric"]["dataset_name"],
-                device,
                 config["metric"]["behavior"],
                 config["metric"]["metric"],
                 config["logging"]["use_wandb"],
                 config["tau2"],
             )
-        print("Now starting training")
+
+    else:
+        trainer = OfflineTrainer(
+            train_cfg,
+            net,
+            run_id1,
+            run_id2,
+            metric=config["metric"]["metric"],
+            use_wandb=config["logging"]["use_wandb"],
+            fold_num=fold_num,
+        )
 
     trainer.train()
 
     wandb.finish()
 
 
+def run_test_with_wandb(
+    config,
+    train_cfg,
+    tau2_cfg: Optional[Dict] = None,
+    train_online: bool = False,
+    fold_num: int = 0,
+    run_id1: Optional[str] = None,
+    run_id2: Optional[str] = None,
+):
+    """Wrapper function to handle wandb logging and call the core logic."""
+
+    if config["logging"]["use_wandb"]:
+        wandb.init(
+            project=f"{config['metric']['behavior']}_test",
+            entity=config["logging"]["entity"],
+            name=create_run_string(),
+            config=config,
+        )
+        wandb.config.update({"train_online": train_online})
+        if train_online:
+            run_id1 = run_id1 if run_id1 else config["run_id1"]
+            run_id2 = run_id2 if run_id2 else config["run_id2"]
+            wandb.config.update({"run_id1": run_id1, "run_id2": run_id2})
+
+    test_daht(
+        config,
+        train_cfg,
+        tau2_cfg=tau2_cfg,
+        train_online=train_online,
+        fold_num=fold_num,
+        run_id1=run_id1,
+        run_id2=run_id2,
+    )
+
+    if config["logging"]["use_wandb"]:
+        wandb.finish()
+
+
 def eval_model(
-    config_path="config.yml",
+    config,
     num_samples=None,
     num_epochs=None,
     batch_size=None,
     evaluate=True,
 ):
     """ """
-    config = load_config(config_path)
-
     project_name = (
         f"{config['metric']['behavior']}_evaluation" if evaluate else "continuations"
     )
@@ -110,6 +160,7 @@ def eval_model(
             name=create_run_string(),
             config=config,
         )
+        wandb.config.update({"evaluate": evaluate})
 
     generate_and_evaluate(
         config["metric"]["dataset_name"],
@@ -122,6 +173,63 @@ def eval_model(
         seed=config["tau1"]["gen_seed"],
         metric=config["metric"]["metric"],
     )
+
+    if config["logging"]["use_wandb"]:
+        wandb.finish()
+
+
+def kfold_train(
+    config,
+    train_cfg,
+    run_id1: Optional[str] = None,
+    run_id2: Optional[str] = None,
+    overwrite: Optional[bool] = True,
+):
+    """Do repeats on"""
+    # Initialize wandb if logging is enabled
+    if config["logging"]["use_wandb"]:
+        wandb.init(
+            project=f"{config['metric']['behavior']}_test",
+            entity=config["logging"]["entity"],
+            name=create_run_string(),
+            config=config,
+            tags=["kfold"],
+        )
+
+    run_id1 = run_id1 if run_id1 else config["run_id1"]
+    run_id2 = run_id2 if run_id2 else config["run_id2"]
+    if config["logging"]["use_wandb"]:
+        wandb.config.update({"run_id1": run_id1, "run_id2": run_id2})
+
+    # Check all folds available for the two runs
+    directory = f"{run_id1}_{run_id2}"
+    pattern = re.compile(rf"{config['metric']['metric']}_scores\.json_(\d+)\.json")
+    folds = []
+    if len(folds) == 0:
+        create_folds_from_generations(
+            run_id1, run_id2, config["metric"]["metric"], overwrite=overwrite
+        )
+
+    # Check the directory for matching files and append to the list
+    for file_name in os.listdir(directory):
+        match = pattern.match(file_name)
+        if match:
+            fold_number = int(match.group(1))
+            folds.append(fold_number)
+
+    if config["logging"]["use_wandb"]:
+        wandb.config.update({"num_folds": folds})
+
+    # Iterate over the folds and call test_daht
+    for fold_num in folds:
+        test_daht(
+            config,
+            train_cfg,
+            train_online=False,
+            fold_num=fold_num,
+            run_id1=run_id1,
+            run_id2=run_id2,
+        )
 
     if config["logging"]["use_wandb"]:
         wandb.finish()
@@ -146,21 +254,66 @@ def main():
     )
 
     parser.add_argument(
+        "--online",
+        action="store_true",
+        help="Whether to use the OnlineTrainer instead of the OfflineTrainer",
+    )
+
+    parser.add_argument(
         "--config_path",
         type=str,
         default="config.yml",
-        help="Whether to evaluate the model on the metric",
+        help="Path to config file",
     )
 
-    # Parse the arguments
+    parser.add_argument(
+        "--fold_num",
+        type=int,
+        default=0,
+        help="Fold number for repeated test runs",
+    )
+
+    parser.add_argument(
+        "--run_id1",
+        type=str,
+        default=None,
+        help="Run ID for the first model",
+    )
+
+    parser.add_argument(
+        "--run_id2",
+        type=str,
+        default=None,
+        help="Run ID for the second model",
+    )
+
+    parser.add_argument("--kfold", action="store_true", help="Run kfold training")
+
     args = parser.parse_args()
+    config = load_config(args.config_path)
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":
-        eval_model(evaluate=args.evaluate, config_path=args.config_path)
+        eval_model(config, evaluate=args.evaluate)
+
     elif args.exp == "test_daht":
         train_cfg = TrainCfg()
-        test_daht(train_cfg)
+        if args.kfold:
+            kfold_train(
+                config,
+                train_cfg,
+                run_id1=args.run_id1,
+                run_id2=args.run_id2,
+            )
+        else:
+            run_test_with_wandb(
+                config,
+                train_cfg,
+                train_online=args.online,
+                fold_num=args.fold_num,
+                run_id1=args.run_id1,
+                run_id2=args.run_id2,
+            )
 
 
 if __name__ == "__main__":
