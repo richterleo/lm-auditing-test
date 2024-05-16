@@ -3,6 +3,7 @@ import os
 import typing
 import random
 import sys
+import numpy as np
 
 from collections import defaultdict
 from pathlib import Path
@@ -10,29 +11,40 @@ from pathlib import Path
 # Add the parent directory of utils to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from utils.utils import download_file_from_wandb
+from utils.utils import download_file_from_wandb, time_block
 from dah_testing.dataloader import ScoresDataset
 from utils.generate_and_evaluate import eval_on_metric
 
 
-def evaluate_single_model(run_id: str, metric: str, overwrite=True):
+def evaluate_single_model(
+    run_id: str, metric: str, overwrite=True, asynchronously=True
+):
     """ """
     file_path = f"outputs/{run_id}"
-    file_found = False
+    data = None
 
-    for file_name in os.listdir(file_path):
-        if "continuations.json" in file_name:
-            file_found = True
-            with open(os.path.join(file_path, file_name), "r") as file:
-                data = json.load(file)
-            break
+    try:
+        for file_name in os.listdir(file_path):
+            if "continuations.json" in file_name:
+                with open(os.path.join(file_path, file_name), "r") as file:
+                    data = json.load(file)
+                break
 
-    if not file_found:
+        if data is None:
+            raise FileNotFoundError
+
+    except FileNotFoundError:
         file_path = download_file_from_wandb(
-            run_id=run_id, pattern="continuations.json", return_file_path=True
+            run_id=run_id,
+            project_name="continuations",
+            pattern="continuations",
+            return_file_path=True,
         )
-        with open(os.path.join(file_path), "r") as file:
-            data = json.load(file)
+        try:
+            with open(os.path.join(file_path), "r") as file:
+                data = json.load(file)
+        except TypeError as e:
+            raise FileNotFoundError(f"No file found on wandb, error: {e}")
 
     filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
 
@@ -42,10 +54,27 @@ def evaluate_single_model(run_id: str, metric: str, overwrite=True):
             for prompt, continuation in zip(d["prompts"], d["continuations"])
         ]
 
-        scores = eval_on_metric(
-            metric,
-            concatenated_generations,
-        )
+        # if we have a lot of generations, we need to query the API in batches
+        if len(concatenated_generations) > 100:
+            scores = []
+            for i in range(0, len(concatenated_generations), 100):
+                print(f"Processing batch {i} to {i+100}")
+                new_scores = eval_on_metric(
+                    metric,
+                    concatenated_generations[i : i + 100],
+                    asynchronously=asynchronously,
+                )
+                scores.extend(new_scores)
+
+            assert (
+                len(scores) == len(concatenated_generations)
+            ), f"Did not get all scores: only {len(scores)} scores, but {len(concatenated_generations)} generations"
+        else:
+            scores = eval_on_metric(
+                metric,
+                concatenated_generations,
+                asynchronously=asynchronously,
+            )
 
         data[epoch][f"{metric}_scores"] = scores
 
@@ -148,7 +177,5 @@ def create_folds_from_generations(
 
 
 if __name__ == "__main__":
-    run_id1 = "c5wloj6r"
-    run_id2 = "zxd1hh7d"
-    # evaluate_single_model(run_id2, "perspective")
-    create_common_json(run_id1, run_id2, "perspective")
+    run_id1 = "qp8f41we"
+    evaluate_single_model(run_id1, "perspective", asynchronously=True)
