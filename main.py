@@ -49,13 +49,6 @@ def test_daht(
     run_id2: Optional[str] = None,
 ):
     """ """
-    if config["logging"]["use_wandb"]:
-        wandb.init(
-            project=f"{config['metric']['behavior']}_test",
-            entity=config["logging"]["entity"],
-            name=create_run_string(),
-            config=config,
-        )
 
     models = importlib.import_module(
         "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
@@ -99,8 +92,6 @@ def test_daht(
         )
 
     trainer.train()
-
-    wandb.finish()
 
 
 def run_test_with_wandb(
