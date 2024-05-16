@@ -8,7 +8,6 @@ import torch
 from collections import defaultdict
 from datasets import load_dataset
 from googleapiclient import discovery
-#from utils.keys import PERSPECTIVE_API_KEY
 from tqdm import tqdm
 from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer
@@ -220,6 +219,8 @@ def eval_on_metric(metric, continuations, asynchronously=True):
 
 def call_perspective_synchronously(continuations):
     """ """
+    from utils.keys import PERSPECTIVE_API_KEY
+
     client = discovery.build(
         "commentanalyzer",
         "v1alpha1",
@@ -270,7 +271,9 @@ def call_perspective_synchronously(continuations):
 #         return ratings
 
 
-async def fetch_toxicity(session, text, retries=50):
+async def fetch_toxicity(session, text, retries=5):
+    from utils.keys import PERSPECTIVE_API_KEY
+
     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
     params = {
         "key": PERSPECTIVE_API_KEY,
@@ -289,7 +292,7 @@ async def fetch_toxicity(session, text, retries=50):
                 params=params,
                 data=json.dumps(payload),
                 headers=headers,
-                timeout=500,
+                timeout=100,
             ) as response:
                 if response.status == 200:
                     resp_json = await response.json()
@@ -305,7 +308,7 @@ async def fetch_toxicity(session, text, retries=50):
             logger.error(f"Attempt {attempt + 1}: ClientError - {e}")
         except asyncio.TimeoutError:
             logger.error(f"Attempt {attempt + 1}: Request timed out")
-        await asyncio.sleep(5)  # Wait a bit before retrying
+        await asyncio.sleep(1)  # Wait a bit before retrying
 
     raise Exception(f"Failed to fetch toxicity data after {retries} attempts")
 
