@@ -31,7 +31,7 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-#from dah_testing.eval_trainer import EvalTrainer
+# from dah_testing.eval_trainer import OnlineTrainer
 
 # Dynamically import the module
 # deep_anytime_testing = importlib.import_module("deep-anytime-testing")
@@ -57,9 +57,9 @@ def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = No
     MMDEMLP = getattr(models, "MMDEMLP")
     net = initialize_from_config(config["net"], MMDEMLP)
 
-    with time_block("Instantiating EvalTrainer"):
+    with time_block("Instantiating OnlineTrainer"):
         if tau2_cfg:
-            trainer = EvalTrainer(
+            trainer = OnlineTrainer(
                 train_cfg,
                 net,
                 config["tau1"],
@@ -71,7 +71,7 @@ def test_daht(train_cfg, config_path="config.yml", tau2_cfg: Optional[Dict] = No
                 tau2_cfg,
             )
         else:
-            trainer = EvalTrainer(
+            trainer = OnlineTrainer(
                 train_cfg,
                 net,
                 config["tau1"],

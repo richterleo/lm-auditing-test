@@ -26,7 +26,7 @@ train = importlib.import_module("deep-anytime-testing.trainer.trainer")
 Trainer = getattr(train, "Trainer")
 
 
-class EvalTrainer(Trainer):
+class OnlineTrainer(Trainer):
     def __init__(
         self,
         train_cfg,
