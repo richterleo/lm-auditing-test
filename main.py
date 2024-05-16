@@ -81,6 +81,8 @@ def test_daht(
             )
 
     else:
+        run_id1 = run_id1 if run_id1 else config["run_id1"]
+        run_id2 = run_id2 if run_id2 else config["run_id2"]
         trainer = OfflineTrainer(
             train_cfg,
             net,
