@@ -1,5 +1,7 @@
-from torch.utils.data import Dataset
+import json
 import torch
+
+from torch.utils.data import Dataset
 
 
 class ScoresDataset(Dataset):
@@ -40,3 +42,24 @@ def collate_fn(batch):
     batch_tensor = torch.cat((scores1.unsqueeze(1), scores2.unsqueeze(1)), dim=1)
 
     return batch_tensor
+
+
+def load_into_scores_ds(run_id1, run_id2, metric, fold_num=None):
+    """ """
+
+    try:
+        file_path = (
+            f"outputs/{run_id1}_{run_id2}/{metric}_scores_{fold_num}.json"
+            if fold_num
+            else f"outputs/{run_id1}_{run_id2}/{metric}_scores.json"
+        )
+        with open(file_path, "r") as file:
+            data = json.load(file)
+
+        scores_ds = ScoresDataset(data[f"{metric}_scores1"], data[f"{metric}_scores2"])
+
+        return scores_ds
+
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
+        return None

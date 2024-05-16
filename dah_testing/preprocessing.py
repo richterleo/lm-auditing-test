@@ -98,27 +98,6 @@ def create_common_json(run_id1, run_id2, metric, epoch=0, overwrite=True):
             json.dump(data, file, indent=4)
 
 
-def load_into_scores_ds(run_id1, run_id2, metric, fold_num=None):
-    """ """
-
-    try:
-        file_path = (
-            f"outputs/{run_id1}_{run_id2}/{metric}_scores_{fold_num}.json"
-            if fold_num
-            else f"outputs/{run_id1}_{run_id2}/{metric}_scores.json"
-        )
-        with open(file_path, "r") as file:
-            data = json.load(file)
-
-        scores_ds = ScoresDataset(data[f"{metric}_scores1"], data[f"{metric}_scores2"])
-
-        return scores_ds
-
-    except FileNotFoundError as e:
-        print(f"File not found: {e}")
-        return None
-
-
 def create_folds(run_id1, run_id2, metric, fold_size=4000, overwrite=True):
     """ """
     try:
@@ -158,7 +137,9 @@ def create_folds(run_id1, run_id2, metric, fold_size=4000, overwrite=True):
         return None
 
 
-def create_folds_from_generations(run_id1, run_id2, metric, fold_size, overwrite=True):
+def create_folds_from_generations(
+    run_id1, run_id2, metric, fold_size=4000, overwrite=True
+):
     evaluate_single_model(run_id1, metric, overwrite=overwrite)
     evaluate_single_model(run_id2, metric, overwrite=overwrite)
 
