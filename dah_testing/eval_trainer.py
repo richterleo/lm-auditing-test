@@ -495,6 +495,7 @@ class OfflineTrainer(Trainer):
 
         # In the first sequence, we don't train our model, directly evaluate
         test_ds = self.batches[0]
+        self.num_samples = len(test_ds)
         test_loader = DataLoader(
             test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
         )
@@ -540,6 +541,7 @@ class OfflineTrainer(Trainer):
                 ):
                     # Now define new test data from current batch
                     test_ds = self.batches[k]
+                    self.num_samples += len(test_ds)
                     test_loader = DataLoader(
                         test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
                     )
@@ -579,7 +581,9 @@ class OfflineTrainer(Trainer):
             if davt > (1.0 / self.alpha):
                 print("Reject null at %f", davt)
                 self.log(
-                    {"steps": k},
+                    {
+                        "steps": k,
+                    },
                     self.current_seq,
                     self.current_epoch,
                     self.current_total_epoch,

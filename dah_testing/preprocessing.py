@@ -154,7 +154,7 @@ def evaluate_single_model(
     if overwrite or not os.path.exists(scores_file_path):
         with open(scores_file_path, "w") as file:
             json.dump(data, file, indent=4)
-            
+
     if use_wandb:
         wandb.save(scores_file_path)
 
@@ -277,7 +277,19 @@ if __name__ == "__main__":
     seed2 = "seed1000"
     # create_folds_from_generations(model_name1, seed1, model_name2, seed2, "toxicity")
 
-    for i in range(3, 11):
-        model_name = f"LLama-3-8B-ckpt{i}"
-        seed = "seed1000"
-        evaluate_single_model(model_name, seed, "toxicity", overwrite=True)
+    # for i in range(3, 11):
+    #     model_name = f"LLama-3-8B-ckpt{i}"
+    #     seed = "seed1000"
+    #     evaluate_single_model(model_name, seed, "toxicity", overwrite=True)
+
+    wandb.init(
+        project="toxicity_evaluation",
+        entity="LLM_Accountability",
+        name=create_run_string(),
+        config={"model_name": model_name1, "seed": seed1},
+    )
+
+    wandb.save(
+        "/root/DistanceSimulation/model_outputs/LLama-3-8B-ckpt1_seed1000/toxicity_scores.json"
+    )
+    wandb.finish()
