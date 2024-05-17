@@ -282,14 +282,22 @@ if __name__ == "__main__":
     #     seed = "seed1000"
     #     evaluate_single_model(model_name, seed, "toxicity", overwrite=True)
 
-    wandb.init(
-        project="toxicity_evaluation",
-        entity="LLM_Accountability",
-        name=create_run_string(),
-        config={"model_name": model_name1, "seed": seed1},
-    )
+    # wandb.init(
+    #     project="toxicity_evaluation",
+    #     entity="LLM_Accountability",
+    #     name=create_run_string(),
+    #     config={"model_name": model_name1, "seed": seed1},
+    # )
 
-    wandb.save(
-        "/root/DistanceSimulation/model_outputs/LLama-3-8B-ckpt1_seed1000/toxicity_scores.json"
-    )
-    wandb.finish()
+    # wandb.save(
+    #     "/root/DistanceSimulation/model_outputs/LLama-3-8B-ckpt1_seed1000/toxicity_scores.json"
+    # )
+    # wandb.finish()
+
+    with open(
+        "/root/DistanceSimulation/model_outputs/LLama-3-8B-ckpt2_seed1000/Llama-3-8B-ckpt2_continuations_seed1000.json",
+        "r",
+    ) as file:
+        toxicity_scores = json.load(file)
+
+        print(len(toxicity_scores["0"]["prompts"]))

@@ -581,9 +581,7 @@ class OfflineTrainer(Trainer):
             if davt > (1.0 / self.alpha):
                 print("Reject null at %f", davt)
                 self.log(
-                    {
-                        "steps": k,
-                    },
+                    {"steps": k, "total_num_samples": self.num_samples},
                     self.current_seq,
                     self.current_epoch,
                     self.current_total_epoch,
