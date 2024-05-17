@@ -156,6 +156,7 @@ def generate_and_evaluate(
                 )
 
             # cont = out[0]["generated_text"].replace(
+            # cont = out[0]["generated_text"].replace(
             #    prompt_dataset[i]["prompt"]["text"], ""
             cont = (
                 out[0]["generated_text"][len(prompt) :]
