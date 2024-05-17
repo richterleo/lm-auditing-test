@@ -4,6 +4,7 @@ import typing
 import random
 import sys
 import numpy as np
+import wandb
 
 from collections import defaultdict
 from pathlib import Path
@@ -12,7 +13,7 @@ from typing import Optional
 # Add the parent directory of utils to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from utils.utils import download_file_from_wandb, time_block
+from utils.utils import download_file_from_wandb, time_block, create_run_string
 from dah_testing.dataloader import ScoresDataset
 from utils.generate_and_evaluate import eval_on_metric
 
@@ -91,13 +92,22 @@ def evaluate_single_model(
     metric,
     overwrite=True,
     asynchronously=True,
+    use_wandb=True,
+    entity="LLM_Accountability",
 ):
     """
     Evaluate a single model and save the scores in the same directory as the generations.
     """
+
+    if use_wandb:
+        wandb.init(
+            project=f"{metric}_evaluation",
+            entity=entity,
+            name=create_run_string(),
+            config={"model_name": model_name, "seed": seed},
+        )
+
     file_path = f"model_outputs/{model_name}_{seed}"
-    data = None
-    print(file_path)
 
     for file_name in os.listdir(file_path):
         if "continuations" in file_name:
@@ -144,6 +154,9 @@ def evaluate_single_model(
     if overwrite or not os.path.exists(scores_file_path):
         with open(scores_file_path, "w") as file:
             json.dump(data, file, indent=4)
+            
+    if use_wandb:
+        wandb.save(scores_file_path)
 
 
 def create_common_json(
