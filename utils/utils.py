@@ -61,7 +61,7 @@ def log_scores(scores, prefix="tox"):
 def get_scores_from_wandb(
     run_id: str,
     project_name="toxicity_evaluation",
-    prefix="tox",
+    prefix="toxicity",
     user_name="richter-leo94",
     return_file_path=True,
 ) -> Optional[Path]:
