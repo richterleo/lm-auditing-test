@@ -368,6 +368,7 @@ if __name__ == "__main__":
 
     config = load_config("config.yml")
     train_cfg = TrainCfg()
-    fold_num = 0
+    fold_num = 1
 
-    run_test_with_wandb(config, train_cfg, fold_num=fold_num)
+    # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
+    kfold_train(config, train_cfg)

@@ -617,19 +617,21 @@ class OfflineTrainer(Trainer):
 
                         break
 
-                # Reset the early stopper for the next sequence
-                self.early_stopper.reset()
+            # Reset the early stopper for the next sequence
+            self.early_stopper.reset()
 
-                # Log information if davt exceeds the threshold
-                if davt > (1.0 / self.alpha):
-                    print("Reject null at %f", davt)
-                    self.log(
-                        {"steps": k, "total_num_samples": self.num_samples},
-                        self.current_seq,
-                        self.current_epoch,
-                        self.current_total_epoch,
-                        int(self.current_epoch == 0),
-                    )
+            # Log information if davt exceeds the threshold
+            if davt > (1.0 / self.alpha):
+                print("Reject null at %f", davt)
+                self.log(
+                    {"steps": k, "total_num_samples": self.num_samples},
+                    self.current_seq,
+                    self.current_epoch,
+                    self.current_total_epoch,
+                    int(self.current_epoch == 0),
+                )
+
+                break
 
     def train_evaluate_epoch(self, data_loader, mode="train"):
         """ """

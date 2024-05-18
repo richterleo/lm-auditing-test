@@ -109,60 +109,68 @@ def evaluate_single_model(
             config={"model_name": model_name, "seed": seed},
         )
 
-    file_path = f"model_outputs/{model_name}_{seed}"
+    gen_file_path = f"model_outputs/{model_name}_{seed}"
+    scores_file_path = os.path.join(gen_file_path, f"{metric}_scores.json")
+    if overwrite or not os.path.exists(scores_file_path):
+        for file_name in os.listdir(gen_file_path):
+            if "continuations" in file_name:
+                with open(os.path.join(gen_file_path, file_name), "r") as file:
+                    data = json.load(file)
+                break
 
-    for file_name in os.listdir(file_path):
-        if "continuations" in file_name:
-            with open(os.path.join(file_path, file_name), "r") as file:
-                data = json.load(file)
-            break
+        if data is None:
+            raise FileNotFoundError
 
-    if data is None:
-        raise FileNotFoundError
+        filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
 
-    filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
+        for epoch, d in filtered_dict.items():
+            concatenated_generations = [
+                f"{prompt} {continuation}"
+                for prompt, continuation in zip(d["prompts"], d["continuations"])
+            ]
 
-    for epoch, d in filtered_dict.items():
-        concatenated_generations = [
-            f"{prompt} {continuation}"
-            for prompt, continuation in zip(d["prompts"], d["continuations"])
-        ]
+            # if we have a lot of generations, we need to query the API in batches
+            if len(concatenated_generations) > 100 and metric == "perspective":
+                scores = []
+                for i in range(0, len(concatenated_generations), 100):
+                    print(f"Processing batch {i} to {i+100}")
+                    new_scores = eval_on_metric(
+                        metric,
+                        concatenated_generations[i : i + 100],
+                        asynchronously=asynchronously,
+                    )
+                    scores.extend(new_scores)
 
-        # if we have a lot of generations, we need to query the API in batches
-        if len(concatenated_generations) > 100 and metric == "perspective":
-            scores = []
-            for i in range(0, len(concatenated_generations), 100):
-                print(f"Processing batch {i} to {i+100}")
-                new_scores = eval_on_metric(
+                assert (
+                    len(scores) == len(concatenated_generations)
+                ), f"Did not get all scores: only {len(scores)} scores, but {len(concatenated_generations)} generations"
+            else:
+                scores = eval_on_metric(
                     metric,
-                    concatenated_generations[i : i + 100],
+                    concatenated_generations,
                     asynchronously=asynchronously,
                 )
-                scores.extend(new_scores)
 
-            assert (
-                len(scores) == len(concatenated_generations)
-            ), f"Did not get all scores: only {len(scores)} scores, but {len(concatenated_generations)} generations"
-        else:
-            scores = eval_on_metric(
-                metric,
-                concatenated_generations,
-                asynchronously=asynchronously,
-            )
+            data[epoch][f"{metric}_scores"] = scores
 
-        data[epoch][f"{metric}_scores"] = scores
-
-    scores_file_path = os.path.join(file_path, f"{metric}_scores.json")
-    if overwrite or not os.path.exists(scores_file_path):
         with open(scores_file_path, "w") as file:
             json.dump(data, file, indent=4)
 
-    if use_wandb:
-        wandb.save(scores_file_path)
+        if use_wandb:
+            wandb.save(scores_file_path)
+            wandb.finish()
 
 
 def create_common_json(
-    model_name1, seed1, model_name2, seed2, metric, epoch=0, overwrite=True
+    model_name1,
+    seed1,
+    model_name2,
+    seed2,
+    metric,
+    epoch=0,
+    overwrite=True,
+    use_wandb=True,
+    entity="LLM_Accountability",
 ):
     """ """
     file_path1 = f"model_outputs/{model_name1}_{seed1}"
@@ -171,41 +179,60 @@ def create_common_json(
         Path("model_outputs") / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
     )
 
-    if not new_folder_path.exists():
-        new_folder_path.mkdir(parents=True, exist_ok=True)
+    if use_wandb:
+        wandb.init(
+            project=f"{metric}_evaluation",
+            entity=entity,
+            name=create_run_string(),
+            config={
+                "model_name1": model_name1,
+                "seed": seed1,
+                "model_name2": model_name2,
+                "seed2": seed2,
+            },
+        )
 
-    with open(os.path.join(file_path1, f"{metric}_scores.json"), "r") as file1, open(
-        os.path.join(file_path2, f"{metric}_scores.json"), "r"
-    ) as file2:
-        data1 = json.load(file1)
-        data2 = json.load(file2)
+    common_scores_file_path = new_folder_path / f"{metric}_scores.json"
+    if overwrite or not common_scores_file_path.exists():
+        if not new_folder_path.exists():
+            new_folder_path.mkdir(parents=True, exist_ok=True)
 
-    data = defaultdict(list)
-    data["metadata1"] = data1["metadata"]
-    data["metadata2"] = data2["metadata"]
+        with open(
+            os.path.join(file_path1, f"{metric}_scores.json"), "r"
+        ) as file1, open(
+            os.path.join(file_path2, f"{metric}_scores.json"), "r"
+        ) as file2:
+            data1 = json.load(file1)
+            data2 = json.load(file2)
 
-    filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}[str(epoch)]
-    filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}[str(epoch)]
+        data = defaultdict(list)
+        data["metadata1"] = data1["metadata"]
+        data["metadata2"] = data2["metadata"]
 
-    common_prompts = list(
-        set(filtered_data1["prompts"]) & set(filtered_data2["prompts"])
-    )
+        filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}[str(epoch)]
+        filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}[str(epoch)]
 
-    # Extract data for common prompts
-    for prompt in common_prompts:
-        data["prompts"].append(prompt)
-        index1 = filtered_data1["prompts"].index(prompt)
-        index2 = filtered_data2["prompts"].index(prompt)
+        common_prompts = list(
+            set(filtered_data1["prompts"]) & set(filtered_data2["prompts"])
+        )
 
-        data["continuations1"].append(filtered_data1["continuations"][index1])
-        data["continuations2"].append(filtered_data2["continuations"][index2])
-        data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
-        data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
+        # Extract data for common prompts
+        for prompt in common_prompts:
+            data["prompts"].append(prompt)
+            index1 = filtered_data1["prompts"].index(prompt)
+            index2 = filtered_data2["prompts"].index(prompt)
 
-    file_path = new_folder_path / f"{metric}_scores.json"
-    if overwrite or not file_path.exists():
-        with open(file_path, "w") as file:
-            json.dump(data, file, indent=4)
+            data["continuations1"].append(filtered_data1["continuations"][index1])
+            data["continuations2"].append(filtered_data2["continuations"][index2])
+            data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
+            data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
+
+            with open(common_scores_file_path, "w") as file:
+                json.dump(data, file, indent=4)
+
+        if use_wandb:
+            wandb.save(common_scores_file_path)
+            wandb.finish()
 
 
 def create_common_json_fast(
@@ -283,19 +310,19 @@ def create_folds(
         ]
 
         for i, batch in enumerate(index_batches):
-            fold_data = defaultdict(list)
-            fold_data["metadata1"] = metadata1
-            fold_data["metadata2"] = metadata2
+            fold_file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
+            if overwrite or not os.path.exists(fold_file_path):
+                fold_data = defaultdict(list)
+                fold_data["metadata1"] = metadata1
+                fold_data["metadata2"] = metadata2
 
-            for key, value in data.items():
-                if key in ["prompts", "continuations1", "continuations2"]:
-                    fold_data[key] = [value[j] for j in batch]
-                elif key in [f"{metric}_scores1", f"{metric}_scores2"]:
-                    fold_data[key] = [value[j] for j in batch]
+                for key, value in data.items():
+                    if key in ["prompts", "continuations1", "continuations2"]:
+                        fold_data[key] = [value[j] for j in batch]
+                    elif key in [f"{metric}_scores1", f"{metric}_scores2"]:
+                        fold_data[key] = [value[j] for j in batch]
 
-            file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
-            if overwrite or not os.path.exists(file_path):
-                with open(file_path, "w") as file:
+                with open(fold_file_path, "w") as file:
                     json.dump(fold_data, file, indent=4)
 
     except FileNotFoundError as e:
@@ -343,7 +370,7 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     model_name1 = "LLama-3-8B-ckpt1"
     seed1 = "seed1000"
-    model_name2 = "LLama-3-8B-ckpt4"
+    model_name2 = "LLama-3-8B-ckpt2"
     seed2 = "seed1000"
     # create_folds_from_generations(model_name1, seed1, model_name2, seed2, "toxicity")
 
