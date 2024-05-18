@@ -3,7 +3,7 @@ import torch
 
 from torch.utils.data import Dataset
 
-from preprocessing import create_folds_from_generations
+from dah_testing.preprocessing import create_folds_from_generations
 
 
 class ScoresDataset(Dataset):

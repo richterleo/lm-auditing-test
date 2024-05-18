@@ -16,7 +16,6 @@ from typing import Optional
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from utils.utils import download_file_from_wandb, time_block, create_run_string
-from dah_testing.dataloader import ScoresDataset
 from utils.generate_and_evaluate import eval_on_metric
 
 

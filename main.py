@@ -197,7 +197,7 @@ def kfold_train(
     seed1: Optional[str] = None,
     model_name2: Optional[str] = None,
     seed2: Optional[str] = None,
-    overwrite: Optional[bool] = True,
+    overwrite: Optional[bool] = False,
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
@@ -226,8 +226,15 @@ def kfold_train(
 
     # Check all folds available for the two runs
     directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
-    pattern = re.compile(rf"{config['metric']['metric']}_scores\.json_(\d+)\.json")
     folds = []
+
+    # Check the directory for matching files and append to the list
+    for file_name in os.listdir(directory):
+        match = re.search(r"_fold_(\d+)\.json$", file_name)
+        if match:
+            fold_number = int(match.group(1))
+            folds.append(fold_number)
+
     if len(folds) == 0:
         create_folds_from_generations(
             model_name1,
@@ -238,15 +245,15 @@ def kfold_train(
             overwrite=overwrite,
         )
 
-    # Check the directory for matching files and append to the list
+    # TODO: make this less hacky
     for file_name in os.listdir(directory):
-        match = pattern.match(file_name)
+        match = re.search(r"_fold_(\d+)\.json$", file_name)
         if match:
             fold_number = int(match.group(1))
             folds.append(fold_number)
 
     if config["logging"]["use_wandb"]:
-        wandb.config.update({"num_folds": folds})
+        wandb.config.update({"total_num_folds": folds})
 
     # Iterate over the folds and call test_daht
     for fold_num in folds:
