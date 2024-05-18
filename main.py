@@ -45,8 +45,10 @@ def test_daht(
     tau2_cfg: Optional[Dict] = None,
     train_online: bool = False,
     fold_num: int = 0,
-    run_id1: Optional[str] = None,
-    run_id2: Optional[str] = None,
+    model_name1: Optional[str] = None,
+    seed1: Optional[str] = None,
+    model_name2: Optional[str] = None,
+    seed2: Optional[str] = None,
 ):
     """ """
 
@@ -81,13 +83,17 @@ def test_daht(
             )
 
     else:
-        run_id1 = run_id1 if run_id1 else config["run_id1"]
-        run_id2 = run_id2 if run_id2 else config["run_id2"]
+        model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
+        seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
+        model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
+        seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
         trainer = OfflineTrainer(
             train_cfg,
             net,
-            run_id1,
-            run_id2,
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
             metric=config["metric"]["metric"],
             use_wandb=config["logging"]["use_wandb"],
             fold_num=fold_num,
@@ -102,8 +108,10 @@ def run_test_with_wandb(
     tau2_cfg: Optional[Dict] = None,
     train_online: bool = False,
     fold_num: int = 0,
-    run_id1: Optional[str] = None,
-    run_id2: Optional[str] = None,
+    model_name1: Optional[str] = None,
+    seed1: Optional[str] = None,
+    model_name2: Optional[str] = None,
+    seed2: Optional[str] = None,
 ):
     """Wrapper function to handle wandb logging and call the core logic."""
 
@@ -116,9 +124,18 @@ def run_test_with_wandb(
         )
         wandb.config.update({"train_online": train_online})
         if train_online:
-            run_id1 = run_id1 if run_id1 else config["run_id1"]
-            run_id2 = run_id2 if run_id2 else config["run_id2"]
-            wandb.config.update({"run_id1": run_id1, "run_id2": run_id2})
+            model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
+            seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
+            model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
+            seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
+            wandb.config.update(
+                {
+                    "model_name1": model_name1,
+                    "seed1": seed1,
+                    "model_name2": model_name2,
+                    "seed2": seed2,
+                }
+            )
 
     test_daht(
         config,
@@ -126,8 +143,10 @@ def run_test_with_wandb(
         tau2_cfg=tau2_cfg,
         train_online=train_online,
         fold_num=fold_num,
-        run_id1=run_id1,
-        run_id2=run_id2,
+        model_name1=model_name1,
+        seed1=seed1,
+        model_name2=model_name2,
+        seed2=seed2,
     )
 
     if config["logging"]["use_wandb"]:
@@ -174,8 +193,10 @@ def eval_model(
 def kfold_train(
     config,
     train_cfg,
-    run_id1: Optional[str] = None,
-    run_id2: Optional[str] = None,
+    model_name1: Optional[str] = None,
+    seed1: Optional[str] = None,
+    model_name2: Optional[str] = None,
+    seed2: Optional[str] = None,
     overwrite: Optional[bool] = True,
 ):
     """Do repeats on"""
@@ -189,18 +210,32 @@ def kfold_train(
             tags=["kfold"],
         )
 
-    run_id1 = run_id1 if run_id1 else config["run_id1"]
-    run_id2 = run_id2 if run_id2 else config["run_id2"]
+    model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
+    seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
+    model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
+    seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
     if config["logging"]["use_wandb"]:
-        wandb.config.update({"run_id1": run_id1, "run_id2": run_id2})
+        wandb.config.update(
+            {
+                "model_name1": model_name1,
+                "seed1": seed1,
+                "model_name2": model_name2,
+                "seed2": seed2,
+            }
+        )
 
     # Check all folds available for the two runs
-    directory = f"{run_id1}_{run_id2}"
+    directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
     pattern = re.compile(rf"{config['metric']['metric']}_scores\.json_(\d+)\.json")
     folds = []
     if len(folds) == 0:
         create_folds_from_generations(
-            run_id1, run_id2, config["metric"]["metric"], overwrite=overwrite
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
+            config["metric"]["metric"],
+            overwrite=overwrite,
         )
 
     # Check the directory for matching files and append to the list
@@ -220,8 +255,10 @@ def kfold_train(
             train_cfg,
             train_online=False,
             fold_num=fold_num,
-            run_id1=run_id1,
-            run_id2=run_id2,
+            model_name1=model_name1,
+            seed1=seed1,
+            model_name2=model_name2,
+            seed2=seed2,
         )
 
     if config["logging"]["use_wandb"]:
@@ -267,19 +304,32 @@ def main():
     )
 
     parser.add_argument(
-        "--run_id1",
+        "--model_name1",
         type=str,
         default=None,
-        help="Run ID for the first model",
+        help="Name of first model as it appears in the folder name",
     )
 
     parser.add_argument(
-        "--run_id2",
+        "--model_name2",
         type=str,
         default=None,
-        help="Run ID for the second model",
+        help="Name of second model as it appears in the folder name",
     )
 
+    parser.add_argument(
+        "--seed1",
+        type=str,
+        default=None,
+        help="Generation seed of first model as it appears in the folder name",
+    )
+
+    parser.add_argument(
+        "--seed2",
+        type=str,
+        default=None,
+        help="Generation seed of second model as it appears in the folder name",
+    )
     parser.add_argument("--kfold", action="store_true", help="Run kfold training")
 
     args = parser.parse_args()
@@ -295,8 +345,10 @@ def main():
             kfold_train(
                 config,
                 train_cfg,
-                run_id1=args.run_id1,
-                run_id2=args.run_id2,
+                model_name1=args.model_name1,
+                seed1=args.seed1,
+                model_name2=args.model_name2,
+                seed2=args.seed2,
             )
         else:
             run_test_with_wandb(
@@ -304,10 +356,18 @@ def main():
                 train_cfg,
                 train_online=args.online,
                 fold_num=args.fold_num,
-                run_id1=args.run_id1,
-                run_id2=args.run_id2,
+                model_name1=args.model_name1,
+                seed1=args.seed1,
+                model_name2=args.model_name2,
+                seed2=args.seed2,
             )
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+
+    config = load_config("config.yml")
+    train_cfg = TrainCfg()
+    fold_num = 0
+
+    run_test_with_wandb(config, train_cfg, fold_num=fold_num)

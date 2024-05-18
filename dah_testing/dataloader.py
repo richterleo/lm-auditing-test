@@ -44,14 +44,16 @@ def collate_fn(batch):
     return batch_tensor
 
 
-def load_into_scores_ds(run_id1, run_id2, metric, fold_num=None):
+def load_into_scores_ds(
+    model_name1: str, seed1: str, model_name2: str, seed2: str, metric, fold_num=None
+):
     """ """
 
     try:
         file_path = (
-            f"outputs/{run_id1}_{run_id2}/{metric}_scores_{fold_num}.json"
+            f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_{fold_num}.json"
             if fold_num
-            else f"outputs/{run_id1}_{run_id2}/{metric}_scores.json"
+            else f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
         )
         with open(file_path, "r") as file:
             data = json.load(file)

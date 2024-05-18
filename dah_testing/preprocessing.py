@@ -5,6 +5,8 @@ import random
 import sys
 import numpy as np
 import wandb
+import orjson  # Using orjson for faster JSON operations
+
 
 from collections import defaultdict
 from pathlib import Path
@@ -178,7 +180,7 @@ def create_common_json(
         data1 = json.load(file1)
         data2 = json.load(file2)
 
-    data = defaultdict(lambda: defaultdict(list))
+    data = defaultdict(list)
     data["metadata1"] = data1["metadata"]
     data["metadata2"] = data2["metadata"]
 
@@ -204,6 +206,57 @@ def create_common_json(
     if overwrite or not file_path.exists():
         with open(file_path, "w") as file:
             json.dump(data, file, indent=4)
+
+
+def create_common_json_fast(
+    model_name1, seed1, model_name2, seed2, metric, epoch=0, overwrite=True
+):
+    file_path1 = f"model_outputs/{model_name1}_{seed1}"
+    file_path2 = f"model_outputs/{model_name2}_{seed2}"
+    new_folder_path = (
+        Path("model_outputs") / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
+    )
+
+    new_folder_path.mkdir(parents=True, exist_ok=True)
+
+    with open(os.path.join(file_path1, f"{metric}_scores.json"), "rb") as file1, open(
+        os.path.join(file_path2, f"{metric}_scores.json"), "rb"
+    ) as file2:
+        data1 = orjson.loads(file1.read())
+        data2 = orjson.loads(file2.read())
+
+    data = defaultdict(list)
+    data["metadata1"] = data1["metadata"]
+    data["metadata2"] = data2["metadata"]
+
+    filtered_data1 = data1.get(str(epoch), {})
+    filtered_data2 = data2.get(str(epoch), {})
+
+    common_prompts = set(filtered_data1.get("prompts", [])) & set(
+        filtered_data2.get("prompts", [])
+    )
+
+    prompt_indices1 = {
+        prompt: i for i, prompt in enumerate(filtered_data1.get("prompts", []))
+    }
+    prompt_indices2 = {
+        prompt: i for i, prompt in enumerate(filtered_data2.get("prompts", []))
+    }
+
+    for prompt in common_prompts:
+        data["prompts"].append(prompt)
+        index1 = prompt_indices1[prompt]
+        index2 = prompt_indices2[prompt]
+
+        data["continuations1"].append(filtered_data1["continuations"][index1])
+        data["continuations2"].append(filtered_data2["continuations"][index2])
+        data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
+        data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
+
+    file_path = new_folder_path / f"{metric}_scores.json"
+    if overwrite or not file_path.exists():
+        with open(file_path, "wb") as file:
+            file.write(orjson.dumps(data))
 
 
 def create_folds(
@@ -270,10 +323,27 @@ def create_folds_from_generations(
     )
 
 
+def create_folds_from_evaluations(
+    model_name1, seed1, model_name2, seed2, metric, fold_size=2500, overwrite=True
+):
+    create_common_json(
+        model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
+    )
+    create_folds(
+        model_name1,
+        seed1,
+        model_name2,
+        seed2,
+        metric,
+        fold_size=fold_size,
+        overwrite=overwrite,
+    )
+
+
 if __name__ == "__main__":
     model_name1 = "LLama-3-8B-ckpt1"
     seed1 = "seed1000"
-    model_name2 = "LLama-3-8B-ckpt2"
+    model_name2 = "LLama-3-8B-ckpt4"
     seed2 = "seed1000"
     # create_folds_from_generations(model_name1, seed1, model_name2, seed2, "toxicity")
 
@@ -282,22 +352,8 @@ if __name__ == "__main__":
     #     seed = "seed1000"
     #     evaluate_single_model(model_name, seed, "toxicity", overwrite=True)
 
-    # wandb.init(
-    #     project="toxicity_evaluation",
-    #     entity="LLM_Accountability",
-    #     name=create_run_string(),
-    #     config={"model_name": model_name1, "seed": seed1},
-    # )
+    create_folds_from_evaluations(
+        model_name1, seed1, model_name2, seed2, "toxicity", fold_size=4000
+    )
 
-    # wandb.save(
-    #     "/root/DistanceSimulation/model_outputs/LLama-3-8B-ckpt1_seed1000/toxicity_scores.json"
-    # )
-    # wandb.finish()
-
-    with open(
-        "/root/DistanceSimulation/model_outputs/LLama-3-8B-ckpt2_seed1000/Llama-3-8B-ckpt2_continuations_seed1000.json",
-        "r",
-    ) as file:
-        toxicity_scores = json.load(file)
-
-        print(len(toxicity_scores["0"]["prompts"]))
+    create_folds(model_name1, seed1, model_name2, seed2, "toxicity", fold_size=4000)
