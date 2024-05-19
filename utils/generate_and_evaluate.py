@@ -8,7 +8,6 @@ import torch
 from collections import defaultdict
 from datasets import load_dataset
 from googleapiclient import discovery
-#from utils.keys import PERSPECTIVE_API_KEY
 from tqdm import tqdm
 from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer
@@ -151,13 +150,20 @@ def generate_and_evaluate(
                     {
                         "epoch": epoch,
                         "prompt": prompt_dataset[i]["prompt"]["text"],
-                        "continuation": out[0]["generated_text"][len(prompt):].strip().replace(prompt_dataset[i]["prompt"]["text"], ""),
+                        "continuation": out[0]["generated_text"][len(prompt) :]
+                        .strip()
+                        .replace(prompt_dataset[i]["prompt"]["text"], ""),
                     }
                 )
 
             # cont = out[0]["generated_text"].replace(
+            # cont = out[0]["generated_text"].replace(
             #    prompt_dataset[i]["prompt"]["text"], ""
-            cont = out[0]["generated_text"][len(prompt):].strip().replace(prompt_dataset[i]["prompt"]["text"], "")
+            cont = (
+                out[0]["generated_text"][len(prompt) :]
+                .strip()
+                .replace(prompt_dataset[i]["prompt"]["text"], "")
+            )
             logs[epoch]["prompts"].append(prompt_dataset[i]["prompt"]["text"])
             logs[epoch]["continuations"].append(cont)
 
@@ -195,11 +201,14 @@ def generate_and_evaluate(
         )
 
 
-def eval_on_metric(metric, continuations):
+def eval_on_metric(metric, continuations, asynchronously=True):
     """ """
 
     if metric == "perspective":
-        ratings = asyncio.run(call_perspective(continuations))
+        if asynchronously:
+            ratings = asyncio.run(call_perspective(continuations))
+        else:
+            ratings = call_perspective_synchronously(continuations)
 
     else:
         metric_name = metric
@@ -210,29 +219,31 @@ def eval_on_metric(metric, continuations):
     return ratings
 
 
-# def call_perspective(continuations):
-#     """ """
-#     client = discovery.build(
-#         "commentanalyzer",
-#         "v1alpha1",
-#         developerKey=PERSPECTIVE_API_KEY,
-#         discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
-#         static_discovery=False,
-#     )
+def call_perspective_synchronously(continuations):
+    """ """
+    from utils.keys import PERSPECTIVE_API_KEY
 
-#     ratings = []
+    client = discovery.build(
+        "commentanalyzer",
+        "v1alpha1",
+        developerKey=PERSPECTIVE_API_KEY,
+        discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
+        static_discovery=False,
+    )
 
-#     for continuation in continuations:
-#         analyze_request = {
-#             "comment": {"text": continuation},
-#             "requestedAttributes": {"TOXICITY": {}},
-#             "doNotStore": True,
-#         }
+    ratings = []
 
-#     response = client.comments().analyze(body=analyze_request).execute()
-#     ratings.append(response["attributeScores"]["TOXICITY"]["summaryScore"]["value"])
+    for continuation in continuations:
+        analyze_request = {
+            "comment": {"text": continuation},
+            "requestedAttributes": {"TOXICITY": {}},
+            "doNotStore": True,
+        }
 
-#     return ratings
+    response = client.comments().analyze(body=analyze_request).execute()
+    ratings.append(response["attributeScores"]["TOXICITY"]["summaryScore"]["value"])
+
+    return ratings
 
 
 # async def fetch_toxicity(session, text):
@@ -262,7 +273,9 @@ def eval_on_metric(metric, continuations):
 #         return ratings
 
 
-async def fetch_toxicity(session, text, retries=3):
+async def fetch_toxicity(session, text, retries=5):
+    from utils.keys import PERSPECTIVE_API_KEY
+
     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
     params = {
         "key": PERSPECTIVE_API_KEY,
@@ -281,7 +294,7 @@ async def fetch_toxicity(session, text, retries=3):
                 params=params,
                 data=json.dumps(payload),
                 headers=headers,
-                timeout=10,
+                timeout=100,
             ) as response:
                 if response.status == 200:
                     resp_json = await response.json()
