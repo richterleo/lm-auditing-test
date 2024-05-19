@@ -138,7 +138,8 @@ def generate_and_evaluate(
                     eos_token_id=terminators,
                     **gen_kwargs,
                 )
-            )
+            ),
+            total=len(prompt_dataset)
         ):
             prompt = tokenizer.apply_chat_template(
                 format_func(prompt_dataset[i]["prompt"]["text"]),

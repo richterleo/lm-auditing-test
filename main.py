@@ -32,7 +32,7 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
+#from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
 from dah_testing.preprocessing import create_folds_from_generations
 
 # Dynamically import the module
