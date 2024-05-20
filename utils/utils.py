@@ -9,7 +9,7 @@ import yaml
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 from datetime import datetime
 
 from torch.utils.data import Dataset
@@ -60,7 +60,7 @@ def log_scores(scores, prefix="tox"):
 def get_scores_from_wandb(
     run_id: str,
     project_name="toxicity_evaluation",
-    prefix="tox",
+    prefix="toxicity",
     user_name="richter-leo94",
     return_file_path=True,
 ) -> Optional[Path]:
@@ -221,6 +221,7 @@ def download_file_from_wandb(
     pattern: Optional[str] = None,
     entity: str = "LLM_Accountability",
     return_file_path: bool = True,
+    get_save_path: Optional[Callable] = None,
 ) -> Optional[Path]:
     """
     Helper function for downloading the scores file from a W&B run.
@@ -248,14 +249,19 @@ def download_file_from_wandb(
     # Path to the file you want to download
     run_name = run_path if run_path else f"{entity}/{project_name}/{run_id}"
     run = api.run(run_name)
-    if not run_id:
-        run_id = os.path.basename(run_path)
-    folder_path = Path(f"outputs/{run_id}")
-
-    if not folder_path.exists():
-        folder_path.mkdir(parents=True, exist_ok=True)
 
     if file_name:
+        # Define the path to the folder where the file will be saved
+        if get_save_path:
+            folder_path = get_save_path(file_name)
+        else:
+            if not run_id:
+                run_id = os.path.basename(run_path)
+            folder_path = Path(f"outputs/{run_id}")
+
+        if not folder_path.exists():
+            folder_path.mkdir(parents=True, exist_ok=True)
+
         try:
             file_name.download(root=folder_path, replace=True)
             if return_file_path:
@@ -270,6 +276,16 @@ def download_file_from_wandb(
                 file = f
                 break
         try:
+            if get_save_path:
+                folder_path = get_save_path(file.name)
+            else:
+                if not run_id:
+                    run_id = os.path.basename(run_path)
+                folder_path = Path(f"outputs/{run_id}")
+
+            if not folder_path.exists():
+                folder_path.mkdir(parents=True, exist_ok=True)
+
             file.download(root=folder_path, replace=True)
             return folder_path / file.name
 
@@ -278,7 +294,15 @@ def download_file_from_wandb(
             return None
 
 
+def folder_from_model_and_seed(file_name):
+    folder_name = os.path.splitext(file_name.replace("_continuations", ""))[0]
+    folder = Path(f"model_outputs/{folder_name}")
+    return folder
+
+
 if __name__ == "__main__":
-    run_path = "LLM_Accountability/continuations/zxd1hh7d"
-    pattern = "continuations.json"
-    download_file_from_wandb(run_path=run_path, pattern=pattern)
+    run_path = "LLM_Accountability/continuations/gpjcyd9f"
+    pattern = "continuations"
+    download_file_from_wandb(
+        run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed
+    )

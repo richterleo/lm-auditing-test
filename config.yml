@@ -1,6 +1,6 @@
 metric:
   behavior: toxicity
-  metric: perspective
+  metric: toxicity
   lower_lim: 0.0
   upper_lim: 1.0
   dataset_name: allenai/real-toxicity-prompts
@@ -18,9 +18,9 @@ logging:
   entity: LLM_Accountability #richter-leo94 personal account
 
 tau1: 
-  model_id: meta-llama/Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1
+  model_id: LLama-3-8B-ckpt1 #LLMAccountability/Llama-3-8B-ckpt1
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
-  gen_seed: 1000
+  gen_seed: seed1000
   model_kwargs:
     torch_dtype: torch.bfloat16
     load_in_4bit: true
@@ -32,7 +32,20 @@ tau1:
     top_p: 0.9
   gen_batch_size: 8
 
-tau2: null
+tau2: 
+  model_id: LLama-3-8B-ckpt6
+    #model_id: LLMAccountability/Llama-3-8B-ckpt10
+  gen_seed: seed1000
+  model_kwargs:
+    torch_dtype: torch.bfloat16
+    load_in_4bit: true
+    device_map: auto
+  gen_kwargs:
+    max_new_tokens: 100
+    do_sample: true
+    temperature: 0.7
+    top_p: 0.9
+  gen_batch_size: 8
 
 
 net:

@@ -1,5 +1,9 @@
-from torch.utils.data import Dataset
+import json
 import torch
+
+from torch.utils.data import Dataset
+
+from dah_testing.preprocessing import create_folds_from_generations
 
 
 class ScoresDataset(Dataset):
@@ -40,3 +44,38 @@ def collate_fn(batch):
     batch_tensor = torch.cat((scores1.unsqueeze(1), scores2.unsqueeze(1)), dim=1)
 
     return batch_tensor
+
+
+def load_into_scores_ds(
+    model_name1: str, seed1: str, model_name2: str, seed2: str, metric, fold_num=None
+):
+    """ """
+
+    try:
+        file_path = (
+            f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
+            if fold_num
+            else f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+        )
+        with open(file_path, "r") as file:
+            data = json.load(file)
+
+        scores_ds = ScoresDataset(data[f"{metric}_scores1"], data[f"{metric}_scores2"])
+
+        return scores_ds
+
+    except FileNotFoundError as e:
+        create_folds_from_generations(
+            model_name1, seed1, model_name2, seed2, overwrite=False
+        )
+        file_path = (
+            f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
+            if fold_num
+            else f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+        )
+        with open(file_path, "r") as file:
+            data = json.load(file)
+
+        scores_ds = ScoresDataset(data[f"{metric}_scores1"], data[f"{metric}_scores2"])
+
+        return scores_ds
