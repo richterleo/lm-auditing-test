@@ -208,8 +208,7 @@ def evaluate_single_model(
             # tracking more to see why evaluations are so slow
             elif len(concatenated_generations) > 1000:
                 scores = []
-                metric_name = metric
-                metric = evaluate.load(metric)
+                metric_model = evaluate.load(metric)
 
                 for i in tqdm(range(0, len(concatenated_generations), 100)):
                     print(f"Processing batch {i} to {i+100}")
@@ -219,10 +218,10 @@ def evaluate_single_model(
                     #     asynchronously=asynchronously,
                     # )
 
-                    score_dict = metric.compute(
+                    score_dict = metric_model.compute(
                         predictions=concatenated_generations[i : i + 100]
                     )
-                    new_scores = score_dict[metric_name]
+                    new_scores = score_dict[metric]
                     scores.extend(new_scores)
 
                     if i % 10000 == 0 and save_intermittently:
