@@ -11,6 +11,7 @@ import orjson  # Using orjson for faster JSON operations
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional
+from tqdm import tqdm
 
 # Add the parent directory of utils to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -143,12 +144,18 @@ def evaluate_single_model(
                 assert (
                     len(scores) == len(concatenated_generations)
                 ), f"Did not get all scores: only {len(scores)} scores, but {len(concatenated_generations)} generations"
-            else:
-                scores = eval_on_metric(
-                    metric,
-                    concatenated_generations,
-                    asynchronously=asynchronously,
-                )
+
+            # tracking more to see why evaluations are so slow
+            elif len(concatenated_generations) > 1000:
+                scores = []
+                for i in tqdm(range(0, len(concatenated_generations), 1000)):
+                    print(f"Processing batch {i} to {i+1000}")
+                    new_scores = eval_on_metric(
+                        metric,
+                        concatenated_generations,
+                        asynchronously=asynchronously,
+                    )
+                    scores.extend(new_scores)
 
             data[epoch][f"{metric}_scores"] = scores
 
@@ -231,7 +238,7 @@ def create_common_json(
 
         if use_wandb:
             wandb.save(common_scores_file_path)
-            wandb.finish()
+            # wandb.finish()
 
 
 def create_common_json_fast(
@@ -311,6 +318,7 @@ def create_folds(
         for i, batch in enumerate(index_batches):
             fold_file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
             if overwrite or not os.path.exists(fold_file_path):
+                print(f"We're in the {i}th fold now")
                 fold_data = defaultdict(list)
                 fold_data["metadata1"] = metadata1
                 fold_data["metadata2"] = metadata2
@@ -350,7 +358,7 @@ def create_folds_from_generations(
 
 
 def create_folds_from_evaluations(
-    model_name1, seed1, model_name2, seed2, metric, fold_size=2500, overwrite=True
+    model_name1, seed1, model_name2, seed2, metric, fold_size=4000, overwrite=True
 ):
     create_common_json(
         model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
@@ -367,19 +375,13 @@ def create_folds_from_evaluations(
 
 
 if __name__ == "__main__":
-    model_name1 = "LLama-3-8B-ckpt1"
-    seed1 = "seed1000"
-    model_name2 = "LLama-3-8B-ckpt2"
-    seed2 = "seed1000"
-    # create_folds_from_generations(model_name1, seed1, model_name2, seed2, "toxicity")
+    # Put json file with generations in folder model_outputs/{model_name}_{seed}
+   
+    model_name = "LLama-3-8B-ckpt6"  # change this to the checkpoint to evaluate
+    # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
 
-    # for i in range(3, 11):
-    #     model_name = f"LLama-3-8B-ckpt{i}"
-    #     seed = "seed1000"
-    #     evaluate_single_model(model_name, seed, "toxicity", overwrite=True)
+    seed = "seed1000"  # change this to the current seed
 
-    create_folds_from_evaluations(
-        model_name1, seed1, model_name2, seed2, "toxicity", fold_size=4000
-    )
-
-    create_folds(model_name1, seed1, model_name2, seed2, "toxicity", fold_size=4000)
+    evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
+    #this is a change
+    
