@@ -223,34 +223,42 @@ def evaluate_single_model(
                 )
                 print(f"Evaluation metric using device: {toxic_classifier.device}")
 
-                for i in tqdm(range(0, len(concatenated_generations), 1000)):
-                    print(f"Processing batch {i} to {i+100}")
+                for i, out in tqdm(
+                    enumerate(toxic_classifier(concatenated_generations), batch_size=16)
+                ):
+                    scores.append(r["score"] for r in out if r["label" == "hate"])
+
+                    # for i in tqdm(range(0, len(concatenated_generations), 1000)):
+                    #     print(f"Processing batch {i} to {i+1000}")
                     # new_scores = eval_on_metric(
                     #     metric,
                     #     concatenated_generations[i:i+100],
                     #     asynchronously=asynchronously,
                     # )
-                    with time_block(f"Generating scores for batch {i}"):
-                        # score_dict = metric_model.compute(
-                        #     predictions=concatenated_generations[i : i + 100]
-                        # )
-                        toxic_scores = []
-                        preds_toxic = toxic_classifier(
-                            concatenated_generations[i : i + 1000]
-                        )
-                        for pred_toxic in preds_toxic:
-                            hate_toxic = [
-                                r["score"] for r in pred_toxic if r["label"] == "hate"
-                            ][0]
-                            toxic_scores.append(hate_toxic)
+                    # with time_block(f"Generating scores for batch {i}"):
+                    #     # score_dict = metric_model.compute(
+                    #     #     predictions=concatenated_generations[i : i + 100]
+                    #     # )
+                    #     toxic_scores = []
+                    #     preds_toxic = toxic_classifier(
+                    #         concatenated_generations[i : i + 1000]
+                    #     )
+                    #     for pred_toxic in preds_toxic:
+                    #         hate_toxic = [
+                    #             r["score"] for r in pred_toxic if r["label"] == "hate"
+                    #         ][0]
+                    #         toxic_scores.append(hate_toxic)
 
-                    scores.extend(toxic_scores)
+                    # scores.extend(toxic_scores)
 
                     if i % 10000 == 0 and save_intermittently:
                         current_scores_path = os.path.join(
                             gen_file_path, f"{metric}_scores_{i}.json"
                         )
-                        data[epoch][f"{metric}_scores"].extend(scores)
+                        data[epoch][f"{metric}_scores"] = scores
+                        assert (
+                            len(data[epoch][f"{metric}_scores"]) == i + 1
+                        ), f"The current number of scores is not the same as the index: {len(data[epoch][f'{metric}_scores'])} and {i}"
                         with open(current_scores_path, "w") as file:
                             json.dump(data, file, indent=4)
 
@@ -264,8 +272,14 @@ def evaluate_single_model(
 
             data[epoch][f"{metric}_scores"] = scores
 
+        print(f"Why is it not saving the last batch?")
+        assert (
+            len(data[epoch][f"{metric}_scores"]) == len(data[epoch]["prompts"])
+        ), f"Number of scores is not the same as number of prompts: {len(data[epoch][f'{metric}_scores'])} and {len(data[epoch]['prompts'])}"
         with open(scores_file_path, "w") as file:
             json.dump(data, file, indent=4)
+
+        print("It should have saved the whole file now. ")
 
         if use_wandb:
             wandb.save(scores_file_path)
@@ -329,24 +343,40 @@ def create_common_json(
             str(epoch2)
         ]
 
-        common_prompts = list(
-            set(filtered_data1["prompts"]) & set(filtered_data2["prompts"])
-        )
+        # if both lists are the same length, then we just trust that they're the same and ordered correctly.
+        if len(filtered_data1["prompts"]) == len(filtered_data2["prompts"]):
+            print(
+                f"We trust that both data have the same prompts, e.g. {filtered_data1['prompts'][0], filtered_data2['prompts'][0]}"
+            )
+            data["prompts"] = filtered_data1["prompts"]
+            data["continuations1"] = filtered_data1["continuations"]
+            data["continuations2"] = filtered_data2["continuations"]
+            data[f"{metric}_scores1"] = filtered_data1[f"{metric}_scores"]
+            data[f"{metric}_scores2"] = filtered_data2[f"{metric}_scores"]
 
-        # Extract data for common prompts
-        for prompt in common_prompts:
-            data["prompts"].append(prompt)
-            index1 = filtered_data1["prompts"].index(prompt)
-            index2 = filtered_data2["prompts"].index(prompt)
+        else:
+            common_prompts = list(
+                set(filtered_data1["prompts"]) & set(filtered_data2["prompts"])
+            )
 
-            data["continuations1"].append(filtered_data1["continuations"][index1])
-            data["continuations2"].append(filtered_data2["continuations"][index2])
-            data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
-            data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
+            # Extract data for common prompts
+            for prompt in common_prompts:
+                data["prompts"].append(prompt)
+                index1 = filtered_data1["prompts"].index(prompt)
+                index2 = filtered_data2["prompts"].index(prompt)
 
-            with open(common_scores_file_path, "w") as file:
-                # json.dump(data, file, indent=4)
-                json.dump(data, file)
+                data["continuations1"].append(filtered_data1["continuations"][index1])
+                data["continuations2"].append(filtered_data2["continuations"][index2])
+                data[f"{metric}_scores1"].append(
+                    filtered_data1[f"{metric}_scores"][index1]
+                )
+                data[f"{metric}_scores2"].append(
+                    filtered_data2[f"{metric}_scores"][index2]
+                )
+
+        with open(common_scores_file_path, "w") as file:
+            # json.dump(data, file, indent=4)
+            json.dump(data, file)
 
         if use_wandb:
             wandb.save(common_scores_file_path)
@@ -505,7 +535,7 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "LLama-3-8B-ckpt6"
+    model_name = "LLama-3-8B-ckpt7"
     seed = "seed1000"
 
     model_name1 = "LLama-3-8B-ckpt1"  # change this to the checkpoint to evaluate
@@ -513,8 +543,9 @@ if __name__ == "__main__":
 
     seed1 = "seed1000"  # change this to the current seed
 
-    model_name2 = "LLama-3-8B-ckpt5"
+    model_name2 = "LLama-3-8B-ckpt3"
     seed2 = "seed1000"
 
     evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
+    # create_common_json(model_name1, seed1, model_name2, seed2)
     # create_common_json(model_name1, seed1, model_name2, seed2)
