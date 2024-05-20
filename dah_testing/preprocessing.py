@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import wandb
 import orjson  # Using orjson for faster JSON operations
+import time
 
 
 from collections import defaultdict
@@ -155,6 +156,8 @@ def evaluate_single_model(
     use_wandb=True,
     entity="LLM_Accountability",
     save_intermittently=True,
+    ds_batch_size=1000,
+    model_batch_size=4,
 ):
     """
     Evaluate a single model and save the scores in the same directory as the generations.
@@ -223,41 +226,33 @@ def evaluate_single_model(
                 )
                 print(f"Evaluation metric using device: {toxic_classifier.device}")
 
-                for i, out in tqdm(
-                    enumerate(toxic_classifier(concatenated_generations), batch_size=16)
-                ):
-                    scores.append(r["score"] for r in out if r["label" == "hate"])
+                # TODO remove this
+                start = time.time()
 
-                    # for i in tqdm(range(0, len(concatenated_generations), 1000)):
-                    #     print(f"Processing batch {i} to {i+1000}")
-                    # new_scores = eval_on_metric(
-                    #     metric,
-                    #     concatenated_generations[i:i+100],
-                    #     asynchronously=asynchronously,
-                    # )
-                    # with time_block(f"Generating scores for batch {i}"):
-                    #     # score_dict = metric_model.compute(
-                    #     #     predictions=concatenated_generations[i : i + 100]
-                    #     # )
-                    #     toxic_scores = []
-                    #     preds_toxic = toxic_classifier(
-                    #         concatenated_generations[i : i + 1000]
-                    #     )
-                    #     for pred_toxic in preds_toxic:
-                    #         hate_toxic = [
-                    #             r["score"] for r in pred_toxic if r["label"] == "hate"
-                    #         ][0]
-                    #         toxic_scores.append(hate_toxic)
+                for i in tqdm(range(0, len(concatenated_generations), ds_batch_size)):
+                    end = time.time()
+                    print(
+                        f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {end-start} seconds"
+                    )
+                    start = time.time()
 
-                    # scores.extend(toxic_scores)
+                    toxic_or_not_toxic_scores = toxic_classifier(
+                        concatenated_generations[i : i + ds_batch_size],
+                        batch_size=model_batch_size,
+                    )
+                    new_toxic_scores = [
+                        score[1]["score"] for score in toxic_or_not_toxic_scores
+                    ]  # r["score"] for r in pred_toxic if r["label"] == "hate"
 
-                    if i % 10000 == 0 and save_intermittently:
+                    scores.extend(new_toxic_scores)
+
+                    if i > 0 and i % 10000 == 0 and save_intermittently:
                         current_scores_path = os.path.join(
                             gen_file_path, f"{metric}_scores_{i}.json"
                         )
                         data[epoch][f"{metric}_scores"] = scores
                         assert (
-                            len(data[epoch][f"{metric}_scores"]) == i + 1
+                            len(data[epoch][f"{metric}_scores"]) == i + ds_batch_size
                         ), f"The current number of scores is not the same as the index: {len(data[epoch][f'{metric}_scores'])} and {i}"
                         with open(current_scores_path, "w") as file:
                             json.dump(data, file, indent=4)
@@ -265,24 +260,26 @@ def evaluate_single_model(
                         if use_wandb:
                             wandb.save(current_scores_path)
 
-                else:
-                    scores = eval_on_metric(
-                        metric, concatenated_generations, asynchronously=asynchronously
-                    )
+            else:
+                print(
+                    f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
+                )
+                scores = eval_on_metric(
+                    metric, concatenated_generations, asynchronously=asynchronously
+                )
 
             data[epoch][f"{metric}_scores"] = scores
 
-        print(f"Why is it not saving the last batch?")
-        assert (
-            len(data[epoch][f"{metric}_scores"]) == len(data[epoch]["prompts"])
-        ), f"Number of scores is not the same as number of prompts: {len(data[epoch][f'{metric}_scores'])} and {len(data[epoch]['prompts'])}"
-        with open(scores_file_path, "w") as file:
-            json.dump(data, file, indent=4)
+            assert (
+                len(data[epoch][f"{metric}_scores"]) == len(data[epoch]["prompts"])
+            ), f"Number of scores is not the same as number of prompts: {len(data[epoch][f'{metric}_scores'])} and {len(data[epoch]['prompts'])}"
+            with open(scores_file_path, "w") as file:
+                json.dump(data, file, indent=4)
 
-        print("It should have saved the whole file now. ")
+            print("It should have saved the whole file now. ")
 
-        if use_wandb:
-            wandb.save(scores_file_path)
+            if use_wandb:
+                wandb.save(scores_file_path)
             wandb.finish()
 
 
@@ -295,7 +292,7 @@ def create_common_json(
     epoch1=0,
     epoch2=0,
     overwrite=True,
-    use_wandb=True,
+    use_wandb=False,
     entity="LLM_Accountability",
 ):
     """ """
@@ -446,8 +443,7 @@ def create_folds(
     """ """
     try:
         file_name = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
-        data, num_errors = load_entire_json(file_name)
-        print(f"Number of errors when loading combined json: {num_errors}")
+        data = load_entire_json(file_name)
 
         # Extract metadata and other lists
         metadata1 = data["metadata1"]
@@ -518,9 +514,14 @@ def create_folds_from_evaluations(
     fold_size=4000,
     overwrite=True,
 ):
+    start = time.time()
     create_common_json(
         model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
     )
+
+    end = time.time()
+    print(f"Creating the common json takes {end-start} seconds")
+    start = time.time()
     create_folds(
         model_name1,
         seed1,
@@ -530,12 +531,14 @@ def create_folds_from_evaluations(
         fold_size=fold_size,
         overwrite=overwrite,
     )
+    end = time.time()
+    print(f"Creating the folds takes {end-start} seconds.")
 
 
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "LLama-3-8B-ckpt7"
+    model_name = "LLama-3-8B-ckpt10"
     seed = "seed1000"
 
     model_name1 = "LLama-3-8B-ckpt1"  # change this to the checkpoint to evaluate
@@ -543,9 +546,11 @@ if __name__ == "__main__":
 
     seed1 = "seed1000"  # change this to the current seed
 
-    model_name2 = "LLama-3-8B-ckpt3"
+    model_name2 = "LLama-3-8B-ckpt7"
     seed2 = "seed1000"
 
     evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
     # create_common_json(model_name1, seed1, model_name2, seed2)
-    # create_common_json(model_name1, seed1, model_name2, seed2)
+    # create_folds(model_name1, seed1, model_name2, seed2)
+
+    # create_folds_from_evaluations(model_name1, seed1, model_name2, seed2)

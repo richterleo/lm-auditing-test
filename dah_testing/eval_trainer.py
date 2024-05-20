@@ -4,6 +4,8 @@ import logging
 import random
 import torch
 import wandb
+import sys
+import os
 
 from copy import deepcopy
 from sklearn.model_selection import train_test_split, KFold
@@ -13,6 +15,9 @@ from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 from tqdm import tqdm
+
+# Add the parent directory of utils to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # own utilities
 from dah_testing.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
@@ -447,11 +452,14 @@ class OfflineTrainer(Trainer):
 
         # remove unnecessary attributes
         del self.datagen
-        del self.device
+        # del self.device
 
         self.fold_num = fold_num
         print(f"Fold number: {self.fold_num}")
         self.metric = metric
+
+        if torch.cuda.is_available():
+            self.net.to("cuda")
 
         self.dataset = load_into_scores_ds(
             model_name1, seed1, model_name2, seed2, metric, fold_num=fold_num

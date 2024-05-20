@@ -32,8 +32,8 @@ models_path = os.path.join(
 if models_path not in sys.path:
     sys.path.append(models_path)
 
-#from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
-from dah_testing.preprocessing import create_folds_from_generations
+from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
+from dah_testing.preprocessing import create_folds_from_evaluations
 
 # Dynamically import the module
 # deep_anytime_testing = importlib.import_module("deep-anytime-testing")
@@ -236,7 +236,7 @@ def kfold_train(
             folds.append(fold_number)
 
     if len(folds) == 0:
-        create_folds_from_generations(
+        create_folds_from_evaluations(
             model_name1,
             seed1,
             model_name2,
@@ -251,6 +251,8 @@ def kfold_train(
         if match:
             fold_number = int(match.group(1))
             folds.append(fold_number)
+
+    print(f"We have {len(folds)} folds.")
 
     if config["logging"]["use_wandb"]:
         wandb.config.update({"total_num_folds": folds})
