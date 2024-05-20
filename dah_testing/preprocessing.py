@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Optional
 from tqdm import tqdm
 
+from transformers import pipeline
+
 # Add the parent directory of utils to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -208,21 +210,41 @@ def evaluate_single_model(
             # tracking more to see why evaluations are so slow
             elif len(concatenated_generations) > 1000:
                 scores = []
-                metric_model = evaluate.load(metric)
+                # metric_model = evaluate.load(metric) not on GPU
 
-                for i in tqdm(range(0, len(concatenated_generations), 100)):
+                # TODO: this is hardcoded now, should not be in future
+                model_name = "facebook/roberta-hate-speech-dynabench-r4-target"
+                toxic_classifier = pipeline(
+                    "text-classification",
+                    model=model_name,
+                    top_k=99999,
+                    truncation=True,
+                    device_map="auto",
+                )
+                print(f"Evaluation metric using device: {toxic_classifier.device}")
+
+                for i in tqdm(range(0, len(concatenated_generations), 1000)):
                     print(f"Processing batch {i} to {i+100}")
                     # new_scores = eval_on_metric(
                     #     metric,
                     #     concatenated_generations[i:i+100],
                     #     asynchronously=asynchronously,
                     # )
+                    with time_block(f"Generating scores for batch {i}"):
+                        # score_dict = metric_model.compute(
+                        #     predictions=concatenated_generations[i : i + 100]
+                        # )
+                        toxic_scores = []
+                        preds_toxic = toxic_classifier(
+                            concatenated_generations[i : i + 1000]
+                        )
+                        for pred_toxic in preds_toxic:
+                            hate_toxic = [
+                                r["score"] for r in pred_toxic if r["label"] == "hate"
+                            ][0]
+                            toxic_scores.append(hate_toxic)
 
-                    score_dict = metric_model.compute(
-                        predictions=concatenated_generations[i : i + 100]
-                    )
-                    new_scores = score_dict[metric]
-                    scores.extend(new_scores)
+                    scores.extend(toxic_scores)
 
                     if i % 10000 == 0 and save_intermittently:
                         current_scores_path = os.path.join(
