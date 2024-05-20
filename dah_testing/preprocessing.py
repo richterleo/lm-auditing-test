@@ -96,6 +96,7 @@ def evaluate_single_model(
     asynchronously=True,
     use_wandb=True,
     entity="LLM_Accountability",
+    save_intermittently=True
 ):
     """
     Evaluate a single model and save the scores in the same directory as the generations.
@@ -128,6 +129,8 @@ def evaluate_single_model(
                 f"{prompt} {continuation}"
                 for prompt, continuation in zip(d["prompts"], d["continuations"])
             ]
+            
+            data[epoch][f"{metric}_scores"] = []
 
             # if we have a lot of generations, we need to query the API in batches
             if len(concatenated_generations) > 100 and metric == "perspective":
@@ -156,6 +159,15 @@ def evaluate_single_model(
                         asynchronously=asynchronously,
                     )
                     scores.extend(new_scores)
+                    
+                    if i % 10 == 0 and  save_intermittently:
+                        current_scores_path = os.path.join(gen_file_path, f"{metric}_scores_{i}.json")
+                        data[epoch][f"{metric}_scores"].extend(scores)
+                        with open(current_scores_path, "w") as file:
+                            json.dump(data, file, indent=4)
+                            
+                        if use_wandb:
+                            wandb.save(current_scores_path)
 
             data[epoch][f"{metric}_scores"] = scores
 
