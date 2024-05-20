@@ -108,6 +108,7 @@ def evaluate_single_model(
             entity=entity,
             name=create_run_string(),
             config={"model_name": model_name, "seed": seed},
+            tags=["evaluate_single_model"]
         )
 
     gen_file_path = f"model_outputs/{model_name}_{seed}"
@@ -208,6 +209,7 @@ def create_common_json(
                 "model_name2": model_name2,
                 "seed2": seed2,
             },
+            tags=["create_common_json"]
         )
 
     common_scores_file_path = new_folder_path / f"{metric}_scores.json"
@@ -250,7 +252,7 @@ def create_common_json(
 
         if use_wandb:
             wandb.save(common_scores_file_path)
-            # wandb.finish()
+            wandb.finish()
 
 
 def create_common_json_fast(
@@ -327,7 +329,7 @@ def create_folds(
             indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)
         ]
 
-        for i, batch in enumerate(index_batches):
+        for i, batch in tqdm(enumerate(index_batches)):
             fold_file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
             if overwrite or not os.path.exists(fold_file_path):
                 print(f"We're in the {i}th fold now")
@@ -350,7 +352,7 @@ def create_folds(
 
 
 def create_folds_from_generations(
-    model_name1, seed1, model_name2, seed2, metric, fold_size=4000, overwrite=True
+    model_name1, seed1, model_name2, seed2, metric="toxicity", fold_size=4000, overwrite=True
 ):
     evaluate_single_model(model_name1, seed1, metric, overwrite=overwrite)
     evaluate_single_model(model_name2, seed2, metric, overwrite=overwrite)
@@ -370,7 +372,7 @@ def create_folds_from_generations(
 
 
 def create_folds_from_evaluations(
-    model_name1, seed1, model_name2, seed2, metric, fold_size=4000, overwrite=True
+    model_name1, seed1, model_name2, seed2, metric="toxicity", fold_size=4000, overwrite=True
 ):
     create_common_json(
         model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
@@ -389,11 +391,17 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
    
-    model_name = "LLama-3-8B-ckpt6"  # change this to the checkpoint to evaluate
+    model_name1 = "LLama-3-8B-ckpt1"  # change this to the checkpoint to evaluate
     # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
 
-    seed = "seed1000"  # change this to the current seed
+    seed1 = "seed1000"  # change this to the current seed
+    
+    model_name2 = "LLama-3-8B-ckpt3"
+    seed2 = "seed1000"
+    metric="toxicity"
 
-    evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
+    #evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
     #this is a change
+    
+    create_folds_from_evaluations(model_name1, seed1, model_name2, seed2)
     
