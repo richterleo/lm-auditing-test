@@ -1,5 +1,6 @@
 import json
 import os
+import evaluate
 import typing
 import random
 import sys
@@ -18,6 +19,61 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from utils.utils import download_file_from_wandb, time_block, create_run_string
 from utils.generate_and_evaluate import eval_on_metric
+
+
+# error handling
+def load_json(filepath):
+    try:
+        with open(filepath, "r") as file:
+            data = json.load(file)
+        return data
+    except json.JSONDecodeError as e:
+        print(f"JSONDecodeError: {e}")
+        line, column = e.lineno, e.colno
+        print(f"Error at line {line}, column {column}")
+        # Optionally, you can print the problematic line
+        with open(filepath, "r") as file:
+            lines = file.readlines()
+            problematic_line = lines[line - 1]
+            print(f"Problematic line: {problematic_line.strip()}")
+        # Handle the error or re-raise it
+        raise
+
+
+def load_entire_json(filepath):
+    try:
+        with open(filepath, "r") as file:
+            data = json.load(file)
+        return data
+    except json.JSONDecodeError as e:
+        print(f"JSONDecodeError: {e}")
+        line, column = e.lineno, e.colno
+        print(f"Error at line {line}, column {column}")
+        # Print a few lines around the error to help debug
+        with open(filepath, "r") as file:
+            lines = file.readlines()
+            start = max(0, line - 3)
+            end = min(len(lines), line + 2)
+            for i in range(start, end):
+                print(f"{i + 1}: {lines[i].strip()}")
+        # Re-raise the error to avoid further processing
+        raise
+
+
+def load_json_skipping_errors(filepath):
+    valid_data = []
+    num_errors = 0
+    with open(filepath, "r") as file:
+        lines = file.readlines()
+        for i, line in enumerate(lines):
+            try:
+                data = json.loads(line)
+                valid_data.append(data)
+            except json.JSONDecodeError as e:
+                print(f"Skipping line {i + 1} due to JSONDecodeError: {e}")
+                print(f"Problematic line: {line.strip()}")
+                num_errors += 1
+    return valid_data, num_errors
 
 
 # def evaluate_single_model(
@@ -96,7 +152,7 @@ def evaluate_single_model(
     asynchronously=True,
     use_wandb=True,
     entity="LLM_Accountability",
-    save_intermittently=True
+    save_intermittently=True,
 ):
     """
     Evaluate a single model and save the scores in the same directory as the generations.
@@ -108,7 +164,7 @@ def evaluate_single_model(
             entity=entity,
             name=create_run_string(),
             config={"model_name": model_name, "seed": seed},
-            tags=["evaluate_single_model"]
+            tags=["evaluate_single_model"],
         )
 
     gen_file_path = f"model_outputs/{model_name}_{seed}"
@@ -130,7 +186,7 @@ def evaluate_single_model(
                 f"{prompt} {continuation}"
                 for prompt, continuation in zip(d["prompts"], d["continuations"])
             ]
-            
+
             data[epoch][f"{metric}_scores"] = []
 
             # if we have a lot of generations, we need to query the API in batches
@@ -152,23 +208,38 @@ def evaluate_single_model(
             # tracking more to see why evaluations are so slow
             elif len(concatenated_generations) > 1000:
                 scores = []
-                for i in tqdm(range(0, len(concatenated_generations), 1000)):
-                    print(f"Processing batch {i} to {i+1000}")
-                    new_scores = eval_on_metric(
-                        metric,
-                        concatenated_generations,
-                        asynchronously=asynchronously,
+                metric_name = metric
+                metric = evaluate.load(metric)
+
+                for i in tqdm(range(0, len(concatenated_generations), 100)):
+                    print(f"Processing batch {i} to {i+100}")
+                    # new_scores = eval_on_metric(
+                    #     metric,
+                    #     concatenated_generations[i:i+100],
+                    #     asynchronously=asynchronously,
+                    # )
+
+                    score_dict = metric.compute(
+                        predictions=concatenated_generations[i : i + 100]
                     )
+                    new_scores = score_dict[metric_name]
                     scores.extend(new_scores)
-                    
-                    if i % 10 == 0 and  save_intermittently:
-                        current_scores_path = os.path.join(gen_file_path, f"{metric}_scores_{i}.json")
+
+                    if i % 10000 == 0 and save_intermittently:
+                        current_scores_path = os.path.join(
+                            gen_file_path, f"{metric}_scores_{i}.json"
+                        )
                         data[epoch][f"{metric}_scores"].extend(scores)
                         with open(current_scores_path, "w") as file:
                             json.dump(data, file, indent=4)
-                            
+
                         if use_wandb:
                             wandb.save(current_scores_path)
+
+                else:
+                    scores = eval_on_metric(
+                        metric, concatenated_generations, asynchronously=asynchronously
+                    )
 
             data[epoch][f"{metric}_scores"] = scores
 
@@ -185,8 +256,9 @@ def create_common_json(
     seed1,
     model_name2,
     seed2,
-    metric,
-    epoch=0,
+    metric="toxicity",
+    epoch1=0,
+    epoch2=0,
     overwrite=True,
     use_wandb=True,
     entity="LLM_Accountability",
@@ -209,7 +281,7 @@ def create_common_json(
                 "model_name2": model_name2,
                 "seed2": seed2,
             },
-            tags=["create_common_json"]
+            tags=["create_common_json"],
         )
 
     common_scores_file_path = new_folder_path / f"{metric}_scores.json"
@@ -229,8 +301,12 @@ def create_common_json(
         data["metadata1"] = data1["metadata"]
         data["metadata2"] = data2["metadata"]
 
-        filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}[str(epoch)]
-        filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}[str(epoch)]
+        filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}[
+            str(epoch1)
+        ]
+        filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}[
+            str(epoch2)
+        ]
 
         common_prompts = list(
             set(filtered_data1["prompts"]) & set(filtered_data2["prompts"])
@@ -248,7 +324,8 @@ def create_common_json(
             data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
 
             with open(common_scores_file_path, "w") as file:
-                json.dump(data, file, indent=4)
+                # json.dump(data, file, indent=4)
+                json.dump(data, file)
 
         if use_wandb:
             wandb.save(common_scores_file_path)
@@ -307,15 +384,19 @@ def create_common_json_fast(
 
 
 def create_folds(
-    model_name1, seed1, model_name2, seed2, metric, fold_size=4000, overwrite=True
+    model_name1,
+    seed1,
+    model_name2,
+    seed2,
+    metric="toxicity",
+    fold_size=4000,
+    overwrite=True,
 ):
     """ """
     try:
-        with open(
-            f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json",
-            "r",
-        ) as file:
-            data = json.load(file)
+        file_name = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+        data, num_errors = load_entire_json(file_name)
+        print(f"Number of errors when loading combined json: {num_errors}")
 
         # Extract metadata and other lists
         metadata1 = data["metadata1"]
@@ -352,7 +433,13 @@ def create_folds(
 
 
 def create_folds_from_generations(
-    model_name1, seed1, model_name2, seed2, metric="toxicity", fold_size=4000, overwrite=True
+    model_name1,
+    seed1,
+    model_name2,
+    seed2,
+    metric="toxicity",
+    fold_size=4000,
+    overwrite=True,
 ):
     evaluate_single_model(model_name1, seed1, metric, overwrite=overwrite)
     evaluate_single_model(model_name2, seed2, metric, overwrite=overwrite)
@@ -372,7 +459,13 @@ def create_folds_from_generations(
 
 
 def create_folds_from_evaluations(
-    model_name1, seed1, model_name2, seed2, metric="toxicity", fold_size=4000, overwrite=True
+    model_name1,
+    seed1,
+    model_name2,
+    seed2,
+    metric="toxicity",
+    fold_size=4000,
+    overwrite=True,
 ):
     create_common_json(
         model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
@@ -390,18 +483,17 @@ def create_folds_from_evaluations(
 
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
-   
+
+    model_name = "LLama-3-8B-ckpt6"
+    seed = "seed1000"
+
     model_name1 = "LLama-3-8B-ckpt1"  # change this to the checkpoint to evaluate
     # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
 
     seed1 = "seed1000"  # change this to the current seed
-    
-    model_name2 = "LLama-3-8B-ckpt3"
-    seed2 = "seed1000"
-    metric="toxicity"
 
-    #evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
-    #this is a change
-    
-    create_folds_from_evaluations(model_name1, seed1, model_name2, seed2)
-    
+    model_name2 = "LLama-3-8B-ckpt5"
+    seed2 = "seed1000"
+
+    evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
+    # create_common_json(model_name1, seed1, model_name2, seed2)
