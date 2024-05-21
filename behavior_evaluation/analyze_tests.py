@@ -269,7 +269,8 @@ def get_power_over_epsilon(
     return indexed_final_df
 
 
-def plot_power_over_epsilon(base_model_name,
+def plot_power_over_epsilon(
+    base_model_name,
     base_model_seed,
     checkpoints,
     seeds,
@@ -279,7 +280,8 @@ def plot_power_over_epsilon(base_model_name,
     metric="toxicity",
     column_name="sequences_until_end_of_experiment",
     max_sequences=41,
-):)
+):
+    pass
 
 
 if __name__ == "__main__":
