@@ -138,7 +138,7 @@ def generate_and_evaluate(
                     **gen_kwargs,
                 )
             ),
-            total=len(prompt_dataset)
+            total=len(prompt_dataset),
         ):
             prompt = tokenizer.apply_chat_template(
                 format_func(prompt_dataset[i]["prompt"]["text"]),
@@ -320,3 +320,16 @@ async def call_perspective(continuations):
         tasks = [fetch_toxicity(session, text) for text in continuations]
         ratings = await asyncio.gather(*tasks)
     return ratings
+
+
+def toxicity(preds, toxic_classifier, toxic_label):
+    toxic_scores = []
+    if toxic_label not in toxic_classifier.model.config.id2label.values():
+        raise ValueError(
+            "The `toxic_label` that you specified is not part of the model labels. Run `model.config.id2label` to see what labels your model outputs."
+        )
+
+    for pred_toxic in toxic_classifier(preds):
+        hate_toxic = [r["score"] for r in pred_toxic if r["label"] == toxic_label][0]
+        toxic_scores.append(hate_toxic)
+    return toxic_scores

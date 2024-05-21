@@ -2,10 +2,13 @@ import argparse
 import importlib
 import os
 import re
+import time
 import torch
 import sys
 import wandb
+import pandas as pd
 
+from pathlib import Path
 from typing import Optional, Dict, List
 
 # imports from other scripts
@@ -49,6 +52,7 @@ def test_daht(
     seed1: Optional[str] = None,
     model_name2: Optional[str] = None,
     seed2: Optional[str] = None,
+    use_wandb: Optional[str] = None,
 ):
     """ """
 
@@ -83,6 +87,9 @@ def test_daht(
             )
 
     else:
+        use_wandb = (
+            use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+        )
         model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
         seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
         model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
@@ -95,11 +102,12 @@ def test_daht(
             model_name2,
             seed2,
             metric=config["metric"]["metric"],
-            use_wandb=config["logging"]["use_wandb"],
+            use_wandb=use_wandb,
             fold_num=fold_num,
         )
 
-    trainer.train()
+    data = trainer.train()
+    return data
 
 
 def run_test_with_wandb(
@@ -198,10 +206,13 @@ def kfold_train(
     model_name2: Optional[str] = None,
     seed2: Optional[str] = None,
     overwrite: Optional[bool] = False,
+    use_wandb: Optional[bool] = None,
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
-    if config["logging"]["use_wandb"]:
+
+    use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+    if use_wandb:
         wandb.init(
             project=f"{config['metric']['behavior']}_test",
             entity=config["logging"]["entity"],
@@ -210,11 +221,13 @@ def kfold_train(
             tags=["kfold"],
         )
 
+    start = time.time()
+
     model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
     seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
     model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
     seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
-    if config["logging"]["use_wandb"]:
+    if use_wandb:
         wandb.config.update(
             {
                 "model_name1": model_name1,
@@ -223,19 +236,16 @@ def kfold_train(
                 "seed2": seed2,
             }
         )
+    else:
+        print(
+            f"Testing {model_name1} with seed {seed1} against {model_name2} with seed {seed2}."
+        )
 
     # Check all folds available for the two runs
     directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
     folds = []
 
-    # Check the directory for matching files and append to the list
-    for file_name in os.listdir(directory):
-        match = re.search(r"_fold_(\d+)\.json$", file_name)
-        if match:
-            fold_number = int(match.group(1))
-            folds.append(fold_number)
-
-    if len(folds) == 0:
+    if not Path(directory).exists():
         create_folds_from_evaluations(
             model_name1,
             seed1,
@@ -245,21 +255,50 @@ def kfold_train(
             overwrite=overwrite,
         )
 
-    # TODO: make this less hacky
-    for file_name in os.listdir(directory):
-        match = re.search(r"_fold_(\d+)\.json$", file_name)
-        if match:
-            fold_number = int(match.group(1))
-            folds.append(fold_number)
+        for file_name in os.listdir(directory):
+            match = re.search(r"_fold_(\d+)\.json$", file_name)
+            if match:
+                fold_number = int(match.group(1))
+                folds.append(fold_number)
+    else:
+        # Check the directory for matching files and append to the list
+        for file_name in os.listdir(directory):
+            match = re.search(r"_fold_(\d+)\.json$", file_name)
+            if match:
+                fold_number = int(match.group(1))
+                folds.append(fold_number)
 
-    print(f"We have {len(folds)} folds.")
+        if len(folds) == 0:
+            create_folds_from_evaluations(
+                model_name1,
+                seed1,
+                model_name2,
+                seed2,
+                config["metric"]["metric"],
+                overwrite=overwrite,
+            )
 
-    if config["logging"]["use_wandb"]:
+            # TODO: make this less hacky
+            for file_name in os.listdir(directory):
+                match = re.search(r"_fold_(\d+)\.json$", file_name)
+                if match:
+                    fold_number = int(match.group(1))
+                    folds.append(fold_number)
+
+    end = time.time()
+    print(
+        f"We have {len(folds)} folds. The whole initialization took {end-start} seconds."
+    )
+
+    if use_wandb:
         wandb.config.update({"total_num_folds": folds})
 
     # Iterate over the folds and call test_daht
+    all_folds_data = pd.DataFrame()
+
     for fold_num in folds:
-        test_daht(
+        print(f"Now starting experiment for fold {fold_num}")
+        data = test_daht(
             config,
             train_cfg,
             train_online=False,
@@ -268,9 +307,14 @@ def kfold_train(
             seed1=seed1,
             model_name2=model_name2,
             seed2=seed2,
+            use_wandb=use_wandb,
         )
+        all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
 
-    if config["logging"]["use_wandb"]:
+    file_path = Path(directory) / "kfold_test_results.csv"
+    all_folds_data.to_csv(file_path, index=False)
+
+    if use_wandb:
         wandb.finish()
 
 
@@ -309,7 +353,7 @@ def main():
         "--fold_num",
         type=int,
         default=0,
-        help="Fold number for repeated test runs",
+        help="Fold number for repeated test runs. If this is given, only a single fold will be tested.",
     )
 
     parser.add_argument(
@@ -339,7 +383,12 @@ def main():
         default=None,
         help="Generation seed of second model as it appears in the folder name",
     )
-    parser.add_argument("--kfold", action="store_true", help="Run kfold training")
+
+    parser.add_argument(
+        "--no_wandb",
+        action="store_true",
+        help="If this is set to true, then no tracking on wandb",
+    )
 
     args = parser.parse_args()
     config = load_config(args.config_path)
@@ -350,7 +399,7 @@ def main():
 
     elif args.exp == "test_daht":
         train_cfg = TrainCfg()
-        if args.kfold:
+        if not args.fold_num:
             kfold_train(
                 config,
                 train_cfg,
@@ -358,6 +407,7 @@ def main():
                 seed1=args.seed1,
                 model_name2=args.model_name2,
                 seed2=args.seed2,
+                use_wandb=not args.no_wandb,
             )
         else:
             run_test_with_wandb(
@@ -369,15 +419,16 @@ def main():
                 seed1=args.seed1,
                 model_name2=args.model_name2,
                 seed2=args.seed2,
+                use_wandb=not args.no_wandb,
             )
 
 
 if __name__ == "__main__":
-    # main()
+    main()
 
-    config = load_config("config.yml")
-    train_cfg = TrainCfg()
-    fold_num = 1
+    # config = load_config("config.yml")
+    # train_cfg = TrainCfg()
+    # fold_num = 1
 
-    # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
-    kfold_train(config, train_cfg)
+    # # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
+    # kfold_train(config, train_cfg, use_wandb=False)

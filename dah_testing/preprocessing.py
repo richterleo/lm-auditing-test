@@ -157,7 +157,7 @@ def evaluate_single_model(
     entity="LLM_Accountability",
     save_intermittently=True,
     ds_batch_size=1000,
-    model_batch_size=4,
+    model_batch_size=8,
 ):
     """
     Evaluate a single model and save the scores in the same directory as the generations.
@@ -173,6 +173,7 @@ def evaluate_single_model(
         )
 
     gen_file_path = f"model_outputs/{model_name}_{seed}"
+    print(gen_file_path)
     scores_file_path = os.path.join(gen_file_path, f"{metric}_scores.json")
     if overwrite or not os.path.exists(scores_file_path):
         for file_name in os.listdir(gen_file_path):
@@ -276,7 +277,7 @@ def evaluate_single_model(
             with open(scores_file_path, "w") as file:
                 json.dump(data, file, indent=4)
 
-            print("It should have saved the whole file now. ")
+            print(f"Evaluation should be completed. File stored in {scores_file_path} ")
 
             if use_wandb:
                 wandb.save(scores_file_path)
@@ -460,7 +461,6 @@ def create_folds(
         for i, batch in tqdm(enumerate(index_batches)):
             fold_file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
             if overwrite or not os.path.exists(fold_file_path):
-                print(f"We're in the {i}th fold now")
                 fold_data = defaultdict(list)
                 fold_data["metadata1"] = metadata1
                 fold_data["metadata2"] = metadata2
@@ -538,8 +538,8 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "LLama-3-8B-ckpt10"
-    seed = "seed1000"
+    model_name = "Mistral-7B-Instruct-v0.2"
+    seed = "seed2000"
 
     model_name1 = "LLama-3-8B-ckpt1"  # change this to the checkpoint to evaluate
     # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
@@ -549,7 +549,9 @@ if __name__ == "__main__":
     model_name2 = "LLama-3-8B-ckpt7"
     seed2 = "seed1000"
 
-    evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=True)
+    evaluate_single_model(
+        model_name2, seed2, "toxicity", overwrite=True, use_wandb=True
+    )
     # create_common_json(model_name1, seed1, model_name2, seed2)
     # create_folds(model_name1, seed1, model_name2, seed2)
 

@@ -18,7 +18,7 @@ logging:
   entity: LLM_Accountability #richter-leo94 personal account
 
 tau1: 
-  model_id: LLama-3-8B-ckpt1 #LLMAccountability/Llama-3-8B-ckpt1
+  model_id: Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
   model_kwargs:
@@ -33,7 +33,7 @@ tau1:
   gen_batch_size: 8
 
 tau2: 
-  model_id: LLama-3-8B-ckpt6
+  model_id: Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
   model_kwargs:

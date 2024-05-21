@@ -6,6 +6,10 @@ import torch
 import wandb
 import sys
 import os
+import pandas as pd
+
+
+from collections import defaultdict
 
 from copy import deepcopy
 from sklearn.model_selection import train_test_split, KFold
@@ -334,8 +338,6 @@ class OnlineTrainer(Trainer):
 
         subset = Subset(self.dataset, indices)
 
-        print(len(indices))
-
         with time_block(f"Generating continuations for {len(indices)} samples"):
             # Get outputs from first pipeline
             for out in tqdm(
@@ -439,6 +441,7 @@ class OfflineTrainer(Trainer):
         metric="toxicity",
         use_wandb=True,
         fold_num=None,
+        verbose=False,
     ):
         super().__init__(
             train_cfg,
@@ -452,24 +455,81 @@ class OfflineTrainer(Trainer):
 
         # remove unnecessary attributes
         del self.datagen
-        # del self.device
 
         self.fold_num = fold_num
-        print(f"Fold number: {self.fold_num}")
         self.metric = metric
 
-        if torch.cuda.is_available():
-            self.net.to("cuda")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.net.to(self.device)
 
         self.dataset = load_into_scores_ds(
             model_name1, seed1, model_name2, seed2, metric, fold_num=fold_num
         )
+
         self.num_batches = (len(self.dataset) + self.bs - 1) // self.bs
         self.batches = self.get_kfold_batches()
 
         self.use_wandb = use_wandb
 
         self.current_total_epoch = 0
+
+        self.verbose = verbose
+        self.columns = [
+            "sequence",
+            "epoch",
+            "samples",
+            "train_loss",
+            "val_loss",
+            "test_loss",
+            "davt",
+            "aggregated_davt",
+            "epochs_until_end_of_sequence",
+            "sequences_until_end_of_experiment",
+        ]
+        self.data = pd.DataFrame(columns=self.columns)
+
+    def add_epoch_data(self, sequence, epoch, train_loss, val_loss):
+        row = {
+            "sequence": sequence,
+            "epoch": epoch,
+            "samples": self.bs * (epoch + 1),
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "test_loss": np.nan,
+            "davt": np.nan,
+            "aggregated_davt": np.nan,
+            "epochs_until_end_of_sequence": np.nan,
+            "sequences_until_end_of_experiment": np.nan,
+        }
+        new_data = pd.DataFrame([row])
+        self.data = (
+            new_data.copy()
+            if self.data.empty
+            else pd.concat([self.data, new_data], ignore_index=True)
+        )
+
+    def add_sequence_data(self, sequence, test_loss, davt, aggregated_davt):
+        # Update test_loss and Davt for the given sequence and epoch
+        self.data.loc[
+            (self.data["sequence"] == sequence),
+            "test_loss",
+        ] = test_loss
+        self.data.loc[(self.data["sequence"] == sequence), "davt"] = davt
+        self.data.loc[
+            (self.data["sequence"] == sequence),
+            "aggregated_davt",
+        ] = aggregated_davt
+
+    def update_epochs_until_end_of_sequence(self, sequence):
+        max_epoch = self.data[(self.data["sequence"] == sequence)]["epoch"].max()
+        self.data.loc[
+            (self.data["sequence"] == sequence),
+            "epochs_until_end_of_sequence",
+        ] = max_epoch
+
+    def update_sequences_until_end_of_experiment(self):
+        max_sequence = self.data["sequence"].max()
+        self.data["sequences_until_end_of_experiment"] = max_sequence
 
     def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
         """
@@ -503,9 +563,10 @@ class OfflineTrainer(Trainer):
                         }
                     )
 
-            print(
-                f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
-            )
+            if self.fold_num and self.verbose:
+                print(
+                    f"Fold_num: {self.fold_num}, Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
+                )
 
     def get_kfold_batches(self):
         kf = KFold(n_splits=self.num_batches, shuffle=True, random_state=self.seed)
@@ -531,7 +592,7 @@ class OfflineTrainer(Trainer):
         test_loader = DataLoader(
             test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
         )
-        _, davt = self.train_evaluate_epoch(test_loader, mode="test")
+        test_loss, davt = self.train_evaluate_epoch(test_loader, mode="test")
         davts.append(davt.item())
         self.log(
             {"aggregated_test_e-value": davt},
@@ -540,106 +601,134 @@ class OfflineTrainer(Trainer):
             self.current_total_epoch,
             int(self.current_epoch == 0),
         )
+        row = {
+            "sequence": 0,
+            "epoch": 0,
+            "samples": self.bs,
+            "train_loss": np.nan,
+            "val_loss": np.nan,
+            "test_loss": test_loss.detach().cpu().item(),
+            "davt": davt.cpu().item(),
+            "aggregated_davt": davt.cpu().item(),
+            "epochs_until_end_of_sequence": np.nan,
+            "sequences_until_end_of_experiment": np.nan,
+        }
+        new_data = pd.DataFrame([row])
+        self.data = (
+            new_data.copy()
+            if self.data.empty
+            else pd.concat([self.data, new_data], ignore_index=True)
+        )
+
         # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
         if davt > (1.0 / self.alpha):
             logging.info("Reject null at %f", davt)
             self.log({"steps": 0}, self.current_seq, self.current_epoch, 0)
 
-        # In first sequence, we need to distribute the data into train and val set
-        train_ds, val_ds = train_test_split(
-            self.batches[0], test_size=0.3, random_state=self.seed
-        )
-        train_loader = DataLoader(
-            train_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
-        )
-        val_loader = DataLoader(
-            val_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
-        )
+        else:
+            # In first sequence, we need to distribute the data into train and val set
+            train_ds, val_ds = train_test_split(
+                self.batches[0], test_size=0.3, random_state=self.seed
+            )
+            train_loader = DataLoader(
+                train_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+            )
+            val_loader = DataLoader(
+                val_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+            )
 
-        for k in range(1, min(self.seqs, self.num_batches)):
-            self.current_seq = k
-            self.current_epoch = 0
+            for k in tqdm(range(1, min(self.seqs, self.num_batches))):
+                self.current_seq = k
+                self.current_epoch = 0
 
-            with time_block(f"Sequence {k}"):
-                for i in range(self.epochs):
-                    self.current_epoch = i
-                    self.current_total_epoch += 1
-                    with time_block(f"Training epoch {i} on sequence {k}"):
-                        self.train_evaluate_epoch(train_loader)
-                    with time_block(f"Validation epoch {i} on sequence {k}"):
+                with time_block(f"Sequence {k}"):
+                    for i in range(self.epochs):
+                        self.current_epoch = i
+                        self.current_total_epoch += 1
+                        loss_train, _ = self.train_evaluate_epoch(train_loader)
                         loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
-
-                    # Check for early stopping or end of epochs
-                    if (
-                        self.early_stopper.early_stop(loss_val.detach())
-                        or (i + 1) == self.epochs
-                    ):
-                        # Now define new test data from current batch
-                        test_ds = self.batches[k]
-                        print(
-                            f"This is the length of the {k}-th test dataset: {len(test_ds)}"
-                        )
-                        print(
-                            f"self.num_samples is {self.num_samples} BEFORE adding new test dataset batch"
-                        )
-                        self.num_samples += len(test_ds)
-                        test_loader = DataLoader(
-                            test_ds,
-                            batch_size=self.bs,
-                            shuffle=True,
-                            collate_fn=collate_fn,
-                        )
-                        print(
-                            f"self.num_samples is {self.num_samples} AFTER adding new test dataset batch"
-                        )
-
-                        # Get S_t value on current batch
-                        _, conditional_davt = self.train_evaluate_epoch(
-                            test_loader, mode="test"
-                        )
-                        davts.append(conditional_davt.item())
-                        davt = np.prod(np.array(davts[self.T :])) if k >= self.T else 1
-                        self.log(
-                            {"aggregated_test_e-value": davt},
+                        self.add_epoch_data(
                             self.current_seq,
                             self.current_epoch,
-                            self.current_total_epoch,
-                            int(self.current_epoch == 0),
+                            loss_train.detach().cpu().item(),
+                            loss_val.detach().cpu().item(),
                         )
 
-                        # former train_ds and val_ds become the new train set
-                        train_ds = ConcatDataset([train_ds, val_ds])
-                        print(
-                            f"This is the current length of the train ds at sequence {k}: {len(train_ds)}"
-                        )
-                        train_loader = DataLoader(
-                            train_ds,
-                            batch_size=self.bs,
-                            shuffle=True,
-                            collate_fn=collate_fn,
-                        )
+                        # Check for early stopping or end of epochs
+                        if (
+                            self.early_stopper.early_stop(loss_val.detach())
+                            or (i + 1) == self.epochs
+                        ):
+                            # Now define new test data from current batch
 
-                        # former test_loader (i.e. current batch) becomes validation set
-                        val_ds = test_ds
-                        val_loader = test_loader
+                            self.update_epochs_until_end_of_sequence(self.current_seq)
+                            test_ds = self.batches[k]
+                            self.num_samples += len(test_ds)
+                            test_loader = DataLoader(
+                                test_ds,
+                                batch_size=self.bs,
+                                shuffle=True,
+                                collate_fn=collate_fn,
+                            )
 
-                        break
+                            # Get S_t value on current batch
+                            test_loss, conditional_davt = self.train_evaluate_epoch(
+                                test_loader, mode="test"
+                            )
+                            davts.append(conditional_davt.item())
+                            davt = (
+                                np.prod(np.array(davts[self.T :])) if k >= self.T else 1
+                            )
+                            self.log(
+                                {"aggregated_test_e-value": davt},
+                                self.current_seq,
+                                self.current_epoch,
+                                self.current_total_epoch,
+                                int(self.current_epoch == 0),
+                            )
 
-            # Reset the early stopper for the next sequence
-            self.early_stopper.reset()
+                            self.add_sequence_data(
+                                self.current_seq,
+                                test_loss.detach().cpu().item(),
+                                davts[-1],
+                                davt,
+                            )
 
-            # Log information if davt exceeds the threshold
-            if davt > (1.0 / self.alpha):
-                print("Reject null at %f", davt)
-                self.log(
-                    {"steps": k, "total_num_samples": self.num_samples},
-                    self.current_seq,
-                    self.current_epoch,
-                    self.current_total_epoch,
-                    int(self.current_epoch == 0),
-                )
+                            # former train_ds and val_ds become the new train set
+                            train_ds = ConcatDataset([train_ds, val_ds])
+                            train_loader = DataLoader(
+                                train_ds,
+                                batch_size=self.bs,
+                                shuffle=True,
+                                collate_fn=collate_fn,
+                            )
 
-                break
+                            # former test_loader (i.e. current batch) becomes validation set
+                            val_ds = test_ds
+                            val_loader = test_loader
+
+                            break
+
+                # Reset the early stopper for the next sequence
+                self.early_stopper.reset()
+
+                # Log information if davt exceeds the threshold
+                if davt > (1.0 / self.alpha):
+                    print("Reject null at %f", davt)
+
+                    self.update_sequences_until_end_of_experiment()
+                    self.log(
+                        {"steps": k, "total_num_samples": self.num_samples},
+                        self.current_seq,
+                        self.current_epoch,
+                        self.current_total_epoch,
+                        int(self.current_epoch == 0),
+                    )
+
+                    break
+
+        self.data["fold_number"] = self.fold_num
+        return self.data
 
     def train_evaluate_epoch(self, data_loader, mode="train"):
         """ """
@@ -657,14 +746,15 @@ class OfflineTrainer(Trainer):
         )
 
         for batch in data_loader:
+            tau1, tau2 = torch.split(batch, 1, dim=1)
+            tau1 = tau1.to(self.device)
+            tau2 = tau2.to(self.device)
             if mode == "train":
                 self.net.train()
                 # values for tau1 and tau2
-                tau1, tau2 = torch.split(batch, 1, dim=1)
                 out = self.net(tau1, tau2)
             else:
                 self.net.eval()
-                tau1, tau2 = torch.split(batch, 1, dim=1)
                 out = self.net(tau1, tau2).detach()
 
             loss = -out.mean() + self.l1_lambda * self.l1_regularization()
