@@ -10,7 +10,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from behavior_evaluation.distance_and_variation import empirical_wasserstein_distance_p1
+from behavior_evaluation.distance_and_variation import (
+    empirical_wasserstein_distance_p1,
+    kolmogorov_variation,
+    calc_tot_discrete_variation,
+)
 
 
 def get_average_time_until_end_of_experiment(model_name1, seed1, model_name2, seed2):
@@ -216,6 +220,7 @@ def get_power_over_epsilon(
     metric="toxicity",
     column_name="sequences_until_end_of_experiment",
     max_sequences=41,
+    distance_measure="Wasserstein",
 ):
     if not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
@@ -238,9 +243,13 @@ def get_power_over_epsilon(
 
             scores_base = scores_base_model[str(epoch1)][f"{metric}_scores"]
             scores_ckpt = scores_checkpoint[str(epoch2)][f"{metric}_scores"]
-            emp_wasserstein_dist = empirical_wasserstein_distance_p1(
-                scores_base, scores_ckpt
-            )
+
+            if distance_measure == "Wasserstein":
+                dist = empirical_wasserstein_distance_p1(scores_base, scores_ckpt)
+
+            elif distance_measure == "Kolmogorov":
+                dist = kolmogorov_variation(scores_base, scores_ckpt)
+                print(dist)
 
             result_df = get_df_for_checkpoint(
                 base_model_name,
@@ -252,19 +261,19 @@ def get_power_over_epsilon(
                 max_sequences=max_sequences,
             )
 
-            result_df["Empirical Wasserstein Distance"] = emp_wasserstein_dist
+            result_df[f"Empirical {distance_measure} Distance"] = dist
             result_dfs.append(result_df)
 
         except FileNotFoundError:
             print(f"File for checkpoint {ckpt} does not exist yet")
 
     final_df = pd.concat(result_dfs, ignore_index=True)
-    final_df["Rank based on Wasserstein Distance"] = (
-        final_df["Empirical Wasserstein Distance"]
+    final_df[f"Rank based on {distance_measure} Distance"] = (
+        final_df[f"Empirical {distance_measure} Distance"]
         .rank(method="dense", ascending=True)
         .astype(int)
     )
-    indexed_final_df = final_df.set_index("Rank based on Wasserstein Distance")
+    indexed_final_df = final_df.set_index(f"Rank based on {distance_measure} Distance")
 
     return indexed_final_df
 
@@ -280,8 +289,151 @@ def plot_power_over_epsilon(
     metric="toxicity",
     column_name="sequences_until_end_of_experiment",
     max_sequences=41,
+    save=True,
+    distance_measure="Wasserstein",
 ):
-    pass
+    df = get_power_over_epsilon(
+        base_model_name,
+        base_model_seed,
+        checkpoints,
+        seeds,
+        checkpoint_base_name=checkpoint_base_name,
+        epoch1=epoch1,
+        epoch2=epoch2,
+        metric=metric,
+        column_name=column_name,
+        max_sequences=max_sequences,
+        distance_measure=distance_measure,
+    )
+    # Group by 'Checkpoint' and get the last entry for each checkpoint
+    last_entries = df.groupby(level=0).last()
+
+    # Create a smaller DataFrame with the required columns
+    smaller_df = last_entries[
+        ["Power", f"Empirical {distance_measure} Distance"]
+    ].reset_index()
+
+    # Plot 1: Power over Empirical Wasserstein Distance
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(
+        x=f"Empirical {distance_measure} Distance", y="Power", data=smaller_df
+    )
+    plt.title(f"Power over Empirical {distance_measure} Distance")
+    plt.xlabel(f"Empirical {distance_measure} Distance")
+    plt.ylabel("Power")
+
+    if save:
+        directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+        if not Path(directory).exists():
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        plt.savefig(
+            f"{directory}/power_over_{distance_measure.lower()}_distance.png",
+            dpi=300,
+        )
+
+    # Plot 2: Power over Rank
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(
+        x=f"Rank based on {distance_measure} Distance", y="Power", data=smaller_df
+    )
+    plt.title(f"Power over Rank based on {distance_measure} Distance")
+    plt.xlabel(f"Rank based on {distance_measure} Distance")
+    plt.ylabel("Power")
+    plt.show()
+
+    if save:
+        directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+        if not Path(directory).exists():
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        plt.savefig(
+            f"{directory}/power_over_{distance_measure.lower()}_rank.png",
+            dpi=300,
+        )
+
+
+def get_alpha(model_name, seed1, seed2, max_sequences=41):
+    """ """
+    file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results.csv"
+    data = pd.read_csv(file_path)
+
+    selected_columns = data[
+        [
+            "fold_number",
+            "sequence",
+            "aggregated_davt",
+            "sequences_until_end_of_experiment",
+        ]
+    ]
+
+    filtered_df = selected_columns.drop_duplicates(subset=["sequence", "fold_number"])
+
+    num_folds = filtered_df["fold_number"].nunique()
+    # Set 'sequence' as the index of the DataFrame
+    indexed_df = filtered_df.set_index("sequence")
+
+    unique_fold_numbers = indexed_df["fold_number"].unique()
+
+    # Initialize a dictionary to store the counts
+    sequence_counts = {sequence: 0 for sequence in range(max_sequences + 1)}
+
+    # Iterate over each fold number
+    for fold in unique_fold_numbers:
+        fold_data = indexed_df[indexed_df["fold_number"] == fold]
+        for sequence in range(max_sequences + 1):  # sequence_counts.keys()
+            if (
+                sequence in fold_data.index
+                and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
+                == sequence
+            ):
+                sequence_counts[sequence] += 1
+            elif sequence not in fold_data.index:
+                sequence_counts[sequence] += 1
+
+    # Convert the result to a DataFrame for better visualization
+    result_df = pd.DataFrame(
+        list(sequence_counts.items()), columns=["Sequence", "Count"]
+    )
+    result_df["Power"] = result_df["Count"] / num_folds
+
+    return result_df
+
+
+def plot_alpha_over_sequences(model_name, seed1, seed2, save=True):
+    result_df = get_alpha(model_name, seed1, seed2)
+    result_df = result_df.reset_index()
+
+    # Create the plot
+    plt.figure(figsize=(12, 6))
+    sns.lineplot(
+        data=result_df,
+        x="Sequence",
+        y="Power",
+        # hue=group_by,
+        marker="o",
+        palette="tab10",
+    )
+
+    # Customize the plot
+    plt.title(f"Alpha error vs. Sequence for {model_name}")
+    plt.xlabel("Sequences")
+    plt.ylabel("Alpha error")
+    # plt.legend(
+    #     title="Checkpoints" if group_by == "Checkpoints" else "Rank",
+    #     loc="upper left",
+    #     bbox_to_anchor=(1, 1),
+    # )
+    plt.grid(True)
+
+    if save:
+        directory = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}"
+        if not Path(directory).exists():
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        plt.savefig(
+            f"{directory}/alpha_error_over_number_of_sequences.png",
+            dpi=300,
+        )
+
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -291,12 +443,29 @@ if __name__ == "__main__":
     checkpoints = [i for i in range(1, 11)]
     seeds = ["seed1000" for i in checkpoints]
 
-    plot_power_over_number_of_sequences(
-        base_model_name,
-        base_model_seed,
-        checkpoints,
-        seeds,
-        checkpoint_base_name=checkpoint_base_name,
-        save=True,
-        group_by="Rank based on Wasserstein Distance",
-    )
+    model_name = "Mistral-7B-Instruct-v0.2"
+    seed1 = "seed1000"
+    seed2 = "seed2000"
+
+    pd.set_option("display.max_rows", None)
+
+    # plot_power_over_number_of_sequences(
+    #     base_model_name,
+    #     base_model_seed,
+    #     checkpoints,
+    #     seeds,
+    #     checkpoint_base_name=checkpoint_base_name,
+    #     save=True,
+    #     group_by="Rank based on Wasserstein Distance",
+    # )
+
+    # plot_power_over_epsilon(
+    #     base_model_name,
+    #     base_model_seed,
+    #     checkpoints,
+    #     seeds,
+    #     checkpoint_base_name=checkpoint_base_name,
+    #     distance_measure="Kolmogorov",
+    # )
+
+    plot_alpha_over_sequences(model_name, seed1, seed2)

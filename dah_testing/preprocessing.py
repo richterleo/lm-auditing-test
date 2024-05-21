@@ -538,19 +538,19 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "Mistral-7B-Instruct-v0.2"
+    model_name = "gemma-1.1-7b-it"
     seed = "seed2000"
 
-    model_name1 = "LLama-3-8B-ckpt1"  # change this to the checkpoint to evaluate
+    model_name1 = "Llama-3-8B-ckpt4"  # change this to the checkpoint to evaluate
     # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
 
-    seed1 = "seed1000"  # change this to the current seed
+    seed1 = "seed7000"  # change this to the current seed
 
-    model_name2 = "LLama-3-8B-ckpt7"
+    model_name2 = "Llama-3-8B-ckpt7"
     seed2 = "seed1000"
 
     evaluate_single_model(
-        model_name2, seed2, "toxicity", overwrite=True, use_wandb=True
+        model_name1, seed1, "toxicity", overwrite=True, use_wandb=True
     )
     # create_common_json(model_name1, seed1, model_name2, seed2)
     # create_folds(model_name1, seed1, model_name2, seed2)
