@@ -560,10 +560,10 @@ if __name__ == "__main__":
     model_name = "gemma-1.1-7b-it"
     seed = "seed2000"
 
-    model_name1 = "Llama-3-8B-ckpt10"  # change this to the checkpoint to evaluate
+    model_name1 = "gemma-1.1-7b-it-ckpt10"  # change this to the checkpoint to evaluate
     # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
 
-    seed1 = "seed5000"  # change this to the current seed
+    seed1 = "seed1000"  # change this to the current seed
 
     model_name2 = "Llama-3-8B-ckpt5"
     seed2 = "seed1000"

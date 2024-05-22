@@ -274,8 +274,8 @@ def kfold_train(
     # Iterate over the folds and call test_daht
     all_folds_data = pd.DataFrame()
 
-    for fold_num in folds:
-        print(f"Now starting experiment for fold {fold_num}")
+    for i, fold_num in enumerate(folds):
+        print(f"Now starting experiment for fold {i}")
         data = test_daht(
             config,
             train_cfg,

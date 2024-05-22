@@ -5,9 +5,11 @@ import sys
 import os
 
 from pathlib import Path
+from scipy.stats import skew
 from typing import Union, List
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -48,6 +50,8 @@ def get_df_for_checkpoint(
         fold_size = 4000
     if fold_size == 4000:
         file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results.csv"
+        if not Path(file_path).exists():
+            file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results_{fold_size}.csv"
     else:
         file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results_{fold_size}.csv"
 
@@ -152,6 +156,7 @@ def plot_power_over_number_of_sequences(
     save=True,
     print_df=False,
     group_by="Checkpoint",
+    marker=None,
 ):
     if group_by == "Checkpoint":
         result_df = get_power_over_number_of_sequences(
@@ -195,7 +200,7 @@ def plot_power_over_number_of_sequences(
         x="Samples",
         y="Power",
         hue=group_by,
-        marker="X",
+        marker=marker if marker else "X",
         markersize=10,
         palette=palette,
     )
@@ -205,7 +210,7 @@ def plot_power_over_number_of_sequences(
 
     # Customize the plot
     plt.xlabel("samples", fontsize=14)
-    plt.ylabel("power", fontsize=14)
+    plt.ylabel("detection frequency", fontsize=14)
     if group_by == "Checkpoints":
         title = "checkpoints"
     elif group_by == "Rank based on Wasserstein Distance":
@@ -214,10 +219,10 @@ def plot_power_over_number_of_sequences(
         title = "distance"
     plt.legend(
         title=title,
-        loc="upper left",
-        bbox_to_anchor=(1, 1),
+        loc="lower right",
+        # bbox_to_anchor=(1, 1),
     )
-    plt.grid(True, linewidth=0.5)
+    plt.grid(True, linewidth=0.5, color="#ddddee")
 
     # Making the box around the plot thicker
     plt.gca().spines["top"].set_linewidth(1.5)
@@ -232,6 +237,7 @@ def plot_power_over_number_of_sequences(
         plt.savefig(
             f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}.png",
             dpi=300,
+            bbox_inches="tight",
         )
     plt.show()
 
@@ -359,6 +365,8 @@ def plot_power_over_epsilon(
     save=True,
     distance_measure="Wasserstein",
     fold_sizes=None,
+    marker=None,
+    save_as_pdf=True,
 ):
     if fold_sizes:
         result_df = get_power_over_epsilon_wrapper(
@@ -414,7 +422,9 @@ def plot_power_over_epsilon(
             ]
         ].reset_index()
 
-    custom_palette = ["midnightblue", "#94D2BD", "#EE9B00", "#BB3E03"]
+    # custom_palette = ["midnightblue", "#94D2BD", "#EE9B00", "#BB3E03"]
+    # custom_palette = ["Gamboge", "Alloy orange", "Rust", "Rufus"]
+    custom_palette = ["#E49B0F", "#C46210", "#B7410E", "#A81C07"]
 
     plt.figure(figsize=(10, 6))
 
@@ -423,17 +433,28 @@ def plot_power_over_epsilon(
         y="Power",
         hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
         # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
-        marker="X",
+        marker=marker if marker else "X",
         data=smaller_df,
         markersize=10,
         palette=custom_palette,
     )
 
-    plt.xlabel(f"{distance_measure.lower()} distance", fontsize=14)
-    plt.ylabel("power", fontsize=14)
-    plt.grid(True, linewidth=0.5)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    # plt.xlabel(f"{distance_measure.lower()} distance", fontsize=14)
+    plt.xlabel(f"distance to aligned model", fontsize=16)
+    plt.ylabel("detection frequency", fontsize=16)
+    plt.grid(True, linewidth=0.5, color="#ddddee")
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    plt.legend(
+        title="samples per test",
+        loc="lower right",
+        fontsize=16,
+        # bbox_to_anchor=(
+        #     1.05,
+        #     1,
+        # ),  # Adjusted position to ensure the legend is outside the plot area
+    )
 
     # Make the surrounding box thicker
     ax = plt.gca()
@@ -445,14 +466,32 @@ def plot_power_over_epsilon(
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         if "Samples per Test" in smaller_df.columns:
-            plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size.png",
-                dpi=300,
-            )
-        plt.savefig(
-            f"{directory}/power_over_{distance_measure.lower()}_distance.png",
-            dpi=300,
-        )
+            if save_as_pdf:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size.pdf",
+                    bbox_inches="tight",
+                    format="pdf",
+                )
+
+            else:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size.png",
+                    dpi=300,
+                    bbox_inches="tight",
+                )
+        else:
+            if save_as_pdf:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_distance.pdf",
+                    bbox_inches="tight",
+                    format="pdf",
+                )
+            else:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_distance.png",
+                    dpi=300,
+                    bbox_inches="tight",
+                )
 
     plt.figure(figsize=(10, 6))
     sns.lineplot(
@@ -460,16 +499,27 @@ def plot_power_over_epsilon(
         y="Power",
         hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
         # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
-        marker="o",
+        marker=marker if marker else "X",
         data=smaller_df,
         markersize=10,
         palette=custom_palette,
     )
-    plt.xlabel(f"rank based on {distance_measure.lower()} distance", fontsize=14)
-    plt.ylabel("power", fontsize=14)
-    plt.grid(True, linewidth=0.5)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    # plt.xlabel(f"rank based on {distance_measure.lower()} distance", fontsize=14)
+    plt.xlabel(f"rank based on distance to aligned model", fontsize=16)
+    plt.ylabel("detection frequency", fontsize=16)
+    plt.grid(True, linewidth=0.5, color="#ddddee")
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    plt.legend(
+        title="samples per test",
+        loc="lower right",
+        fontsize=16,
+        # bbox_to_anchor=(
+        #     1.05,
+        #     1,
+        # ),  # Adjusted position to ensure the legend is outside the plot area
+    )
 
     # Make the surrounding box thicker
     ax = plt.gca()
@@ -481,14 +531,31 @@ def plot_power_over_epsilon(
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         if "Samples per Test" in smaller_df.columns:
-            plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size.png",
-                dpi=300,
-            )
-        plt.savefig(
-            f"{directory}/power_over_{distance_measure.lower()}_rank.png",
-            dpi=300,
-        )
+            if save_as_pdf:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size.pdf",
+                    bbox_inches="tight",
+                    format="pdf",
+                )
+            else:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size.png",
+                    dpi=300,
+                    bbox_inches="tight",
+                )
+        else:
+            if save_as_pdf:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_rank.pdf",
+                    bbox_inches="tight",
+                    format="pdf",
+                )
+            else:
+                plt.savefig(
+                    f"{directory}/power_over_{distance_measure.lower()}_rank.png",
+                    dpi=300,
+                    bbox_inches="tight",
+                )
 
 
 def get_alpha(model_name, seed1, seed2, max_sequences=41, fold_size=None, bs=96):
@@ -560,7 +627,74 @@ def get_alpha_wrapper(model_names, seeds1, seeds2, max_sequences=41):
     return final_df
 
 
-def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=False):
+# def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=False):
+#     result_df = get_alpha_wrapper(model_names, seeds1, seeds2)
+#     result_df = result_df.reset_index()
+#     result_df["Samples"] = result_df["Sequence"] * 96
+
+#     print(f"Hello from inside the fct")
+
+#     group_by_model = "model_id" in result_df.columns
+
+#     if print_df:
+#         pd.set_option("display.max_rows", None)
+
+#     markers = ["o", "X", "s"]  # Different markers: circle, X, square
+
+#     # Create the plot
+#     plt.figure(figsize=(12, 6))
+#     sns.lineplot(
+#         data=result_df,
+#         x="Samples",
+#         y="Power",
+#         hue="model_id" if group_by_model else None,
+#         style="model_id" if group_by_model else None,
+#         markers=markers,
+#         dashes=False,  # No dashes, solid lines
+#         color="black",
+#     )
+
+#     # Customize the plot
+#     plt.xlabel("samples", fontsize=14)
+#     plt.ylabel("false positive rate", fontsize=14)
+#     # plt.tight_layout(rect=[0, 0, 0.85, 1])
+
+#     # Adjust the spines (box) thickness
+#     ax = plt.gca()
+#     ax.spines["top"].set_linewidth(1.5)
+#     ax.spines["right"].set_linewidth(1.5)
+#     ax.spines["bottom"].set_linewidth(1.5)
+#     ax.spines["left"].set_linewidth(1.5)
+
+#     if group_by_model:
+#         plt.legend(
+#             title="models",
+#             loc="upper left",
+#             bbox_to_anchor=(
+#                 1.05,
+#                 1,
+#             ),  # Adjusted position to ensure the legend is outside the plot area
+#         )
+#     plt.grid(True, linewidth=0.5)
+
+#     if save:
+#         directory = "model_outputs/alpha_plots"
+#         if not Path(directory).exists():
+#             Path(directory).mkdir(parents=True, exist_ok=True)
+#         fig_path = f"{directory}/alpha_error_over_number_of_sequences"
+#         if isinstance(model_names, str):
+#             fig_path += f"_{model_names}"
+#         elif isinstance(model_names, list):
+#             for model_name in model_names:
+#                 fig_path += f"_{model_name}"
+
+#         fig_path += ".png"
+#         plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+
+
+def plot_alpha_over_sequences(
+    model_names, seeds1, seeds2, save=True, print_df=False, save_as_pdf=True
+):
     result_df = get_alpha_wrapper(model_names, seeds1, seeds2)
     result_df = result_df.reset_index()
     result_df["Samples"] = result_df["Sequence"] * 96
@@ -570,23 +704,39 @@ def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=F
     if print_df:
         pd.set_option("display.max_rows", None)
 
+    markers = ["X", "o", "s"]  # Different markers: circle, X, square
     custom_palette = ["#94D2BD", "#EE9B00", "#BB3E03"]
 
     # Create the plot
     plt.figure(figsize=(12, 6))
-    sns.lineplot(
-        data=result_df,
-        x="Samples",
-        y="Power",
-        hue="model_id" if group_by_model else None,
-        marker="X",
-        markersize=10,
-        palette=custom_palette,
-    )
+
+    if group_by_model:
+        unique_models = result_df["model_id"].unique()
+        for i, model in enumerate(unique_models):
+            sns.lineplot(
+                data=result_df[result_df["model_id"] == model],
+                x="Samples",
+                y="Power",
+                marker=markers[i % len(markers)],
+                dashes=False,  # No dashes, solid lines
+                color=custom_palette[i % len(custom_palette)],
+                label=model,
+            )
+    else:
+        sns.lineplot(
+            data=result_df,
+            x="Samples",
+            y="Power",
+            marker="o",
+            dashes=False,  # No dashes, solid lines
+            color="black",
+        )
 
     # Customize the plot
-    plt.xlabel("samples", fontsize=14)
-    plt.ylabel("alpha error", fontsize=14)
+    plt.xlabel("samples", fontsize=16)
+    plt.ylabel("false positive rate", fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
     # plt.tight_layout(rect=[0, 0, 0.85, 1])
 
     # Adjust the spines (box) thickness
@@ -600,12 +750,13 @@ def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=F
         plt.legend(
             title="models",
             loc="upper left",
-            bbox_to_anchor=(
-                1.05,
-                1,
-            ),  # Adjusted position to ensure the legend is outside the plot area
+            fontsize=16,
+            # bbox_to_anchor=(
+            #     1.05,
+            #     1,
+            # ),  # Adjusted position to ensure the legend is outside the plot area
         )
-    plt.grid(True, linewidth=0.5)
+    plt.grid(True, linewidth=0.5, color="#ddddee")
 
     if save:
         directory = "model_outputs/alpha_plots"
@@ -618,11 +769,24 @@ def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=F
             for model_name in model_names:
                 fig_path += f"_{model_name}"
 
-        fig_path += ".png"
-        plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+        if save_as_pdf:
+            fig_path += ".pdf"
+            plt.savefig(fig_path, bbox_inches="tight", format="pdf")
+        else:
+            fig_path += ".png"
+            plt.savefig(fig_path, dpi=300, bbox_inches="tight")
 
 
-def plot_scores(model_name, seed, metric="toxicity", save=True, epoch=0):
+def plot_scores(
+    model_name,
+    seed,
+    metric="toxicity",
+    save=True,
+    epoch=0,
+    use_log_scale=True,
+    color="blue",
+    save_as_pdf=True,
+):
     """ """
     directory = f"model_outputs/{model_name}_{seed}"
     file_path = f"{directory}/{metric}_scores.json"
@@ -630,54 +794,92 @@ def plot_scores(model_name, seed, metric="toxicity", save=True, epoch=0):
         data = json.load(f)
 
     scores = data[str(epoch)][f"{metric}_scores"]
-
     # Calculate statistics
     mean_score = np.mean(scores)
-    std_score = np.std(scores)
+    array_scores = np.array(scores)
+
+    # Calculate the skewness using scipy.stats.skew
+    skewness = skew(array_scores)
+    print(f"skewness: {skewness:.3f}")
 
     plt.figure(figsize=(14, 7))
 
     # Plot histogram with adjusted bins and density plot
-    sns.histplot(scores, bins=50, kde=True, color="blue", edgecolor="black", alpha=0.7)
+    sns.histplot(
+        scores,
+        bins=50,
+        # kde=True,
+        color=color,
+        edgecolor=None,
+        alpha=0.7,
+    )
 
-    # Add mean and std lines
+    # # Add mean and std lines
     plt.axvline(
         mean_score,
         color="red",
         linestyle="--",
         linewidth=1.5,
-        label=f"Mean: {mean_score:.2f}",
+        label=f"Mean: {mean_score:.3f}",
+        # label_size=16,
     )
-    plt.axvline(
-        mean_score + std_score,
-        color="green",
-        linestyle="--",
-        linewidth=1.5,
-        label=f"+1 Std Dev: {mean_score + std_score:.2f}",
-    )
-    plt.axvline(
-        mean_score - std_score,
-        color="green",
-        linestyle="--",
-        linewidth=1.5,
-        label=f"-1 Std Dev: {mean_score - std_score:.2f}",
-    )
+    # plt.axvline(
+    #     mean_score + std_score,
+    #     color="green",
+    #     linestyle="--",
+    #     linewidth=1.5,
+    #     label=f"+1 Std Dev: {mean_score + std_score:.2f}",
+    # )
+    # plt.axvline(
+    #     mean_score - std_score,
+    #     color="green",
+    #     linestyle="--",
+    #     linewidth=1.5,
+    #     label=f"-1 Std Dev: {mean_score - std_score:.2f}",
+    # )
 
     # Set plot limits
     plt.xlim(0, 1)
+    if use_log_scale:
+        plt.yscale("log")
 
-    plt.title(
-        f"Distribution of {metric.capitalize()} Scores for {model_name} (Seed: {seed})",
-        fontsize=16,
-    )
-    plt.xlabel(f"{metric.capitalize()} Score", fontsize=14)
-    plt.ylabel("Frequency", fontsize=14)
-    plt.legend()
-    plt.grid(True, linewidth=0.5)
+    # plt.title(
+    #     f"Distribution of {metric.capitalize()} Scores for {model_name} (Seed: {seed})",
+    #     fontsize=16,
+    # )
+    plt.xlabel(f"{metric.lower()} score", fontsize=16)
+    plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=16)
+
+    plt.gca().xaxis.set_major_locator(MultipleLocator(0.1))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(0.05))
+    plt.grid(True, "minor", color="#ddddee")
 
     if save:
-        output_path = os.path.join(directory, f"{metric}_scores.png")
-        plt.savefig(output_path, dpi=300)
+        if use_log_scale:
+            if save_as_pdf:
+                output_path = os.path.join(
+                    directory, f"{metric}_scores_{model_name}_{seed}_log.pdf"
+                )
+                plt.savefig(output_path, format="pdf", bbox_inches="tight")
+            else:
+                output_path = os.path.join(
+                    directory, f"{metric}_scores_{model_name}_{seed}_log.png"
+                )
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+        else:
+            if save_as_pdf:
+                output_path = os.path.join(
+                    directory, f"{metric}_scores_{model_name}_{seed}.pdf"
+                )
+                plt.savefig(output_path, format="pdf", bbox_inches="tight")
+            else:
+                output_path = os.path.join(
+                    directory, f"{metric}_{model_name}_{seed}_scores.png"
+                )
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
     else:
         plt.show()
 
@@ -730,9 +932,11 @@ def plot_scores_multiple_models(
     #     f"Distribution of {metric.capitalize()} Scores for Multiple Models",
     #     fontsize=16,
     # )
-    plt.xlabel(f"{metric.lower()} score", fontsize=14)
-    plt.ylabel("frequency", fontsize=14)
-    plt.grid(True, linewidth=0.25)
+    plt.xlabel(f"{metric.lower()} score", fontsize=16)
+    plt.ylabel("frequency", fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.grid(True, linewidth=0.5, color="#ddddee")
 
     # handles, labels = hist_plot.get_legend_handles_labels()
     # print(handles, labels)
@@ -755,7 +959,165 @@ def plot_scores_multiple_models(
     if save:
         output_path = os.path.join("model_outputs", f"{metric}_scores_comparison.png")
         # plt.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.savefig(output_path, dpi=300)
+        plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    else:
+        plt.show()
+
+    plt.close()
+
+
+def plot_scores_base_most_extreme(
+    base_model_name,
+    base_model_seed,
+    checkpoints,
+    checkpoint_seeds,
+    checkpoint_base_name,
+    save=True,
+    use_log_scale=True,
+    metric="toxicity",
+    base_model_epoch=0,
+    epochs=None,
+    color="blue",
+    darker_color="blue",
+    dark=False,
+    corrupted_color="red",
+    darker_corrupted_color="red",
+    save_as_pdf=True,
+):
+    if not epochs:
+        epochs = [0 for i in checkpoints]
+
+    directory = f"model_outputs/{base_model_name}_{base_model_seed}"
+    file_path = f"{directory}/{metric}_scores.json"
+    print(f"This is the original model: {file_path}")
+    with open(file_path, "r") as f:
+        data = json.load(f)
+
+    scores = data[str(base_model_epoch)][f"{metric}_scores"]
+    scores_dict = {}
+    wasserstein_distances = {}
+
+    for ckpt, seed, epoch in zip(checkpoints, checkpoint_seeds, epochs):
+        checkpoint_directory = f"model_outputs/{checkpoint_base_name}{ckpt}_{seed}"
+        file_path = f"{checkpoint_directory}/{metric}_scores.json"
+        with open(file_path, "r") as f:
+            checkpoint_data = json.load(f)
+            scores_ckpt = checkpoint_data[str(epoch)][f"{metric}_scores"]
+            scores_dict[(ckpt, seed, epoch)] = scores_ckpt
+            wasserstein_distances[(ckpt, seed, epoch)] = (
+                empirical_wasserstein_distance_p1(scores, scores_ckpt)
+            )
+
+    max_distance_ckpt, max_distance_seed, max_distance_epoch = max(
+        wasserstein_distances, key=wasserstein_distances.get
+    )
+    print(
+        f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}"
+    )
+    max_distance = wasserstein_distances[
+        (max_distance_ckpt, max_distance_seed, max_distance_epoch)
+    ]
+    print(f"This is the max distance: {max_distance}")
+
+    ckpt_scores = scores_dict[
+        (max_distance_ckpt, max_distance_seed, max_distance_epoch)
+    ]
+
+    array_ckpt_scores = np.array(ckpt_scores)
+    skewness = skew(array_ckpt_scores)
+    print(
+        f"skewness for model {checkpoint_base_name}{max_distance_ckpt}: {skewness:.3f}"
+    )
+
+    print(
+        f"This is the max score of the base model {base_model_name}: {max(scores)} and this is the max score of the corrupted model {max(ckpt_scores)}"
+    )
+
+    df = pd.DataFrame(
+        {
+            "scores": scores + ckpt_scores,
+            "model": [base_model_name] * len(scores)
+            + [f"Checkpoint {max_distance_ckpt}"] * len(ckpt_scores),
+            "seed": [base_model_seed] * len(scores)
+            + [max_distance_seed] * len(ckpt_scores),
+        }
+    )
+
+    mean_score = np.mean(scores)
+    mean_ckpt_score = np.mean(ckpt_scores)
+
+    plt.figure(figsize=(14, 7))
+
+    sns.histplot(
+        data=df,
+        x="scores",
+        hue="model",
+        bins=50,
+        edgecolor=None,
+        alpha=0.7,
+        # palette=[color, "#CD5C5C"],
+        palette=[color, corrupted_color],
+    )
+
+    plt.axvline(
+        mean_score,
+        color=darker_color,
+        linestyle="--",
+        linewidth=1.5,
+        label=f"aligned model mean {metric.lower()}: {mean_score:.3f}",
+        # label_size=16,
+    )
+
+    plt.axvline(
+        mean_ckpt_score,
+        color=darker_corrupted_color,
+        linestyle="--",
+        linewidth=1.5,
+        label=f"corrupted model mean {metric.lower()}: {mean_ckpt_score:.3f}",
+        # label_size=16,
+    )
+
+    plt.xlim(0, 1)
+    if use_log_scale:
+        plt.yscale("log")
+
+    plt.xlabel(f"{metric.lower()} score", fontsize=16)
+    plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=16)
+
+    plt.gca().xaxis.set_major_locator(MultipleLocator(0.1))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(0.05))
+    plt.grid(True, "minor", color="#ddddee")
+
+    if save:
+        if use_log_scale:
+            if save_as_pdf:
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}_log.pdf",
+                )
+                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+            else:
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}_log.png",
+                )
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+        else:
+            if save_as_pdf:
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}.pdf",
+                )
+                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+            else:
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}.png",
+                )
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
     else:
         plt.show()
 
@@ -768,6 +1130,14 @@ if __name__ == "__main__":
     checkpoint_base_name = "LLama-3-8B-ckpt"
     checkpoints = [i for i in range(1, 11)]
     seeds = ["seed1000" for i in checkpoints]
+
+    checkpoint_base_names = [
+        "LLama-3-8B-ckpt",
+        "Mistral-7B-Instruct-ckpt",
+        "gemma-1.1-7b-it-ckpt",
+    ]
+    checkpoints_list = [[i for i in range(1, 11)], [2, 4, 6, 8, 10], [2, 4, 6, 8, 10]]
+    seeds_list = [["seed1000" for i in ckpts] for ckpts in checkpoints_list]
 
     model_name = "Meta-Llama-3-8B-Instruct"
     seed1 = "seed1000"
@@ -784,22 +1154,28 @@ if __name__ == "__main__":
     seed1s = ["seed1000" for i in model_names]
     seed2s = ["seed2000" for i in model_names]
 
+    markers = ["X", "o", "s"]
+
     model_names_for_dist_plot = ["Meta-Llama-3-8B-Instruct"]
     checkpoint_list = [f"LLama-3-8B-ckpt{i}" for i in range(1, 11)]
     model_names_for_dist_plot.extend(checkpoint_list)
     seeds_for_dist_plot = ["seed1000" for i in model_names_for_dist_plot]
 
     fold_sizes = [1000, 2000, 3000, 4000]
+    custom_colors = ["#94D2BD", "#EE9B00", "#BB3E03"]
+    darker_custom_colors = ["#85BDAA", "#D28B00", "#A63703"]
+    corrupted_model_custom_colors = ["#25453a", "#4f3300", "#3e1401"]
+    darker_corrupted_model_custom_colors = ["#101e19", "#221600", "#1b0900"]
 
-    plot_power_over_number_of_sequences(
-        base_model_name,
-        base_model_seed,
-        checkpoints,
-        seeds,
-        checkpoint_base_name=checkpoint_base_name,
-        save=True,
-        group_by="Empirical Wasserstein Distance",  # "Rank based on Wasserstein Distance",
-    )
+    # plot_power_over_number_of_sequences(
+    #     base_model_name,
+    #     base_model_seed,
+    #     checkpoints,
+    #     seeds,
+    #     checkpoint_base_name=checkpoint_base_name,
+    #     save=True,
+    #     group_by="Empirical Wasserstein Distance",  # "Rank based on Wasserstein Distance",
+    # )
 
     # plot_power_over_epsilon(
     #     base_model_name,
@@ -815,10 +1191,63 @@ if __name__ == "__main__":
     # df = get_power_over_epsilon(base_model_name, base_model_seed, checkpoints, seeds)
     # print(df)
 
-    plot_alpha_over_sequences(model_names, seed1s, seed2s, print_df=True)
-    # plot_scores(model_name, seed1, metric="toxicity", save=True)
-    plot_scores_multiple_models(model_names_for_dist_plot, seeds_for_dist_plot)
+    # plot_alpha_over_sequences(model_names, seed1s, seed2s, print_df=True)
+    # for bm_name, color in zip(model_names, custom_colors):
+    #     plot_scores(bm_name, "seed1000", metric="toxicity", save=True, color=color)
+    #     plot_scores(
+    #         bm_name,
+    #         "seed1000",
+    #         metric="toxicity",
+    #         save=True,
+    #         use_log_scale=False,
+    #         color=color,
+    #     )
+    # # plot_scores_multiple_models(model_names_for_dist_plot, seeds_for_dist_plot)
 
-    plot_power_over_epsilon(
-        base_model_name, base_model_seed, checkpoints, seeds, fold_sizes=fold_sizes
-    )
+    for bm_name, ckpts, seeds, ckpt_name, marker in zip(
+        model_names, checkpoints_list, seeds_list, checkpoint_base_names, markers
+    ):
+        plot_power_over_epsilon(
+            bm_name,
+            "seed1000",
+            ckpts,
+            seeds,
+            checkpoint_base_name=ckpt_name,
+            fold_sizes=fold_sizes,
+            marker=marker,
+        )
+
+    # for (
+    #     bm_name,
+    #     bm_seed,
+    #     checkpoints,
+    #     seeds,
+    #     checkpoint_base_name,
+    #     color,
+    #     darker_color,
+    #     corrupted_color,
+    #     darker_corrupted_color,
+    # ) in zip(
+    #     model_names,
+    #     custom_colors,
+    #     checkpoints_list,
+    #     seeds_list,
+    #     checkpoint_base_names,
+    #     custom_colors,
+    #     darker_custom_colors,
+    #     corrupted_model_custom_colors,
+    #     darker_corrupted_model_custom_colors,
+    # ):
+    #     plot_scores_base_most_extreme(
+    #         bm_name,
+    #         base_model_seed,
+    #         checkpoints,
+    #         seeds,
+    #         checkpoint_base_name,
+    #         metric="toxicity",
+    #         color=color,
+    #         darker_color=darker_color,
+    #         corrupted_color=corrupted_color,
+    #         darker_corrupted_color=darker_corrupted_color,
+    #         save=True,
+    #     )
