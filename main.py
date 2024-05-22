@@ -207,6 +207,7 @@ def kfold_train(
     seed2: Optional[str] = None,
     overwrite: Optional[bool] = False,
     use_wandb: Optional[bool] = None,
+    fold_size: int = 4000,
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
@@ -234,56 +235,33 @@ def kfold_train(
                 "seed1": seed1,
                 "model_name2": model_name2,
                 "seed2": seed2,
+                "fold_size": fold_size,
             }
         )
     else:
         print(
-            f"Testing {model_name1} with seed {seed1} against {model_name2} with seed {seed2}."
+            f"Testing {model_name1} with seed {seed1} against {model_name2} with seed {seed2}. Fold size: {fold_size}"
         )
 
     # Check all folds available for the two runs
     directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
     folds = []
 
-    if not Path(directory).exists():
-        create_folds_from_evaluations(
-            model_name1,
-            seed1,
-            model_name2,
-            seed2,
-            config["metric"]["metric"],
-            overwrite=overwrite,
-        )
+    create_folds_from_evaluations(
+        model_name1,
+        seed1,
+        model_name2,
+        seed2,
+        config["metric"]["metric"],
+        overwrite=overwrite,
+        fold_size=fold_size,
+    )
 
-        for file_name in os.listdir(directory):
-            match = re.search(r"_fold_(\d+)\.json$", file_name)
-            if match:
-                fold_number = int(match.group(1))
-                folds.append(fold_number)
-    else:
-        # Check the directory for matching files and append to the list
-        for file_name in os.listdir(directory):
-            match = re.search(r"_fold_(\d+)\.json$", file_name)
-            if match:
-                fold_number = int(match.group(1))
-                folds.append(fold_number)
-
-        if len(folds) == 0:
-            create_folds_from_evaluations(
-                model_name1,
-                seed1,
-                model_name2,
-                seed2,
-                config["metric"]["metric"],
-                overwrite=overwrite,
-            )
-
-            # TODO: make this less hacky
-            for file_name in os.listdir(directory):
-                match = re.search(r"_fold_(\d+)\.json$", file_name)
-                if match:
-                    fold_number = int(match.group(1))
-                    folds.append(fold_number)
+    for file_name in os.listdir(directory):
+        match = re.search(r"_fold_(\d+)\.json$", file_name)
+        if match:
+            fold_number = int(match.group(1))
+            folds.append(fold_number)
 
     end = time.time()
     print(
@@ -311,7 +289,7 @@ def kfold_train(
         )
         all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
 
-    file_path = Path(directory) / "kfold_test_results.csv"
+    file_path = Path(directory) / f"kfold_test_results_{fold_size}.csv"
     all_folds_data.to_csv(file_path, index=False)
 
     if use_wandb:
@@ -354,6 +332,13 @@ def main():
         type=int,
         default=0,
         help="Fold number for repeated test runs. If this is given, only a single fold will be tested.",
+    )
+
+    parser.add_argument(
+        "--fold_size",
+        type=int,
+        default=4000,
+        help="Fold size when running kfold tests. Default is 4000.",
     )
 
     parser.add_argument(
@@ -408,6 +393,7 @@ def main():
                 model_name2=args.model_name2,
                 seed2=args.seed2,
                 use_wandb=not args.no_wandb,
+                fold_size=args.fold_size,
             )
         else:
             run_test_with_wandb(

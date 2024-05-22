@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 import evaluate
 import typing
 import random
@@ -442,6 +443,24 @@ def create_folds(
     overwrite=True,
 ):
     """ """
+    # Fix random seed to be different for each fold_size, such that the folds always have different samples.
+    random.seed(fold_size)
+
+    def cleanup_files(directory, pattern):
+        files_to_delete = glob.glob(os.path.join(directory, pattern))
+        for file_path in files_to_delete:
+            try:
+                os.remove(file_path)
+                print(f"Deleted file: {file_path}")
+            except OSError as e:
+                print(f"Error deleting file {file_path}: {e.strerror}")
+
+    directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
+    file_pattern = f"{metric}_scores_fold_*.json"
+
+    # Cleanup existing fold files
+    cleanup_files(directory, file_pattern)
+
     try:
         file_name = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
         data = load_entire_json(file_name)
@@ -541,12 +560,12 @@ if __name__ == "__main__":
     model_name = "gemma-1.1-7b-it"
     seed = "seed2000"
 
-    model_name1 = "Llama-3-8B-ckpt4"  # change this to the checkpoint to evaluate
+    model_name1 = "Llama-3-8B-ckpt10"  # change this to the checkpoint to evaluate
     # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
 
-    seed1 = "seed7000"  # change this to the current seed
+    seed1 = "seed5000"  # change this to the current seed
 
-    model_name2 = "Llama-3-8B-ckpt7"
+    model_name2 = "Llama-3-8B-ckpt5"
     seed2 = "seed1000"
 
     evaluate_single_model(

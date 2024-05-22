@@ -301,7 +301,7 @@ def folder_from_model_and_seed(file_name):
 
 
 if __name__ == "__main__":
-    run_path = "LLM_Accountability/continuations/8bcqtk3e"
+    run_path = "LLM_Accountability/continuations/nk2w675s"
     pattern = "continuations"
     download_file_from_wandb(
         run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed

@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import numpy as np
 import sys
 import os
 
@@ -39,19 +40,20 @@ def get_df_for_checkpoint(
     checkpoint_base_name,
     column_name="sequences_until_end_of_experiment",
     max_sequences=41,
+    fold_size=None,
+    bs=96,
 ):
     """ """
-    file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results.csv"
+    if not fold_size:
+        fold_size = 4000
+    if fold_size == 4000:
+        file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results.csv"
+    else:
+        file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results_{fold_size}.csv"
+
+    max_sequences = (fold_size + bs - 1) // bs
     data = pd.read_csv(file_path)
     column_values = data[column_name]
-
-    range_values = column_values.max() - column_values.min()
-    average_value = column_values.mean()
-
-    print(
-        f"Range of {column_name}: {range_values}, with the min: {column_values.min()} and max: {column_values.max()}"
-    )
-    print(f"Average of {column_name}: {average_value}")
 
     selected_columns = data[
         [
@@ -71,12 +73,12 @@ def get_df_for_checkpoint(
     unique_fold_numbers = indexed_df["fold_number"].unique()
 
     # Initialize a dictionary to store the counts
-    sequence_counts = {sequence: 0 for sequence in range(max_sequences + 1)}
+    sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
 
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
-        for sequence in range(max_sequences + 1):  # sequence_counts.keys()
+        for sequence in range(max_sequences):  # sequence_counts.keys()
             if (
                 sequence in fold_data.index
                 and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
@@ -93,6 +95,7 @@ def get_df_for_checkpoint(
     result_df["Power"] = result_df["Count"] / num_folds
 
     result_df["Checkpoint"] = ckpt
+    result_df["Samples per Test"] = fold_size
 
     return result_df
 
@@ -158,7 +161,10 @@ def plot_power_over_number_of_sequences(
             seeds,
             checkpoint_base_name=checkpoint_base_name,
         )
-    elif group_by == "Rank based on Wasserstein Distance":
+    elif (
+        group_by == "Rank based on Wasserstein Distance"
+        or group_by == "Empirical Wasserstein Distance"
+    ):
         result_df = get_power_over_epsilon(
             base_model_name,
             base_model_seed,
@@ -167,35 +173,57 @@ def plot_power_over_number_of_sequences(
             checkpoint_base_name=checkpoint_base_name,
         )
 
-    result_df = result_df.reset_index()
+        result_df = result_df.reset_index()
+        result_df["Empirical Wasserstein Distance"] = result_df[
+            "Empirical Wasserstein Distance"
+        ].round(3)
 
     if print_df:
         pd.set_option("display.max_rows", None)
         print(result_df)
 
+    result_df["Samples"] = result_df["Sequence"] * 96
+
     # Create the plot
     plt.figure(figsize=(12, 6))
+    unique_groups = result_df[group_by].unique()
+    palette = sns.color_palette("viridis", len(unique_groups))
+    palette = palette[::-1]
+
     sns.lineplot(
         data=result_df,
-        x="Sequence",
+        x="Samples",
         y="Power",
         hue=group_by,
-        marker="o",
-        palette="tab10",
+        marker="X",
+        markersize=10,
+        palette=palette,
     )
 
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
     # Customize the plot
-    plt.title(
-        f"Power vs. Sequence grouped by {group_by} for {base_model_name} and checkpoints"
-    )
-    plt.xlabel("Sequence")
-    plt.ylabel("Power")
+    plt.xlabel("samples", fontsize=14)
+    plt.ylabel("power", fontsize=14)
+    if group_by == "Checkpoints":
+        title = "checkpoints"
+    elif group_by == "Rank based on Wasserstein Distance":
+        title = "rank"
+    elif group_by == "Empirical Wasserstein Distance":
+        title = "distance"
     plt.legend(
-        title="Checkpoints" if group_by == "Checkpoints" else "Rank",
+        title=title,
         loc="upper left",
         bbox_to_anchor=(1, 1),
     )
-    plt.grid(True)
+    plt.grid(True, linewidth=0.5)
+
+    # Making the box around the plot thicker
+    plt.gca().spines["top"].set_linewidth(1.5)
+    plt.gca().spines["right"].set_linewidth(1.5)
+    plt.gca().spines["bottom"].set_linewidth(1.5)
+    plt.gca().spines["left"].set_linewidth(1.5)
 
     if save:
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
@@ -205,7 +233,6 @@ def plot_power_over_number_of_sequences(
             f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}.png",
             dpi=300,
         )
-
     plt.show()
 
 
@@ -221,6 +248,7 @@ def get_power_over_epsilon(
     column_name="sequences_until_end_of_experiment",
     max_sequences=41,
     distance_measure="Wasserstein",
+    fold_size=None,
 ):
     if not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
@@ -249,7 +277,7 @@ def get_power_over_epsilon(
 
             elif distance_measure == "Kolmogorov":
                 dist = kolmogorov_variation(scores_base, scores_ckpt)
-                print(dist)
+                # print(dist)
 
             result_df = get_df_for_checkpoint(
                 base_model_name,
@@ -259,6 +287,7 @@ def get_power_over_epsilon(
                 checkpoint_base_name,
                 column_name=column_name,
                 max_sequences=max_sequences,
+                fold_size=fold_size,
             )
 
             result_df[f"Empirical {distance_measure} Distance"] = dist
@@ -273,9 +302,47 @@ def get_power_over_epsilon(
         .rank(method="dense", ascending=True)
         .astype(int)
     )
-    indexed_final_df = final_df.set_index(f"Rank based on {distance_measure} Distance")
+    # indexed_final_df = final_df.set_index(f"Rank based on {distance_measure} Distance")
 
-    return indexed_final_df
+    return final_df
+
+
+def get_power_over_epsilon_wrapper(
+    base_model_name,
+    base_model_seed,
+    checkpoints,
+    seeds,
+    checkpoint_base_name="LLama-3-8B-ckpt",
+    epoch1=0,
+    epoch2=0,
+    metric="toxicity",
+    column_name="sequences_until_end_of_experiment",
+    max_sequences=41,
+    distance_measure="Wasserstein",
+    fold_sizes=None,
+):
+    result_dfs = []
+
+    for fold_size in fold_sizes:
+        result_dfs.append(
+            get_power_over_epsilon(
+                base_model_name,
+                base_model_seed,
+                checkpoints,
+                seeds,
+                checkpoint_base_name=checkpoint_base_name,
+                epoch1=epoch1,
+                epoch2=epoch2,
+                metric=metric,
+                column_name=column_name,
+                max_sequences=max_sequences,
+                distance_measure=distance_measure,
+                fold_size=fold_size,
+            )
+        )
+
+    result_df = pd.concat(result_dfs)
+    return result_df
 
 
 def plot_power_over_epsilon(
@@ -291,69 +358,149 @@ def plot_power_over_epsilon(
     max_sequences=41,
     save=True,
     distance_measure="Wasserstein",
+    fold_sizes=None,
 ):
-    df = get_power_over_epsilon(
-        base_model_name,
-        base_model_seed,
-        checkpoints,
-        seeds,
-        checkpoint_base_name=checkpoint_base_name,
-        epoch1=epoch1,
-        epoch2=epoch2,
-        metric=metric,
-        column_name=column_name,
-        max_sequences=max_sequences,
-        distance_measure=distance_measure,
-    )
-    # Group by 'Checkpoint' and get the last entry for each checkpoint
-    last_entries = df.groupby(level=0).last()
+    if fold_sizes:
+        result_df = get_power_over_epsilon_wrapper(
+            base_model_name,
+            base_model_seed,
+            checkpoints,
+            seeds,
+            checkpoint_base_name=checkpoint_base_name,
+            epoch1=epoch1,
+            epoch2=epoch2,
+            metric=metric,
+            column_name=column_name,
+            max_sequences=max_sequences,
+            distance_measure=distance_measure,
+            fold_sizes=fold_sizes,
+        )
+    else:
+        result_df = get_power_over_epsilon(
+            base_model_name,
+            base_model_seed,
+            checkpoints,
+            seeds,
+            checkpoint_base_name=checkpoint_base_name,
+            epoch1=epoch1,
+            epoch2=epoch2,
+            metric=metric,
+            column_name=column_name,
+            max_sequences=max_sequences,
+            distance_measure=distance_measure,
+        )
 
-    # Create a smaller DataFrame with the required columns
-    smaller_df = last_entries[
-        ["Power", f"Empirical {distance_measure} Distance"]
-    ].reset_index()
+    if "Samples per Test" in result_df.columns:
+        print("Samples is in the columns")
+        last_entries = (
+            result_df.groupby(["Samples per Test", "Checkpoint"]).last().reset_index()
+        )
+        smaller_df = last_entries.set_index("Samples per Test")[
+            [
+                "Checkpoint",
+                "Power",
+                f"Empirical {distance_measure} Distance",
+                f"Rank based on {distance_measure} Distance",
+            ]
+        ].reset_index()
+    else:
+        last_entries = result_df.groupby("Checkpoint").last().reset_index()
+        smaller_df = last_entries[
+            [
+                "Checkpoint",
+                "Power",
+                f"Empirical {distance_measure} Distance",
+                f"Rank based on {distance_measure} Distance",
+            ]
+        ].reset_index()
 
-    # Plot 1: Power over Empirical Wasserstein Distance
+    custom_palette = ["midnightblue", "#94D2BD", "#EE9B00", "#BB3E03"]
+
     plt.figure(figsize=(10, 6))
-    sns.scatterplot(
-        x=f"Empirical {distance_measure} Distance", y="Power", data=smaller_df
+
+    sns.lineplot(
+        x=f"Empirical {distance_measure} Distance",
+        y="Power",
+        hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
+        # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
+        marker="X",
+        data=smaller_df,
+        markersize=10,
+        palette=custom_palette,
     )
-    plt.title(f"Power over Empirical {distance_measure} Distance")
-    plt.xlabel(f"Empirical {distance_measure} Distance")
-    plt.ylabel("Power")
+
+    plt.xlabel(f"{distance_measure.lower()} distance", fontsize=14)
+    plt.ylabel("power", fontsize=14)
+    plt.grid(True, linewidth=0.5)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Make the surrounding box thicker
+    ax = plt.gca()
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
 
     if save:
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+        if "Samples per Test" in smaller_df.columns:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size.png",
+                dpi=300,
+            )
         plt.savefig(
             f"{directory}/power_over_{distance_measure.lower()}_distance.png",
             dpi=300,
         )
 
-    # Plot 2: Power over Rank
     plt.figure(figsize=(10, 6))
-    sns.scatterplot(
-        x=f"Rank based on {distance_measure} Distance", y="Power", data=smaller_df
+    sns.lineplot(
+        x=f"Rank based on {distance_measure} Distance",
+        y="Power",
+        hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
+        # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
+        marker="o",
+        data=smaller_df,
+        markersize=10,
+        palette=custom_palette,
     )
-    plt.title(f"Power over Rank based on {distance_measure} Distance")
-    plt.xlabel(f"Rank based on {distance_measure} Distance")
-    plt.ylabel("Power")
-    plt.show()
+    plt.xlabel(f"rank based on {distance_measure.lower()} distance", fontsize=14)
+    plt.ylabel("power", fontsize=14)
+    plt.grid(True, linewidth=0.5)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Make the surrounding box thicker
+    ax = plt.gca()
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
 
     if save:
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+        if "Samples per Test" in smaller_df.columns:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size.png",
+                dpi=300,
+            )
         plt.savefig(
             f"{directory}/power_over_{distance_measure.lower()}_rank.png",
             dpi=300,
         )
 
 
-def get_alpha(model_name, seed1, seed2, max_sequences=41):
+def get_alpha(model_name, seed1, seed2, max_sequences=41, fold_size=None, bs=96):
     """ """
-    file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results.csv"
+    if not fold_size:
+        fold_size = 4000
+
+    max_sequences = (fold_size + bs - 1) // bs
+    if fold_size == 4000:
+        file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results.csv"
+    else:
+        file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results_{fold_size}.csv"
     data = pd.read_csv(file_path)
 
     selected_columns = data[
@@ -374,12 +521,12 @@ def get_alpha(model_name, seed1, seed2, max_sequences=41):
     unique_fold_numbers = indexed_df["fold_number"].unique()
 
     # Initialize a dictionary to store the counts
-    sequence_counts = {sequence: 0 for sequence in range(max_sequences + 1)}
+    sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
 
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
-        for sequence in range(max_sequences + 1):  # sequence_counts.keys()
+        for sequence in range(max_sequences):  # sequence_counts.keys()
             if (
                 sequence in fold_data.index
                 and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
@@ -398,42 +545,221 @@ def get_alpha(model_name, seed1, seed2, max_sequences=41):
     return result_df
 
 
-def plot_alpha_over_sequences(model_name, seed1, seed2, save=True):
-    result_df = get_alpha(model_name, seed1, seed2)
+def get_alpha_wrapper(model_names, seeds1, seeds2, max_sequences=41):
+    if not isinstance(model_names, list):
+        return get_alpha(model_names, seeds1, seeds2, max_sequences)
+
+    else:
+        result_dfs = []
+        for model_name, seed1, seed2 in zip(model_names, seeds1, seeds2):
+            result_df = get_alpha(model_name, seed1, seed2, max_sequences)
+            result_df["model_id"] = model_name
+            result_dfs.append(result_df)
+
+    final_df = pd.concat(result_dfs, ignore_index=True)
+    return final_df
+
+
+def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=False):
+    result_df = get_alpha_wrapper(model_names, seeds1, seeds2)
     result_df = result_df.reset_index()
+    result_df["Samples"] = result_df["Sequence"] * 96
+
+    group_by_model = "model_id" in result_df.columns
+
+    if print_df:
+        pd.set_option("display.max_rows", None)
+
+    custom_palette = ["#94D2BD", "#EE9B00", "#BB3E03"]
 
     # Create the plot
     plt.figure(figsize=(12, 6))
     sns.lineplot(
         data=result_df,
-        x="Sequence",
+        x="Samples",
         y="Power",
-        # hue=group_by,
-        marker="o",
-        palette="tab10",
+        hue="model_id" if group_by_model else None,
+        marker="X",
+        markersize=10,
+        palette=custom_palette,
     )
 
     # Customize the plot
-    plt.title(f"Alpha error vs. Sequence for {model_name}")
-    plt.xlabel("Sequences")
-    plt.ylabel("Alpha error")
-    # plt.legend(
-    #     title="Checkpoints" if group_by == "Checkpoints" else "Rank",
-    #     loc="upper left",
-    #     bbox_to_anchor=(1, 1),
-    # )
-    plt.grid(True)
+    plt.xlabel("samples", fontsize=14)
+    plt.ylabel("alpha error", fontsize=14)
+    # plt.tight_layout(rect=[0, 0, 0.85, 1])
+
+    # Adjust the spines (box) thickness
+    ax = plt.gca()
+    ax.spines["top"].set_linewidth(1.5)
+    ax.spines["right"].set_linewidth(1.5)
+    ax.spines["bottom"].set_linewidth(1.5)
+    ax.spines["left"].set_linewidth(1.5)
+
+    if group_by_model:
+        plt.legend(
+            title="models",
+            loc="upper left",
+            bbox_to_anchor=(
+                1.05,
+                1,
+            ),  # Adjusted position to ensure the legend is outside the plot area
+        )
+    plt.grid(True, linewidth=0.5)
 
     if save:
-        directory = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}"
+        directory = "model_outputs/alpha_plots"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
-        plt.savefig(
-            f"{directory}/alpha_error_over_number_of_sequences.png",
-            dpi=300,
-        )
+        fig_path = f"{directory}/alpha_error_over_number_of_sequences"
+        if isinstance(model_names, str):
+            fig_path += f"_{model_names}"
+        elif isinstance(model_names, list):
+            for model_name in model_names:
+                fig_path += f"_{model_name}"
 
-    plt.show()
+        fig_path += ".png"
+        plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+
+
+def plot_scores(model_name, seed, metric="toxicity", save=True, epoch=0):
+    """ """
+    directory = f"model_outputs/{model_name}_{seed}"
+    file_path = f"{directory}/{metric}_scores.json"
+    with open(file_path, "r") as f:
+        data = json.load(f)
+
+    scores = data[str(epoch)][f"{metric}_scores"]
+
+    # Calculate statistics
+    mean_score = np.mean(scores)
+    std_score = np.std(scores)
+
+    plt.figure(figsize=(14, 7))
+
+    # Plot histogram with adjusted bins and density plot
+    sns.histplot(scores, bins=50, kde=True, color="blue", edgecolor="black", alpha=0.7)
+
+    # Add mean and std lines
+    plt.axvline(
+        mean_score,
+        color="red",
+        linestyle="--",
+        linewidth=1.5,
+        label=f"Mean: {mean_score:.2f}",
+    )
+    plt.axvline(
+        mean_score + std_score,
+        color="green",
+        linestyle="--",
+        linewidth=1.5,
+        label=f"+1 Std Dev: {mean_score + std_score:.2f}",
+    )
+    plt.axvline(
+        mean_score - std_score,
+        color="green",
+        linestyle="--",
+        linewidth=1.5,
+        label=f"-1 Std Dev: {mean_score - std_score:.2f}",
+    )
+
+    # Set plot limits
+    plt.xlim(0, 1)
+
+    plt.title(
+        f"Distribution of {metric.capitalize()} Scores for {model_name} (Seed: {seed})",
+        fontsize=16,
+    )
+    plt.xlabel(f"{metric.capitalize()} Score", fontsize=14)
+    plt.ylabel("Frequency", fontsize=14)
+    plt.legend()
+    plt.grid(True, linewidth=0.5)
+
+    if save:
+        output_path = os.path.join(directory, f"{metric}_scores.png")
+        plt.savefig(output_path, dpi=300)
+    else:
+        plt.show()
+
+    plt.close()
+
+
+def plot_scores_multiple_models(
+    model_names, seeds, metric="toxicity", save=True, epoch=0
+):
+    """ """
+    all_scores = []
+
+    for m_name, seed in zip(model_names, seeds):
+        directory = f"model_outputs/{m_name}_{seed}"
+        file_path = f"{directory}/{metric}_scores.json"
+        with open(file_path, "r") as f:
+            data = json.load(f)
+
+        scores = data[str(epoch)][f"{metric}_scores"]
+
+        # Append scores to a list with model name
+        for score in scores:
+            all_scores.append({"score": score, "model_name": m_name})
+
+    # Convert to DataFrame
+    df = pd.DataFrame(all_scores)
+
+    plt.figure(figsize=(14, 7))
+
+    palette = sns.color_palette("viridis", len(model_names) - 1)
+    palette.append("red")
+    palette = palette[::-1]
+
+    # Plot histogram with seaborn using hue for model name, without kde and with a nice color palette
+    hist_plot = sns.histplot(
+        df,
+        x="score",
+        hue="model_name",
+        bins=50,
+        element="step",
+        palette=palette,
+        alpha=0.5,
+    )
+
+    # Set plot limits
+    plt.xlim(0, 1)
+    plt.yscale("log")
+
+    # plt.title(
+    #     f"Distribution of {metric.capitalize()} Scores for Multiple Models",
+    #     fontsize=16,
+    # )
+    plt.xlabel(f"{metric.lower()} score", fontsize=14)
+    plt.ylabel("frequency", fontsize=14)
+    plt.grid(True, linewidth=0.25)
+
+    # handles, labels = hist_plot.get_legend_handles_labels()
+    # print(handles, labels)
+
+    # # Manually create the legend
+    # # plt.legend(title="Models", loc="upper right", fontsize="small")
+    # plt.legend(
+    #     title="Models",
+    #     loc="center left",
+    #     bbox_to_anchor=(1, 0.5),
+    #     fontsize="xx-small",
+    # )
+
+    ax = plt.gca()
+    ax.spines["top"].set_linewidth(1.5)
+    ax.spines["right"].set_linewidth(1.5)
+    ax.spines["bottom"].set_linewidth(1.5)
+    ax.spines["left"].set_linewidth(1.5)
+
+    if save:
+        output_path = os.path.join("model_outputs", f"{metric}_scores_comparison.png")
+        # plt.savefig(output_path, dpi=300, bbox_inches="tight")
+        plt.savefig(output_path, dpi=300)
+    else:
+        plt.show()
+
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -443,21 +769,37 @@ if __name__ == "__main__":
     checkpoints = [i for i in range(1, 11)]
     seeds = ["seed1000" for i in checkpoints]
 
-    model_name = "Mistral-7B-Instruct-v0.2"
+    model_name = "Meta-Llama-3-8B-Instruct"
     seed1 = "seed1000"
     seed2 = "seed2000"
 
+    pd.set_option("display.max_columns", None)
     pd.set_option("display.max_rows", None)
 
-    # plot_power_over_number_of_sequences(
-    #     base_model_name,
-    #     base_model_seed,
-    #     checkpoints,
-    #     seeds,
-    #     checkpoint_base_name=checkpoint_base_name,
-    #     save=True,
-    #     group_by="Rank based on Wasserstein Distance",
-    # )
+    model_names = [
+        "Meta-Llama-3-8B-Instruct",
+        "Mistral-7B-Instruct-v0.2",
+        "gemma-1.1-7b-it",
+    ]
+    seed1s = ["seed1000" for i in model_names]
+    seed2s = ["seed2000" for i in model_names]
+
+    model_names_for_dist_plot = ["Meta-Llama-3-8B-Instruct"]
+    checkpoint_list = [f"LLama-3-8B-ckpt{i}" for i in range(1, 11)]
+    model_names_for_dist_plot.extend(checkpoint_list)
+    seeds_for_dist_plot = ["seed1000" for i in model_names_for_dist_plot]
+
+    fold_sizes = [1000, 2000, 3000, 4000]
+
+    plot_power_over_number_of_sequences(
+        base_model_name,
+        base_model_seed,
+        checkpoints,
+        seeds,
+        checkpoint_base_name=checkpoint_base_name,
+        save=True,
+        group_by="Empirical Wasserstein Distance",  # "Rank based on Wasserstein Distance",
+    )
 
     # plot_power_over_epsilon(
     #     base_model_name,
@@ -468,4 +810,15 @@ if __name__ == "__main__":
     #     distance_measure="Kolmogorov",
     # )
 
-    plot_alpha_over_sequences(model_name, seed1, seed2)
+    # plot_alpha_over_sequences(model_name, seed1, seed2)
+
+    # df = get_power_over_epsilon(base_model_name, base_model_seed, checkpoints, seeds)
+    # print(df)
+
+    plot_alpha_over_sequences(model_names, seed1s, seed2s, print_df=True)
+    # plot_scores(model_name, seed1, metric="toxicity", save=True)
+    plot_scores_multiple_models(model_names_for_dist_plot, seeds_for_dist_plot)
+
+    plot_power_over_epsilon(
+        base_model_name, base_model_seed, checkpoints, seeds, fold_sizes=fold_sizes
+    )
