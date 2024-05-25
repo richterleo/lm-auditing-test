@@ -157,6 +157,7 @@ def plot_power_over_number_of_sequences(
     print_df=False,
     group_by="Checkpoint",
     marker=None,
+    save_as_pdf=True,
 ):
     if group_by == "Checkpoint":
         result_df = get_power_over_number_of_sequences(
@@ -205,12 +206,12 @@ def plot_power_over_number_of_sequences(
         palette=palette,
     )
 
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
 
     # Customize the plot
-    plt.xlabel("samples", fontsize=14)
-    plt.ylabel("detection frequency", fontsize=14)
+    plt.xlabel("samples", fontsize=16)
+    plt.ylabel("detection frequency", fontsize=16)
     if group_by == "Checkpoints":
         title = "checkpoints"
     elif group_by == "Rank based on Wasserstein Distance":
@@ -220,6 +221,8 @@ def plot_power_over_number_of_sequences(
     plt.legend(
         title=title,
         loc="lower right",
+        fontsize=14,
+        title_fontsize=16,
         # bbox_to_anchor=(1, 1),
     )
     plt.grid(True, linewidth=0.5, color="#ddddee")
@@ -234,11 +237,18 @@ def plot_power_over_number_of_sequences(
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
-        plt.savefig(
-            f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}.png",
-            dpi=300,
-            bbox_inches="tight",
-        )
+        if save_as_pdf:
+            plt.savefig(
+                f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf",
+                bbox_inches="tight",
+                format="pdf",
+            )
+        else:
+            plt.savefig(
+                f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
     plt.show()
 
 
@@ -449,7 +459,8 @@ def plot_power_over_epsilon(
     plt.legend(
         title="samples per test",
         loc="lower right",
-        fontsize=16,
+        fontsize=14,
+        title_fontsize=16,
         # bbox_to_anchor=(
         #     1.05,
         #     1,
@@ -468,27 +479,27 @@ def plot_power_over_epsilon(
         if "Samples per Test" in smaller_df.columns:
             if save_as_pdf:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size.pdf",
+                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
                     bbox_inches="tight",
                     format="pdf",
                 )
 
             else:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size.png",
+                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
                     dpi=300,
                     bbox_inches="tight",
                 )
         else:
             if save_as_pdf:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance.pdf",
+                    f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.pdf",
                     bbox_inches="tight",
                     format="pdf",
                 )
             else:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance.png",
+                    f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.png",
                     dpi=300,
                     bbox_inches="tight",
                 )
@@ -514,7 +525,8 @@ def plot_power_over_epsilon(
     plt.legend(
         title="samples per test",
         loc="lower right",
-        fontsize=16,
+        fontsize=14,
+        title_fontsize=16,
         # bbox_to_anchor=(
         #     1.05,
         #     1,
@@ -533,39 +545,38 @@ def plot_power_over_epsilon(
         if "Samples per Test" in smaller_df.columns:
             if save_as_pdf:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size.pdf",
+                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
                     bbox_inches="tight",
                     format="pdf",
                 )
             else:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size.png",
+                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
                     dpi=300,
                     bbox_inches="tight",
                 )
         else:
             if save_as_pdf:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank.pdf",
+                    f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.pdf",
                     bbox_inches="tight",
                     format="pdf",
                 )
             else:
                 plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank.png",
+                    f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.png",
                     dpi=300,
                     bbox_inches="tight",
                 )
 
 
-def get_alpha(model_name, seed1, seed2, max_sequences=41, fold_size=None, bs=96):
+def get_alpha(model_name, seed1, seed2, max_sequences=41, fold_size=4000, bs=96):
     """ """
-    if not fold_size:
-        fold_size = 4000
-
     max_sequences = (fold_size + bs - 1) // bs
     if fold_size == 4000:
         file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results.csv"
+        if not Path(file_path).exists():
+            file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results_{fold_size}.csv"
     else:
         file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results_{fold_size}.csv"
     data = pd.read_csv(file_path)
@@ -612,14 +623,16 @@ def get_alpha(model_name, seed1, seed2, max_sequences=41, fold_size=None, bs=96)
     return result_df
 
 
-def get_alpha_wrapper(model_names, seeds1, seeds2, max_sequences=41):
+def get_alpha_wrapper(model_names, seeds1, seeds2, max_sequences=41, fold_size=4000):
     if not isinstance(model_names, list):
         return get_alpha(model_names, seeds1, seeds2, max_sequences)
 
     else:
         result_dfs = []
         for model_name, seed1, seed2 in zip(model_names, seeds1, seeds2):
-            result_df = get_alpha(model_name, seed1, seed2, max_sequences)
+            result_df = get_alpha(
+                model_name, seed1, seed2, max_sequences, fold_size=fold_size
+            )
             result_df["model_id"] = model_name
             result_dfs.append(result_df)
 
@@ -693,9 +706,17 @@ def get_alpha_wrapper(model_names, seeds1, seeds2, max_sequences=41):
 
 
 def plot_alpha_over_sequences(
-    model_names, seeds1, seeds2, save=True, print_df=False, save_as_pdf=True
+    model_names,
+    seeds1,
+    seeds2,
+    save=True,
+    print_df=False,
+    save_as_pdf=True,
+    markers=["X", "o", "s"],
+    palette=["#94D2BD", "#EE9B00", "#BB3E03"],
+    fold_size=4000,
 ):
-    result_df = get_alpha_wrapper(model_names, seeds1, seeds2)
+    result_df = get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=fold_size)
     result_df = result_df.reset_index()
     result_df["Samples"] = result_df["Sequence"] * 96
 
@@ -703,9 +724,6 @@ def plot_alpha_over_sequences(
 
     if print_df:
         pd.set_option("display.max_rows", None)
-
-    markers = ["X", "o", "s"]  # Different markers: circle, X, square
-    custom_palette = ["#94D2BD", "#EE9B00", "#BB3E03"]
 
     # Create the plot
     plt.figure(figsize=(12, 6))
@@ -719,7 +737,7 @@ def plot_alpha_over_sequences(
                 y="Power",
                 marker=markers[i % len(markers)],
                 dashes=False,  # No dashes, solid lines
-                color=custom_palette[i % len(custom_palette)],
+                color=palette[i % len(palette)],
                 label=model,
             )
     else:
@@ -750,7 +768,8 @@ def plot_alpha_over_sequences(
         plt.legend(
             title="models",
             loc="upper left",
-            fontsize=16,
+            fontsize=14,
+            title_fontsize=16,
             # bbox_to_anchor=(
             #     1.05,
             #     1,
@@ -1085,7 +1104,7 @@ def plot_scores_base_most_extreme(
     plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.legend(fontsize=16)
+    plt.legend(fontsize=14)
 
     plt.gca().xaxis.set_major_locator(MultipleLocator(0.1))
     plt.gca().xaxis.set_minor_locator(MultipleLocator(0.05))
@@ -1127,12 +1146,12 @@ def plot_scores_base_most_extreme(
 if __name__ == "__main__":
     base_model_name = "Meta-Llama-3-8B-Instruct"
     base_model_seed = "seed1000"
-    checkpoint_base_name = "LLama-3-8B-ckpt"
+    checkpoint_base_name = "Llama-3-8B-ckpt"
     checkpoints = [i for i in range(1, 11)]
     seeds = ["seed1000" for i in checkpoints]
 
     checkpoint_base_names = [
-        "LLama-3-8B-ckpt",
+        "Llama-3-8B-ckpt",
         "Mistral-7B-Instruct-ckpt",
         "gemma-1.1-7b-it-ckpt",
     ]
@@ -1157,7 +1176,7 @@ if __name__ == "__main__":
     markers = ["X", "o", "s"]
 
     model_names_for_dist_plot = ["Meta-Llama-3-8B-Instruct"]
-    checkpoint_list = [f"LLama-3-8B-ckpt{i}" for i in range(1, 11)]
+    checkpoint_list = [f"Llama-3-8B-ckpt{i}" for i in range(1, 11)]
     model_names_for_dist_plot.extend(checkpoint_list)
     seeds_for_dist_plot = ["seed1000" for i in model_names_for_dist_plot]
 
@@ -1166,16 +1185,6 @@ if __name__ == "__main__":
     darker_custom_colors = ["#85BDAA", "#D28B00", "#A63703"]
     corrupted_model_custom_colors = ["#25453a", "#4f3300", "#3e1401"]
     darker_corrupted_model_custom_colors = ["#101e19", "#221600", "#1b0900"]
-
-    # plot_power_over_number_of_sequences(
-    #     base_model_name,
-    #     base_model_seed,
-    #     checkpoints,
-    #     seeds,
-    #     checkpoint_base_name=checkpoint_base_name,
-    #     save=True,
-    #     group_by="Empirical Wasserstein Distance",  # "Rank based on Wasserstein Distance",
-    # )
 
     # plot_power_over_epsilon(
     #     base_model_name,
@@ -1204,18 +1213,28 @@ if __name__ == "__main__":
     #     )
     # # plot_scores_multiple_models(model_names_for_dist_plot, seeds_for_dist_plot)
 
-    for bm_name, ckpts, seeds, ckpt_name, marker in zip(
-        model_names, checkpoints_list, seeds_list, checkpoint_base_names, markers
-    ):
-        plot_power_over_epsilon(
-            bm_name,
-            "seed1000",
-            ckpts,
-            seeds,
-            checkpoint_base_name=ckpt_name,
-            fold_sizes=fold_sizes,
-            marker=marker,
-        )
+    # for bm_name, ckpts, seeds, ckpt_name, marker in zip(
+    #     model_names, checkpoints_list, seeds_list, checkpoint_base_names, markers
+    # ):
+    #     plot_power_over_epsilon(
+    #         bm_name,
+    #         "seed1000",
+    #         ckpts,
+    #         seeds,
+    #         checkpoint_base_name=ckpt_name,
+    #         fold_sizes=fold_sizes,
+    #         marker=marker,
+    #     )
+    #     plot_power_over_number_of_sequences(
+    #         bm_name,
+    #         "seed1000",
+    #         ckpts,
+    #         seeds,
+    #         checkpoint_base_name=ckpt_name,
+    #         save=True,
+    #         group_by="Empirical Wasserstein Distance",  # "Rank based on Wasserstein Distance",
+    #         marker=marker,
+    #     )
 
     # for (
     #     bm_name,
@@ -1251,3 +1270,28 @@ if __name__ == "__main__":
     #         darker_corrupted_color=darker_corrupted_color,
     #         save=True,
     #     )
+
+    alpha_palette = sns.color_palette("viridis", 10)
+    alpha_palette = alpha_palette[::-1]
+    alpha_seeds = [
+        "seed4000",
+        "seed4000",
+        "seed7000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed7000",
+        "seed5000",
+    ]
+
+    alpha_markers = ["X" for i in range(10)]
+
+    plot_alpha_over_sequences(
+        checkpoint_list,
+        seeds_for_dist_plot,
+        alpha_seeds,
+        palette=alpha_palette,
+        markers=alpha_markers,
+    )

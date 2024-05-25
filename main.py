@@ -3,7 +3,6 @@ import importlib
 import os
 import re
 import time
-import torch
 import sys
 import wandb
 import pandas as pd
@@ -36,7 +35,7 @@ if models_path not in sys.path:
     sys.path.append(models_path)
 
 from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
-from dah_testing.preprocessing import create_folds_from_evaluations
+from dah_testing.preprocessing import create_folds_from_evaluations, cleanup_files
 
 # Dynamically import the module
 # deep_anytime_testing = importlib.import_module("deep-anytime-testing")
@@ -208,6 +207,8 @@ def kfold_train(
     overwrite: Optional[bool] = False,
     use_wandb: Optional[bool] = None,
     fold_size: int = 4000,
+    pattern: str = r"_fold_(\d+)\.json$",
+    metric: str = "toxicity",
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
@@ -258,7 +259,7 @@ def kfold_train(
     )
 
     for file_name in os.listdir(directory):
-        match = re.search(r"_fold_(\d+)\.json$", file_name)
+        match = re.search(pattern, file_name)
         if match:
             fold_number = int(match.group(1))
             folds.append(fold_number)
@@ -291,6 +292,8 @@ def kfold_train(
 
     file_path = Path(directory) / f"kfold_test_results_{fold_size}.csv"
     all_folds_data.to_csv(file_path, index=False)
+
+    cleanup_files(directory, f"{metric}_scores_fold_*.json")
 
     if use_wandb:
         wandb.finish()
