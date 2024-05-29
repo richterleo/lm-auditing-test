@@ -502,7 +502,7 @@ if __name__ == "__main__":
     seed1 = "seed1000"  # change this to the current seed
 
     model_name2 = "Llama-3-8B-ckpt1"
-    seed2 = "seed7000"
+    seed2 = "seed3000"
 
     evaluate_single_model(
         model_name2, seed2, "toxicity", overwrite=True, use_wandb=False

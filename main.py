@@ -229,6 +229,7 @@ def kfold_train(
     seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
     model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
     seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
+
     if use_wandb:
         wandb.config.update(
             {
@@ -413,11 +414,67 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    alpha_seeds = [
+        "seed4000",
+        "seed4000",
+        "seed7000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed7000",
+        "seed5000",
+    ]
 
-    # config = load_config("config.yml")
-    # train_cfg = TrainCfg()
-    # fold_num = 1
+    checkpoint1 = "Llama-3-8B-ckpt1"
+    checkpoint1_list = [
+        "seed1000",
+        "seed2000",
+        "seed3000",
+        "seed4000",
+        "seed5000",
+        "seed7000",
+    ]
 
-    # # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
-    # kfold_train(config, train_cfg, use_wandb=False)
+    checkpoint_list = [f"Llama-3-8B-ckpt{i}" for i in range(1, 11)]
+
+    config = load_config("config.yml")
+    train_cfg = TrainCfg()
+    fold_num = 1
+
+    # for model, seed in zip(checkpoint_list, alpha_seeds):
+    #     # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
+    #     kfold_train(
+    #         config,
+    #         train_cfg,
+    #         use_wandb=False,
+    #         model_name2=model,
+    #         seed2=seed,
+    #         fold_size=1000,
+    #     )
+
+    # for seed in checkpoint1_list[3:]:
+    #     kfold_train(
+    #         config,
+    #         train_cfg,
+    #         use_wandb=False,
+    #         model_name1=checkpoint1,
+    #         model_name2=checkpoint1,
+    #         seed1="seed3000",
+    #         seed2=seed,
+    #         fold_size=4000,
+    #     )
+
+    kfold_train(
+        config,
+        train_cfg,
+        use_wandb=False,
+        model_name1=checkpoint1,
+        model_name2=checkpoint1,
+        seed1="seed3000",
+        seed2=seed,
+        fold_size=4000,
+    )
+
+    # main()

@@ -6,7 +6,7 @@ import os
 
 from pathlib import Path
 from scipy.stats import skew
-from typing import Union, List
+from typing import Union, List, Optional
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
@@ -20,45 +20,52 @@ from behavior_evaluation.distance_and_variation import (
 )
 
 
-def get_average_time_until_end_of_experiment(model_name1, seed1, model_name2, seed2):
-    file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results.csv"
-    data = pd.read_csv(file_path)
-
-    column_name = "sequences_until_end_of_experiment"
-    column_values = data[column_name]
-
-    range_values = column_values.max() - column_values.min()
-    average_value = column_values.mean()
-
-    print(f"Range of {column_name}: {range_values}")
-    print(f"Average of {column_name}: {average_value}")
+pd.set_option("display.max_rows", 500)
+pd.set_option("display.max_columns", 500)
+pd.set_option("display.width", 1000)
 
 
-def get_df_for_checkpoint(
-    base_model_name,
-    base_model_seed,
-    ckpt,
-    seed,
-    checkpoint_base_name,
-    column_name="sequences_until_end_of_experiment",
-    max_sequences=41,
-    fold_size=None,
-    bs=96,
+def extract_data_for_models(
+    model_name1,
+    seed1,
+    seed2,
+    model_name2: Optional[str] = None,
+    checkpoint: Optional[str] = None,
+    checkpoint_base_name: Optional[str] = None,
+    fold_size=4000,
 ):
     """ """
-    if not fold_size:
-        fold_size = 4000
-    if fold_size == 4000:
-        file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results.csv"
-        if not Path(file_path).exists():
-            file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results_{fold_size}.csv"
+    assert model_name2 or (
+        checkpoint and checkpoint_base_name
+    ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
+
+    print(f"model_name2: {model_name2}")
+    if model_name2:
+        if fold_size == 4000:
+            file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results.csv"
+            if not Path(file_path).exists():
+                file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
+        else:
+            file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
     else:
-        file_path = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}{ckpt}_{seed}/kfold_test_results_{fold_size}.csv"
+        if fold_size == 4000:
+            file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results.csv"
+            if not Path(file_path).exists():
+                file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
+        else:
+            file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
 
-    max_sequences = (fold_size + bs - 1) // bs
+    print(f"This is the file path: {file_path}")
     data = pd.read_csv(file_path)
-    column_values = data[column_name]
 
+    return data
+
+
+def get_power_over_sequences_from_whole_ds(
+    data: pd.DataFrame, fold_size: int = 4000, bs: int = 96
+):
+    """ """
+    max_sequences = (fold_size + bs - 1) // bs
     selected_columns = data[
         [
             "fold_number",
@@ -97,22 +104,75 @@ def get_df_for_checkpoint(
         list(sequence_counts.items()), columns=["Sequence", "Count"]
     )
     result_df["Power"] = result_df["Count"] / num_folds
-
-    result_df["Checkpoint"] = ckpt
     result_df["Samples per Test"] = fold_size
+    result_df["Samples"] = result_df["Sequence"] * bs
+
+    result_df.reset_index()
 
     return result_df
 
 
-def get_power_over_number_of_sequences(
+def get_power_over_sequences_for_models_or_checkpoints(
+    model_name1,
+    seed1,
+    seed2,
+    model_name2: Optional[str] = None,
+    checkpoint: Optional[str] = None,
+    checkpoint_base_name: Optional[str] = None,
+    fold_size: int = 4000,
+    bs: int = 96,
+):
+    """ """
+    assert model_name2 or (
+        checkpoint and checkpoint_base_name
+    ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
+
+    if model_name2:
+        data = extract_data_for_models(
+            model_name1, seed1, seed2, model_name2=model_name2
+        )
+        result_df = get_power_over_sequences_from_whole_ds(
+            data, fold_size=fold_size, bs=bs
+        )
+        result_df["model_name1"] = model_name1
+        result_df["seed1"] = seed1
+        result_df["model_name2"] = model_name2
+        result_df["seed2"] = seed2
+    else:
+        data = extract_data_for_models(
+            model_name1,
+            seed1,
+            seed2,
+            checkpoint=checkpoint,
+            checkpoint_base_name=checkpoint_base_name,
+        )
+        result_df = get_power_over_sequences_from_whole_ds(data, fold_size, bs)
+        result_df["Checkpoint"] = checkpoint
+
+    return result_df
+
+
+def get_matrix_for_models(model_names, seeds, fold_size=4000):
+    """ """
+    all_scores = []
+
+    for model_name1, seed1 in zip(model_names, seeds):
+        for model_name2, seed2 in zip(model_names[1:], seeds[1:]):
+            power_df = get_power_over_sequences_for_models_or_checkpoints(
+                model_name1, seed1, seed2, model_name2=model_name2, fold_size=fold_size
+            )
+            all_scores.append(power_df)
+
+    all_scores_df = pd.concat(all_scores, ignore_index=True)
+    print(all_scores_df)
+
+
+def get_power_over_sequences_for_checkpoints(
     base_model_name: Union[str, List[str]],
     base_model_seed: Union[str, List[str]],
     checkpoints: Union[str, List[str]],
     seeds: Union[str, List[str]],
-    checkpoint_base_name: str = "LLama-3-8B-ckpt",
-    max_sequences: int = 41,
-    column_name="sequences_until_end_of_experiment",
-    reorder=False,
+    checkpoint_base_name: str = "Llama-3-8B-ckpt",
 ):
     if not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
@@ -121,46 +181,234 @@ def get_power_over_number_of_sequences(
 
     result_dfs = []
 
-    for ckpt, seed in zip(checkpoints, seeds):
+    for checkpoint, seed in zip(checkpoints, seeds):
         print(
-            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{ckpt}, seed: {seed}"
+            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
         )
         try:
-            result_df = get_df_for_checkpoint(
+            result_df = get_power_over_sequences_for_models_or_checkpoints(
                 base_model_name,
                 base_model_seed,
-                ckpt,
                 seed,
-                checkpoint_base_name,
-                column_name=column_name,
-                max_sequences=max_sequences,
+                checkpoint=checkpoint,
+                checkpoint_base_name=checkpoint_base_name,
             )
 
             result_dfs.append(result_df)
 
         except FileNotFoundError:
-            print(f"File for checkpoint {ckpt} does not exist yet")
+            print(f"File for checkpoint {checkpoint} does not exist yet")
 
     final_df = pd.concat(result_dfs, ignore_index=True)
-    indexed_final_df = final_df.set_index("Checkpoint")
 
-    return indexed_final_df
+    return final_df
 
 
-def plot_power_over_number_of_sequences(
+def get_distance_scores(
+    model_name1,
+    seed1,
+    seed2,
+    checkpoint: Optional[str] = None,
+    checkpoint_base_name: Optional[str] = None,
+    model_name2: Optional[str] = None,
+    metric="toxicity",
+    epoch1=0,
+    epoch2=0,
+    distance_measure="Wasserstein",
+):
+    """ """
+    if not (checkpoint and checkpoint_base_name) and not model_name2:
+        raise ValueError(
+            "Either checkpoint and checkpoint_base_name or model_name2 must be provided"
+        )
+
+    try:
+        score_path1 = f"model_outputs/{model_name1}_{seed1}/{metric}_scores.json"
+        if checkpoint:
+            score_path2 = f"model_outputs/{checkpoint_base_name}{checkpoint}_{seed2}/{metric}_scores.json"
+        else:
+            score_path2 = f"model_outputs/{model_name2}_{seed2}/{metric}_scores.json"
+        with open(score_path1, "r") as f:
+            scores1 = json.load(f)
+        with open(score_path2, "r") as f:
+            scores2 = json.load(f)
+
+        scores1 = scores1[str(epoch1)][f"{metric}_scores"]
+        scores2 = scores2[str(epoch2)][f"{metric}_scores"]
+
+        if distance_measure == "Wasserstein":
+            dist = empirical_wasserstein_distance_p1(scores1, scores2)
+
+        elif distance_measure == "Kolmogorov":
+            dist = kolmogorov_variation(scores1, scores2)
+
+        return dist
+
+    except FileNotFoundError:
+        if checkpoint:
+            print(f"File for checkpoint {checkpoint} does not exist yet")
+        else:
+            print(f"File for model {model_name2} does not exist yet")
+
+
+def get_power_over_sequences_for_ranked_checkpoints(
     base_model_name,
     base_model_seed,
     checkpoints,
     seeds,
     checkpoint_base_name="LLama-3-8B-ckpt",
-    save=True,
-    print_df=False,
-    group_by="Checkpoint",
-    marker=None,
-    save_as_pdf=True,
+    epoch1=0,
+    epoch2=0,
+    metric="toxicity",
+    distance_measure="Wasserstein",
+    fold_size=4000,
+):
+    if not isinstance(checkpoints, list):
+        checkpoints = [checkpoints]
+    if not isinstance(seeds, list):
+        seeds = [seeds]
+
+    result_dfs = []
+
+    for checkpoint, seed in zip(checkpoints, seeds):
+        print(
+            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
+        )
+
+        dist = get_distance_scores(
+            base_model_name,
+            base_model_seed,
+            seed,
+            checkpoint=checkpoint,
+            checkpoint_base_name=checkpoint_base_name,
+            metric=metric,
+            distance_measure=distance_measure,
+            epoch1=epoch1,
+            epoch2=epoch2,
+        )
+
+        result_df = get_power_over_sequences_for_models_or_checkpoints(
+            base_model_name,
+            base_model_seed,
+            seed,
+            checkpoint=checkpoint,
+            checkpoint_base_name=checkpoint_base_name,
+            fold_size=fold_size,
+        )
+
+        result_df[f"Empirical {distance_measure} Distance"] = dist
+        result_dfs.append(result_df)
+
+    final_df = pd.concat(result_dfs, ignore_index=True)
+    final_df[f"Rank based on {distance_measure} Distance"] = (
+        final_df[f"Empirical {distance_measure} Distance"]
+        .rank(method="dense", ascending=True)
+        .astype(int)
+    )
+
+    return final_df
+
+
+def get_power_over_sequences_for_ranked_checkpoints_wrapper(
+    base_model_name,
+    base_model_seed,
+    checkpoints,
+    seeds,
+    checkpoint_base_name="LLama-3-8B-ckpt",
+    fold_sizes: List[int] = [1000, 2000, 3000, 4000],
+    epoch1=0,
+    epoch2=0,
+    metric="toxicity",
+    distance_measure="Wasserstein",
+):
+    """
+    This is a wrapper for get_power_over_sequences_for_ranked_checkpoints to use to multiple fold sizes and returns a concatenated dataframe.
+    """
+    result_dfs = []
+
+    for fold_size in fold_sizes:
+        result_dfs.append(
+            get_power_over_sequences_for_ranked_checkpoints(
+                base_model_name,
+                base_model_seed,
+                checkpoints,
+                seeds,
+                checkpoint_base_name=checkpoint_base_name,
+                epoch1=epoch1,
+                epoch2=epoch2,
+                metric=metric,
+                distance_measure=distance_measure,
+                fold_size=fold_size,
+            )
+        )
+
+    result_df = pd.concat(result_dfs)
+    return result_df
+
+
+def extract_power_from_sequence_df(
+    df: pd.DataFrame,
+    distance_measure: Optional[str] = "Wasserstein",
+    by_checkpoints=True,
+):
+    """ """
+    cols_to_filter = ["Samples per Test"]
+
+    if by_checkpoints:
+        cols_to_filter.append("Checkpoint")
+        last_entries = df.groupby(cols_to_filter).last().reset_index()
+
+        cols_to_filter.append("Power")
+
+        if not distance_measure:
+            smaller_df = last_entries[cols_to_filter]
+        else:
+            cols_to_filter.extend(
+                [
+                    f"Empirical {distance_measure} Distance",
+                    f"Rank based on {distance_measure} Distance",
+                ]
+            )
+            smaller_df = last_entries[cols_to_filter]
+
+    else:
+        # in this case we just have model1 and model2 combinations
+        cols_to_filter.extend(["model_name1", "model_name2", "seed1", "seed2"])
+
+        last_entries = df.groupby(cols_to_filter).last().reset_index()
+
+        cols_to_filter.append("Power")
+        if not distance_measure:
+            smaller_df = last_entries[cols_to_filter]
+        else:
+            if "Rank based on Wasserstein Distance" in last_entries.columns:
+                cols_to_filter.extend(
+                    [
+                        f"Empirical {distance_measure} Distance",
+                        f"Rank based on {distance_measure} Distance",
+                    ]
+                )
+                smaller_df = last_entries[cols_to_filter]
+            else:
+                cols_to_filter.append(f"Empirical {distance_measure} Distance")
+                smaller_df = last_entries[cols_to_filter]
+
+    return smaller_df
+
+
+def plot_power_over_number_of_sequences(
+    base_model_name: str,
+    base_model_seed: str,
+    checkpoints: List[str],
+    seeds: List[str],
+    checkpoint_base_name: str = "LLama-3-8B-ckpt",
+    save: bool = True,
+    group_by: str = "Checkpoint",
+    marker: str = "X",
+    save_as_pdf: bool = True,
 ):
     if group_by == "Checkpoint":
-        result_df = get_power_over_number_of_sequences(
+        result_df = get_power_over_sequences_for_checkpoints(
             base_model_name,
             base_model_seed,
             checkpoints,
@@ -171,7 +419,7 @@ def plot_power_over_number_of_sequences(
         group_by == "Rank based on Wasserstein Distance"
         or group_by == "Empirical Wasserstein Distance"
     ):
-        result_df = get_power_over_epsilon(
+        result_df = get_power_over_sequences_for_ranked_checkpoints(
             base_model_name,
             base_model_seed,
             checkpoints,
@@ -179,16 +427,9 @@ def plot_power_over_number_of_sequences(
             checkpoint_base_name=checkpoint_base_name,
         )
 
-        result_df = result_df.reset_index()
         result_df["Empirical Wasserstein Distance"] = result_df[
             "Empirical Wasserstein Distance"
         ].round(3)
-
-    if print_df:
-        pd.set_option("display.max_rows", None)
-        print(result_df)
-
-    result_df["Samples"] = result_df["Sequence"] * 96
 
     # Create the plot
     plt.figure(figsize=(12, 6))
@@ -201,7 +442,7 @@ def plot_power_over_number_of_sequences(
         x="Samples",
         y="Power",
         hue=group_by,
-        marker=marker if marker else "X",
+        marker=marker,
         markersize=10,
         palette=palette,
     )
@@ -212,7 +453,7 @@ def plot_power_over_number_of_sequences(
     # Customize the plot
     plt.xlabel("samples", fontsize=16)
     plt.ylabel("detection frequency", fontsize=16)
-    if group_by == "Checkpoints":
+    if group_by == "Checkpoint":
         title = "checkpoints"
     elif group_by == "Rank based on Wasserstein Distance":
         title = "rank"
@@ -237,6 +478,11 @@ def plot_power_over_number_of_sequences(
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+        else:
+            for seed in seeds:
+                directory += f"_{seed}"
+            if not Path(directory).exists():
+                Path(directory).mkdir(parents=True, exist_ok=True)
         if save_as_pdf:
             plt.savefig(
                 f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf",
@@ -252,115 +498,6 @@ def plot_power_over_number_of_sequences(
     plt.show()
 
 
-def get_power_over_epsilon(
-    base_model_name,
-    base_model_seed,
-    checkpoints,
-    seeds,
-    checkpoint_base_name="LLama-3-8B-ckpt",
-    epoch1=0,
-    epoch2=0,
-    metric="toxicity",
-    column_name="sequences_until_end_of_experiment",
-    max_sequences=41,
-    distance_measure="Wasserstein",
-    fold_size=None,
-):
-    if not isinstance(checkpoints, list):
-        checkpoints = [checkpoints]
-    if not isinstance(seeds, list):
-        seeds = [seeds]
-
-    result_dfs = []
-
-    for ckpt, seed in zip(checkpoints, seeds):
-        print(
-            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{ckpt}, seed: {seed}"
-        )
-        try:
-            score_path_base_model = f"model_outputs/{base_model_name}_{base_model_seed}/{metric}_scores.json"
-            score_path_checkpoint = f"model_outputs/{checkpoint_base_name}{ckpt}_{seed}/{metric}_scores.json"
-            with open(score_path_base_model, "r") as f:
-                scores_base_model = json.load(f)
-            with open(score_path_checkpoint, "r") as f:
-                scores_checkpoint = json.load(f)
-
-            scores_base = scores_base_model[str(epoch1)][f"{metric}_scores"]
-            scores_ckpt = scores_checkpoint[str(epoch2)][f"{metric}_scores"]
-
-            if distance_measure == "Wasserstein":
-                dist = empirical_wasserstein_distance_p1(scores_base, scores_ckpt)
-
-            elif distance_measure == "Kolmogorov":
-                dist = kolmogorov_variation(scores_base, scores_ckpt)
-                # print(dist)
-
-            result_df = get_df_for_checkpoint(
-                base_model_name,
-                base_model_seed,
-                ckpt,
-                seed,
-                checkpoint_base_name,
-                column_name=column_name,
-                max_sequences=max_sequences,
-                fold_size=fold_size,
-            )
-
-            result_df[f"Empirical {distance_measure} Distance"] = dist
-            result_dfs.append(result_df)
-
-        except FileNotFoundError:
-            print(f"File for checkpoint {ckpt} does not exist yet")
-
-    final_df = pd.concat(result_dfs, ignore_index=True)
-    final_df[f"Rank based on {distance_measure} Distance"] = (
-        final_df[f"Empirical {distance_measure} Distance"]
-        .rank(method="dense", ascending=True)
-        .astype(int)
-    )
-    # indexed_final_df = final_df.set_index(f"Rank based on {distance_measure} Distance")
-
-    return final_df
-
-
-def get_power_over_epsilon_wrapper(
-    base_model_name,
-    base_model_seed,
-    checkpoints,
-    seeds,
-    checkpoint_base_name="LLama-3-8B-ckpt",
-    epoch1=0,
-    epoch2=0,
-    metric="toxicity",
-    column_name="sequences_until_end_of_experiment",
-    max_sequences=41,
-    distance_measure="Wasserstein",
-    fold_sizes=None,
-):
-    result_dfs = []
-
-    for fold_size in fold_sizes:
-        result_dfs.append(
-            get_power_over_epsilon(
-                base_model_name,
-                base_model_seed,
-                checkpoints,
-                seeds,
-                checkpoint_base_name=checkpoint_base_name,
-                epoch1=epoch1,
-                epoch2=epoch2,
-                metric=metric,
-                column_name=column_name,
-                max_sequences=max_sequences,
-                distance_measure=distance_measure,
-                fold_size=fold_size,
-            )
-        )
-
-    result_df = pd.concat(result_dfs)
-    return result_df
-
-
 def plot_power_over_epsilon(
     base_model_name,
     base_model_seed,
@@ -370,16 +507,19 @@ def plot_power_over_epsilon(
     epoch1=0,
     epoch2=0,
     metric="toxicity",
-    column_name="sequences_until_end_of_experiment",
-    max_sequences=41,
     save=True,
     distance_measure="Wasserstein",
-    fold_sizes=None,
-    marker=None,
+    fold_sizes: Union[int, List[int]] = [1000, 2000, 3000, 4000],
+    marker="X",
+    palette=["#E49B0F", "#C46210", "#B7410E", "#A81C07"],
     save_as_pdf=True,
 ):
-    if fold_sizes:
-        result_df = get_power_over_epsilon_wrapper(
+    """
+    This plots power over distance measure, potentially for different fold_sizes and models.
+    """
+
+    if isinstance(fold_sizes, list):
+        result_df = get_power_over_sequences_for_ranked_checkpoints_wrapper(
             base_model_name,
             base_model_seed,
             checkpoints,
@@ -388,13 +528,11 @@ def plot_power_over_epsilon(
             epoch1=epoch1,
             epoch2=epoch2,
             metric=metric,
-            column_name=column_name,
-            max_sequences=max_sequences,
             distance_measure=distance_measure,
             fold_sizes=fold_sizes,
         )
     else:
-        result_df = get_power_over_epsilon(
+        result_df = get_power_over_sequences_for_ranked_checkpoints(
             base_model_name,
             base_model_seed,
             checkpoints,
@@ -403,38 +541,15 @@ def plot_power_over_epsilon(
             epoch1=epoch1,
             epoch2=epoch2,
             metric=metric,
-            column_name=column_name,
-            max_sequences=max_sequences,
             distance_measure=distance_measure,
         )
 
-    if "Samples per Test" in result_df.columns:
-        print("Samples is in the columns")
-        last_entries = (
-            result_df.groupby(["Samples per Test", "Checkpoint"]).last().reset_index()
-        )
-        smaller_df = last_entries.set_index("Samples per Test")[
-            [
-                "Checkpoint",
-                "Power",
-                f"Empirical {distance_measure} Distance",
-                f"Rank based on {distance_measure} Distance",
-            ]
-        ].reset_index()
-    else:
-        last_entries = result_df.groupby("Checkpoint").last().reset_index()
-        smaller_df = last_entries[
-            [
-                "Checkpoint",
-                "Power",
-                f"Empirical {distance_measure} Distance",
-                f"Rank based on {distance_measure} Distance",
-            ]
-        ].reset_index()
+    smaller_df = extract_power_from_sequence_df(
+        result_df, distance_measure=distance_measure, by_checkpoints=True
+    )
 
-    # custom_palette = ["midnightblue", "#94D2BD", "#EE9B00", "#BB3E03"]
-    # custom_palette = ["Gamboge", "Alloy orange", "Rust", "Rufus"]
-    custom_palette = ["#E49B0F", "#C46210", "#B7410E", "#A81C07"]
+    # in case we have less folds
+    palette = palette[-len(fold_sizes) :]
 
     plt.figure(figsize=(10, 6))
 
@@ -443,10 +558,10 @@ def plot_power_over_epsilon(
         y="Power",
         hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
         # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
-        marker=marker if marker else "X",
+        marker=marker,
         data=smaller_df,
         markersize=10,
-        palette=custom_palette,
+        palette=palette,
     )
 
     # plt.xlabel(f"{distance_measure.lower()} distance", fontsize=14)
@@ -476,6 +591,12 @@ def plot_power_over_epsilon(
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+        else:
+            for seed in seeds:
+                directory += f"_{seed}"
+            if not Path(directory).exists():
+                Path(directory).mkdir(parents=True, exist_ok=True)
+
         if "Samples per Test" in smaller_df.columns:
             if save_as_pdf:
                 plt.savefig(
@@ -510,10 +631,10 @@ def plot_power_over_epsilon(
         y="Power",
         hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
         # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
-        marker=marker if marker else "X",
+        marker=marker,
         data=smaller_df,
         markersize=10,
-        palette=custom_palette,
+        palette=palette,
     )
     # plt.xlabel(f"rank based on {distance_measure.lower()} distance", fontsize=14)
     plt.xlabel(f"rank based on distance to aligned model", fontsize=16)
@@ -542,6 +663,11 @@ def plot_power_over_epsilon(
         directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+        else:
+            for seed in seeds:
+                directory += f"_{seed}"
+            if not Path(directory).exists():
+                Path(directory).mkdir(parents=True, exist_ok=True)
         if "Samples per Test" in smaller_df.columns:
             if save_as_pdf:
                 plt.savefig(
@@ -570,139 +696,24 @@ def plot_power_over_epsilon(
                 )
 
 
-def get_alpha(model_name, seed1, seed2, max_sequences=41, fold_size=4000, bs=96):
-    """ """
-    max_sequences = (fold_size + bs - 1) // bs
-    if fold_size == 4000:
-        file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results.csv"
-        if not Path(file_path).exists():
-            file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results_{fold_size}.csv"
-    else:
-        file_path = f"model_outputs/{model_name}_{seed1}_{model_name}_{seed2}/kfold_test_results_{fold_size}.csv"
-    data = pd.read_csv(file_path)
-
-    selected_columns = data[
-        [
-            "fold_number",
-            "sequence",
-            "aggregated_davt",
-            "sequences_until_end_of_experiment",
-        ]
-    ]
-
-    filtered_df = selected_columns.drop_duplicates(subset=["sequence", "fold_number"])
-
-    num_folds = filtered_df["fold_number"].nunique()
-    # Set 'sequence' as the index of the DataFrame
-    indexed_df = filtered_df.set_index("sequence")
-
-    unique_fold_numbers = indexed_df["fold_number"].unique()
-
-    # Initialize a dictionary to store the counts
-    sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
-
-    # Iterate over each fold number
-    for fold in unique_fold_numbers:
-        fold_data = indexed_df[indexed_df["fold_number"] == fold]
-        for sequence in range(max_sequences):  # sequence_counts.keys()
-            if (
-                sequence in fold_data.index
-                and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
-                == sequence
-            ):
-                sequence_counts[sequence] += 1
-            elif sequence not in fold_data.index:
-                sequence_counts[sequence] += 1
-
-    # Convert the result to a DataFrame for better visualization
-    result_df = pd.DataFrame(
-        list(sequence_counts.items()), columns=["Sequence", "Count"]
-    )
-    result_df["Power"] = result_df["Count"] / num_folds
-
-    return result_df
-
-
-def get_alpha_wrapper(model_names, seeds1, seeds2, max_sequences=41, fold_size=4000):
+def get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=4000):
     if not isinstance(model_names, list):
-        return get_alpha(model_names, seeds1, seeds2, max_sequences)
+        result_df = get_power_over_sequences_for_models_or_checkpoints(
+            model_names, seeds1, seeds2, model_name2=model_names, fold_size=fold_size
+        )
 
     else:
         result_dfs = []
         for model_name, seed1, seed2 in zip(model_names, seeds1, seeds2):
-            result_df = get_alpha(
-                model_name, seed1, seed2, max_sequences, fold_size=fold_size
+            result_df = get_power_over_sequences_for_models_or_checkpoints(
+                model_name, seed1, seed2, model_name2=model_name, fold_size=fold_size
             )
-            result_df["model_id"] = model_name
             result_dfs.append(result_df)
 
     final_df = pd.concat(result_dfs, ignore_index=True)
+    final_df["model_id"] = final_df["model_name1"]
+
     return final_df
-
-
-# def plot_alpha_over_sequences(model_names, seeds1, seeds2, save=True, print_df=False):
-#     result_df = get_alpha_wrapper(model_names, seeds1, seeds2)
-#     result_df = result_df.reset_index()
-#     result_df["Samples"] = result_df["Sequence"] * 96
-
-#     print(f"Hello from inside the fct")
-
-#     group_by_model = "model_id" in result_df.columns
-
-#     if print_df:
-#         pd.set_option("display.max_rows", None)
-
-#     markers = ["o", "X", "s"]  # Different markers: circle, X, square
-
-#     # Create the plot
-#     plt.figure(figsize=(12, 6))
-#     sns.lineplot(
-#         data=result_df,
-#         x="Samples",
-#         y="Power",
-#         hue="model_id" if group_by_model else None,
-#         style="model_id" if group_by_model else None,
-#         markers=markers,
-#         dashes=False,  # No dashes, solid lines
-#         color="black",
-#     )
-
-#     # Customize the plot
-#     plt.xlabel("samples", fontsize=14)
-#     plt.ylabel("false positive rate", fontsize=14)
-#     # plt.tight_layout(rect=[0, 0, 0.85, 1])
-
-#     # Adjust the spines (box) thickness
-#     ax = plt.gca()
-#     ax.spines["top"].set_linewidth(1.5)
-#     ax.spines["right"].set_linewidth(1.5)
-#     ax.spines["bottom"].set_linewidth(1.5)
-#     ax.spines["left"].set_linewidth(1.5)
-
-#     if group_by_model:
-#         plt.legend(
-#             title="models",
-#             loc="upper left",
-#             bbox_to_anchor=(
-#                 1.05,
-#                 1,
-#             ),  # Adjusted position to ensure the legend is outside the plot area
-#         )
-#     plt.grid(True, linewidth=0.5)
-
-#     if save:
-#         directory = "model_outputs/alpha_plots"
-#         if not Path(directory).exists():
-#             Path(directory).mkdir(parents=True, exist_ok=True)
-#         fig_path = f"{directory}/alpha_error_over_number_of_sequences"
-#         if isinstance(model_names, str):
-#             fig_path += f"_{model_names}"
-#         elif isinstance(model_names, list):
-#             for model_name in model_names:
-#                 fig_path += f"_{model_name}"
-
-#         fig_path += ".png"
-#         plt.savefig(fig_path, dpi=300, bbox_inches="tight")
 
 
 def plot_alpha_over_sequences(
@@ -710,20 +721,13 @@ def plot_alpha_over_sequences(
     seeds1,
     seeds2,
     save=True,
-    print_df=False,
     save_as_pdf=True,
     markers=["X", "o", "s"],
     palette=["#94D2BD", "#EE9B00", "#BB3E03"],
     fold_size=4000,
 ):
     result_df = get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=fold_size)
-    result_df = result_df.reset_index()
-    result_df["Samples"] = result_df["Sequence"] * 96
-
     group_by_model = "model_id" in result_df.columns
-
-    if print_df:
-        pd.set_option("display.max_rows", None)
 
     # Create the plot
     plt.figure(figsize=(12, 6))
@@ -794,6 +798,134 @@ def plot_alpha_over_sequences(
         else:
             fig_path += ".png"
             plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+
+
+def plot_rejection_rate_matrix(
+    model_names1,
+    seeds1,
+    model_names2: Optional[List[str]] = None,
+    seeds2: Optional[List[str]] = None,
+    fold_size=4000,
+    distance_measure: Optional[str] = "Wasserstein",
+    metric: Optional[str] = "toxicity",
+    epoch1: Optional[int] = 0,
+    epoch2: Optional[int] = 0,
+    save: bool = True,
+    save_as_pdf: bool = True,
+):
+    """ """
+    assert (model_names2 is None and seeds2 is None) or (
+        model_names2 is not None and seeds2 is not None
+    ), "Either give full list of test models or expect to iterate over all combinations"
+
+    results_df = []
+    if not model_names2:
+        for i, (model_name1, seed1) in enumerate(zip(model_names1[:-1], seeds1[:-1])):
+            for model_name2, seed2 in zip(model_names1[i + 1 :], seeds1[i + 1 :]):
+                print(
+                    f"Checking model {model_name1}, {seed1} against {model_name2}, {seed2}"
+                )
+                result_df = get_power_over_sequences_for_models_or_checkpoints(
+                    model_name1,
+                    seed1,
+                    seed2,
+                    model_name2=model_name2,
+                    fold_size=fold_size,
+                )
+                if distance_measure:
+                    dist = get_distance_scores(
+                        model_name1,
+                        seed1,
+                        seed2,
+                        model_name2=model_name2,
+                        metric=metric,
+                        distance_measure=distance_measure,
+                        epoch1=epoch1,
+                        epoch2=epoch2,
+                    )
+                    result_df[f"Empirical {distance_measure} Distance"] = dist
+                small_df = extract_power_from_sequence_df(
+                    result_df, distance_measure=distance_measure, by_checkpoints=False
+                )
+
+                results_df.append(small_df)
+
+        results_df = pd.concat(results_df, ignore_index=True)
+
+    print(results_df)
+    pivot_table = results_df.pivot_table(values="Power", index="seed1", columns="seed2")
+
+    # Create the heatmap
+    plt.figure(figsize=(10, 8))
+    heatmap = sns.heatmap(
+        pivot_table,
+        annot=True,
+        cmap="viridis",
+        cbar_kws={"label": "Frequency of Positive Test Result"},
+    )
+    heatmap.set_title(f"Positive Test Rates for model {model_names1[0]}")
+
+    if save:
+        directory = "model_outputs/power_heatmaps"
+        if not Path(directory).exists():
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        file_name = "power_heatmap"
+        for model_name, seed in zip(model_names1, seeds1):
+            file_name += f"_{model_name}_{seed}"
+
+        if save_as_pdf:
+            file_name += ".pdf"
+            output_path = os.path.join(directory, file_name)
+            plt.savefig(output_path, format="pdf", bbox_inches="tight")
+        else:
+            file_name += ".png"
+            output_path = os.path.join(directory, file_name)
+            plt.savefig(output_path, dpi=300, bbox_inches="tight")
+
+    else:
+        plt.show()
+
+    plt.close()
+
+    if distance_measure:
+        distance_pivot_table = results_df.pivot_table(
+            values=f"Empirical {distance_measure} Distance",
+            index="seed1",
+            columns="seed2",
+        )
+
+        # Create the heatmap
+        plt.figure(figsize=(10, 8))
+        heatmap = sns.heatmap(
+            distance_pivot_table,
+            annot=True,
+            cmap="viridis",
+            cbar_kws={"label": "Distance"},
+        )
+        heatmap.set_title(f"Distance Heatmap for model {model_names1[0]}")
+
+        if save:
+            directory = "model_outputs/power_heatmaps"
+            if not Path(directory).exists():
+                Path(directory).mkdir(parents=True, exist_ok=True)
+
+            file_name = "distance_heatmap"
+            for model_name, seed in zip(model_names1, seeds1):
+                file_name += f"_{model_name}_{seed}"
+
+            if save_as_pdf:
+                file_name += ".pdf"
+                output_path = os.path.join(directory, file_name)
+                plt.savefig(output_path, format="pdf", bbox_inches="tight")
+            else:
+                file_name += ".png"
+                output_path = os.path.join(directory, file_name)
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+
+        else:
+            plt.show()
+
+        plt.close()
 
 
 def plot_scores(
@@ -905,86 +1037,6 @@ def plot_scores(
     plt.close()
 
 
-def plot_scores_multiple_models(
-    model_names, seeds, metric="toxicity", save=True, epoch=0
-):
-    """ """
-    all_scores = []
-
-    for m_name, seed in zip(model_names, seeds):
-        directory = f"model_outputs/{m_name}_{seed}"
-        file_path = f"{directory}/{metric}_scores.json"
-        with open(file_path, "r") as f:
-            data = json.load(f)
-
-        scores = data[str(epoch)][f"{metric}_scores"]
-
-        # Append scores to a list with model name
-        for score in scores:
-            all_scores.append({"score": score, "model_name": m_name})
-
-    # Convert to DataFrame
-    df = pd.DataFrame(all_scores)
-
-    plt.figure(figsize=(14, 7))
-
-    palette = sns.color_palette("viridis", len(model_names) - 1)
-    palette.append("red")
-    palette = palette[::-1]
-
-    # Plot histogram with seaborn using hue for model name, without kde and with a nice color palette
-    hist_plot = sns.histplot(
-        df,
-        x="score",
-        hue="model_name",
-        bins=50,
-        element="step",
-        palette=palette,
-        alpha=0.5,
-    )
-
-    # Set plot limits
-    plt.xlim(0, 1)
-    plt.yscale("log")
-
-    # plt.title(
-    #     f"Distribution of {metric.capitalize()} Scores for Multiple Models",
-    #     fontsize=16,
-    # )
-    plt.xlabel(f"{metric.lower()} score", fontsize=16)
-    plt.ylabel("frequency", fontsize=16)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.grid(True, linewidth=0.5, color="#ddddee")
-
-    # handles, labels = hist_plot.get_legend_handles_labels()
-    # print(handles, labels)
-
-    # # Manually create the legend
-    # # plt.legend(title="Models", loc="upper right", fontsize="small")
-    # plt.legend(
-    #     title="Models",
-    #     loc="center left",
-    #     bbox_to_anchor=(1, 0.5),
-    #     fontsize="xx-small",
-    # )
-
-    ax = plt.gca()
-    ax.spines["top"].set_linewidth(1.5)
-    ax.spines["right"].set_linewidth(1.5)
-    ax.spines["bottom"].set_linewidth(1.5)
-    ax.spines["left"].set_linewidth(1.5)
-
-    if save:
-        output_path = os.path.join("model_outputs", f"{metric}_scores_comparison.png")
-        # plt.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    else:
-        plt.show()
-
-    plt.close()
-
-
 def plot_scores_base_most_extreme(
     base_model_name,
     base_model_seed,
@@ -1036,7 +1088,7 @@ def plot_scores_base_most_extreme(
     max_distance = wasserstein_distances[
         (max_distance_ckpt, max_distance_seed, max_distance_epoch)
     ]
-    print(f"This is the max distance: {max_distance}")
+    print(f"This is the max distance: {max_distance:.4f}")
 
     ckpt_scores = scores_dict[
         (max_distance_ckpt, max_distance_seed, max_distance_epoch)
@@ -1144,61 +1196,52 @@ def plot_scores_base_most_extreme(
 
 
 if __name__ == "__main__":
-    base_model_name = "Meta-Llama-3-8B-Instruct"
-    base_model_seed = "seed1000"
-    checkpoint_base_name = "Llama-3-8B-ckpt"
-    checkpoints = [i for i in range(1, 11)]
-    seeds = ["seed1000" for i in checkpoints]
-
-    checkpoint_base_names = [
-        "Llama-3-8B-ckpt",
-        "Mistral-7B-Instruct-ckpt",
-        "gemma-1.1-7b-it-ckpt",
-    ]
-    checkpoints_list = [[i for i in range(1, 11)], [2, 4, 6, 8, 10], [2, 4, 6, 8, 10]]
-    seeds_list = [["seed1000" for i in ckpts] for ckpts in checkpoints_list]
-
-    model_name = "Meta-Llama-3-8B-Instruct"
-    seed1 = "seed1000"
-    seed2 = "seed2000"
-
-    pd.set_option("display.max_columns", None)
-    pd.set_option("display.max_rows", None)
-
-    model_names = [
+    # Definitions for plotting
+    base_model_name_list = [
         "Meta-Llama-3-8B-Instruct",
         "Mistral-7B-Instruct-v0.2",
         "gemma-1.1-7b-it",
     ]
-    seed1s = ["seed1000" for i in model_names]
-    seed2s = ["seed2000" for i in model_names]
+    checkpoint_base_name_list = [
+        "Llama-3-8B-ckpt",
+        "Mistral-7B-Instruct-ckpt",
+        "gemma-1.1-7b-it-ckpt",
+    ]
+    base_model_seed_list = ["seed1000" for i in base_model_name_list]
+    checkpoints_list = [[i for i in range(1, 11)], [2, 4, 6, 8, 10], [2, 4, 6, 8, 10]]
+    seeds_list = [["seed1000" for i in ckpts] for ckpts in checkpoints_list]
 
-    markers = ["X", "o", "s"]
+    alternative_llama_seeds = [
+        "seed4000",
+        "seed4000",
+        "seed7000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed7000",
+        "seed5000",
+    ]
+    alternative_llama_palette = sns.color_palette("viridis", 10)
+    alternative_llama_palette = alternative_llama_palette[::-1]
 
-    model_names_for_dist_plot = ["Meta-Llama-3-8B-Instruct"]
-    checkpoint_list = [f"Llama-3-8B-ckpt{i}" for i in range(1, 11)]
-    model_names_for_dist_plot.extend(checkpoint_list)
-    seeds_for_dist_plot = ["seed1000" for i in model_names_for_dist_plot]
+    base_model_markers = ["X", "o", "s"]
 
+    # for power_over_epsilon
     fold_sizes = [1000, 2000, 3000, 4000]
+
+    # for alpha_over_sequences
     custom_colors = ["#94D2BD", "#EE9B00", "#BB3E03"]
     darker_custom_colors = ["#85BDAA", "#D28B00", "#A63703"]
     corrupted_model_custom_colors = ["#25453a", "#4f3300", "#3e1401"]
     darker_corrupted_model_custom_colors = ["#101e19", "#221600", "#1b0900"]
 
-    # plot_power_over_epsilon(
-    #     base_model_name,
-    #     base_model_seed,
-    #     checkpoints,
-    #     seeds,
-    #     checkpoint_base_name=checkpoint_base_name,
-    #     distance_measure="Kolmogorov",
-    # )
-
-    # plot_alpha_over_sequences(model_name, seed1, seed2)
-
-    # df = get_power_over_epsilon(base_model_name, base_model_seed, checkpoints, seeds)
-    # print(df)
+    checkpoint1_palette = ["red", "green", "blue"]
+    checkpoint1_markers = ["X", "X", "X"]
+    checkpoint1_models = ["Llama-3-8B-ckpt1" for i in range(3)]
+    checkpoint1_seeds1 = ["seed1000" for i in range(3)]
+    checkpoint1_seeds2 = ["seed4000", "seed5000", "seed7000"]
 
     # plot_alpha_over_sequences(model_names, seed1s, seed2s, print_df=True)
     # for bm_name, color in zip(model_names, custom_colors):
@@ -1247,11 +1290,11 @@ if __name__ == "__main__":
     #     corrupted_color,
     #     darker_corrupted_color,
     # ) in zip(
-    #     model_names,
+    #     base_model_name_list,
     #     custom_colors,
     #     checkpoints_list,
     #     seeds_list,
-    #     checkpoint_base_names,
+    #     checkpoint_base_name_list,
     #     custom_colors,
     #     darker_custom_colors,
     #     corrupted_model_custom_colors,
@@ -1259,7 +1302,7 @@ if __name__ == "__main__":
     # ):
     #     plot_scores_base_most_extreme(
     #         bm_name,
-    #         base_model_seed,
+    #         "seed1000",
     #         checkpoints,
     #         seeds,
     #         checkpoint_base_name,
@@ -1269,29 +1312,61 @@ if __name__ == "__main__":
     #         corrupted_color=corrupted_color,
     #         darker_corrupted_color=darker_corrupted_color,
     #         save=True,
+    #         use_log_scale=False,
+    #         save_as_pdf=False,
     #     )
 
-    alpha_palette = sns.color_palette("viridis", 10)
-    alpha_palette = alpha_palette[::-1]
-    alpha_seeds = [
-        "seed4000",
-        "seed4000",
-        "seed7000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed7000",
-        "seed5000",
-    ]
+    # checkpoint1_list = [1, 1, 1, 1]
+    # checkpoint1_seeds_list = ["seed1000", "seed4000", "seed5000", "seed7000"]
+    # df = get_alpha_wrapper(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed1000",
+    #     checkpoint1_list,
+    #     checkpoint1_seeds_list,
+    #     checkpoint_base_name="Llama-3-8B-ckpt",
+    #     fold_sizes=fold_sizes,
+    #     marker="X",
+    # )
 
-    alpha_markers = ["X" for i in range(10)]
+    # plot_power_over_number_of_sequences(
+    #     base_model_name_list[0],
+    #     base_model_seed_list[0],
+    #     checkpoints_list[0],
+    #     alternative_llama_seeds,
+    #     checkpoint_base_name="Llama-3-8B-ckpt",
+    #     group_by="Rank based on Wasserstein Distance",
+    # )
 
-    plot_alpha_over_sequences(
-        checkpoint_list,
-        seeds_for_dist_plot,
-        alpha_seeds,
-        palette=alpha_palette,
-        markers=alpha_markers,
+    # plot_power_over_epsilon(
+    #     base_model_name_list[0],
+    #     base_model_seed_list[0],
+    #     checkpoints_list[0],
+    #     alternative_llama_seeds,
+    #     checkpoint_base_name="Llama-3-8B-ckpt",
+    #     fold_sizes=[1000, 2000, 3000, 4000],
+    # )
+
+    # plot_alpha_over_sequences(
+    #     base_model_name_list, base_model_seed_list, ["seed2000", "seed2000", "seed2000"]
+    # )
+
+    # plot_rejection_rate_matrix(
+    #     ["Llama-3-8B-ckpt1" for i in range(4)],
+    #     ["seed1000", "seed4000", "seed5000", "seed7000"],
+    # )
+
+    df = get_power_over_sequences_for_models_or_checkpoints(
+        base_model_name_list[0],
+        "seed1000",
+        "seed1000",
+        model_name2=base_model_name_list[2],
     )
+
+    dist = get_distance_scores(
+        base_model_name_list[0],
+        "seed1000",
+        "seed1000",
+        model_name2=base_model_name_list[2],
+    )
+    print(df)
+    print(dist)

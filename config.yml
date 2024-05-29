@@ -36,7 +36,7 @@ tau1:
 tau2: 
   model_id: Llama-3-8B-ckpt1
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
-  gen_seed: seed5000
+  gen_seed: seed2000
   model_kwargs:
     torch_dtype: torch.bfloat16
     load_in_4bit: true
