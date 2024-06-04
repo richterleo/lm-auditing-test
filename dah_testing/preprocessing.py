@@ -493,32 +493,7 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "gemma-1.1-7b-it"
-    seed = "seed2000"
+    model_name = "Mistral-7B-Instruct-ckpt3"
+    seed = "seed1000"
 
-    model_name1 = "gemma-1.1-7b-it-ckpt10"  # change this to the checkpoint to evaluate
-    # checkpoints still to evaluate: 6,7,8,9,10, all gemma models, base instruct model
-
-    seed1 = "seed1000"  # change this to the current seed
-
-    model_name2 = "Llama-3-8B-ckpt1"
-    seed2 = "seed3000"
-
-    evaluate_single_model(
-        model_name2, seed2, "toxicity", overwrite=True, use_wandb=False
-    )
-    # create_common_json(model_name1, seed1, model_name2, seed2)
-    # create_folds(model_name1, seed1, model_name2, seed2)
-
-    # create_folds_from_evaluations(model_name1, seed1, model_name2, seed2)
-
-    # model_outputs_dir = "model_outputs"
-    # for folder_name in os.listdir(model_outputs_dir):
-    #     folder_path = os.path.join(model_outputs_dir, folder_name)
-    #     if os.path.isdir(folder_path):
-    #         print(folder_path)
-
-    #     pattern1 = "toxicity_scores_fold_*.json"
-    #     pattern2 = "toxicity_scores_*.json"
-    #     cleanup_files(folder_path, pattern1)
-    #     cleanup_files(folder_path, pattern2)
+    evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=False)

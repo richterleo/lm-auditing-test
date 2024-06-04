@@ -58,6 +58,10 @@ def extract_data_for_models(
     print(f"This is the file path: {file_path}")
     data = pd.read_csv(file_path)
 
+    # TODO: make this less hacky
+    # we're just discarding the last fold for now, because it is smaller than the rest
+    data = data[data["fold_number"] != data["fold_number"].max()]
+
     return data
 
 
@@ -771,7 +775,8 @@ def plot_alpha_over_sequences(
     if group_by_model:
         plt.legend(
             title="models",
-            loc="upper left",
+            # loc="lower right",
+            loc="lower right",
             fontsize=14,
             title_fontsize=16,
             # bbox_to_anchor=(
@@ -1195,6 +1200,136 @@ def plot_scores_base_most_extreme(
     plt.close()
 
 
+def plot_scores_two_models(
+    model_name1,
+    seed1,
+    model_name2,
+    seed2,
+    save=True,
+    use_log_scale=True,
+    metric="toxicity",
+    epoch1=0,
+    epoch2=0,
+    color="blue",
+    darker_color="blue",
+    dark=False,
+    corrupted_color="red",
+    darker_corrupted_color="red",
+    save_as_pdf=True,
+):
+    directory1 = f"model_outputs/{model_name1}_{seed1}"
+    file_path1 = f"{directory1}/{metric}_scores.json"
+    directory2 = f"model_outputs/{model_name2}_{seed2}"
+    file_path2 = f"{directory2}/{metric}_scores.json"
+
+    with open(file_path1, "r") as f:
+        data1 = json.load(f)
+
+    with open(file_path2, "r") as f:
+        data2 = json.load(f)
+
+    scores1 = data1[str(epoch1)][f"{metric}_scores"]
+    scores2 = data2[str(epoch2)][f"{metric}_scores"]
+
+    dist = empirical_wasserstein_distance_p1(scores1, scores2)
+
+    print(
+        f"This is the distance: {dist} between {model_name1}, {seed1} and {model_name2}, {seed2}"
+    )
+    skewness1 = skew(scores1)
+    skewness2 = skew(scores2)
+    print(f"skewness for model {model_name1}, {seed1}: {skewness1:.3f}")
+    print(f"skewness for model {model_name2}, {seed2}: {skewness2:.3f}")
+
+    df = pd.DataFrame(
+        {
+            "scores": scores1 + scores2,
+            "model 1": [f"{model_name1}_{seed1}"] * len(scores1)
+            + [f"{model_name2}_{seed2}"] * len(scores2),
+        }
+    )
+
+    mean_score1 = np.mean(scores1)
+    mean_score2 = np.mean(scores2)
+
+    plt.figure(figsize=(14, 7))
+
+    sns.histplot(
+        data=df,
+        x="scores",
+        hue="model 1",
+        bins=50,
+        edgecolor=None,
+        alpha=0.7,
+        # palette=[color, "#CD5C5C"],
+        palette=[color, corrupted_color],
+    )
+
+    plt.axvline(
+        mean_score1,
+        color=darker_color,
+        linestyle="--",
+        linewidth=1.5,
+        label=f"model 1 mean {metric.lower()}: {mean_score1:.3f}",
+        # label_size=16,
+    )
+
+    plt.axvline(
+        mean_score2,
+        color=darker_corrupted_color,
+        linestyle="--",
+        linewidth=1.5,
+        label=f"model 2 mean {metric.lower()}: {mean_score2:.3f}",
+        # label_size=16,
+    )
+
+    plt.xlim(0, 1)
+    if use_log_scale:
+        plt.yscale("log")
+
+    plt.xlabel(f"{metric.lower()} score", fontsize=16)
+    plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=14)
+
+    plt.gca().xaxis.set_major_locator(MultipleLocator(0.1))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(0.05))
+    plt.grid(True, "minor", color="#ddddee")
+
+    if save:
+        if use_log_scale:
+            if save_as_pdf:
+                output_path = os.path.join(
+                    directory1,
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}_log.pdf",
+                )
+                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+            else:
+                output_path = os.path.join(
+                    directory1,
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}_log.png",
+                )
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+        else:
+            if save_as_pdf:
+                output_path = os.path.join(
+                    directory1,
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}.pdf",
+                )
+                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+            else:
+                output_path = os.path.join(
+                    directory1,
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}.png",
+                )
+                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    else:
+        plt.show()
+
+    plt.close()
+
+
 if __name__ == "__main__":
     # Definitions for plotting
     base_model_name_list = [
@@ -1208,7 +1343,7 @@ if __name__ == "__main__":
         "gemma-1.1-7b-it-ckpt",
     ]
     base_model_seed_list = ["seed1000" for i in base_model_name_list]
-    checkpoints_list = [[i for i in range(1, 11)], [2, 4, 6, 8, 10], [2, 4, 6, 8, 10]]
+    checkpoints_list = [[i for i in range(1, 11)] for j in range(3)]
     seeds_list = [["seed1000" for i in ckpts] for ckpts in checkpoints_list]
 
     alternative_llama_seeds = [
@@ -1328,23 +1463,30 @@ if __name__ == "__main__":
     #     marker="X",
     # )
 
-    # plot_power_over_number_of_sequences(
-    #     base_model_name_list[0],
-    #     base_model_seed_list[0],
-    #     checkpoints_list[0],
-    #     alternative_llama_seeds,
-    #     checkpoint_base_name="Llama-3-8B-ckpt",
-    #     group_by="Rank based on Wasserstein Distance",
-    # )
+    # for bm_name, bm_seed, ckpt_list, seed_list, ckpt_bm in zip(
+    #     base_model_name_list,
+    #     base_model_seed_list,
+    #     checkpoints_list,
+    #     seeds_list,
+    #     checkpoint_base_name_list,
+    # ):
+    #     plot_power_over_number_of_sequences(
+    #         bm_name,
+    #         bm_seed,
+    #         ckpt_list,
+    #         seed_list,
+    #         checkpoint_base_name=ckpt_bm,
+    #         group_by="Empirical Wasserstein Distance",
+    #     )
 
-    # plot_power_over_epsilon(
-    #     base_model_name_list[0],
-    #     base_model_seed_list[0],
-    #     checkpoints_list[0],
-    #     alternative_llama_seeds,
-    #     checkpoint_base_name="Llama-3-8B-ckpt",
-    #     fold_sizes=[1000, 2000, 3000, 4000],
-    # )
+    #     plot_power_over_epsilon(
+    #         bm_name,
+    #         bm_seed,
+    #         ckpt_list,
+    #         seed_list,
+    #         checkpoint_base_name=ckpt_bm,
+    #         fold_sizes=[1000, 2000, 3000, 4000],
+    #     )
 
     # plot_alpha_over_sequences(
     #     base_model_name_list, base_model_seed_list, ["seed2000", "seed2000", "seed2000"]
@@ -1355,18 +1497,32 @@ if __name__ == "__main__":
     #     ["seed1000", "seed4000", "seed5000", "seed7000"],
     # )
 
-    df = get_power_over_sequences_for_models_or_checkpoints(
-        base_model_name_list[0],
-        "seed1000",
-        "seed1000",
-        model_name2=base_model_name_list[2],
-    )
+    # df = get_power_over_sequences_for_models_or_checkpoints(
+    #     base_model_name_list[2],
+    #     "seed1000",
+    #     "seed2000",
+    #     model_name2=base_model_name_list[2],
+    # )
 
-    dist = get_distance_scores(
-        base_model_name_list[0],
-        "seed1000",
-        "seed1000",
-        model_name2=base_model_name_list[2],
+    # dist = get_distance_scores(
+    #     base_model_name_list[2],
+    #     "seed1000",
+    #     "seed2000",
+    #     model_name2=base_model_name_list[2],
+    # )
+    # print(f"Distance: {dist:.5f}")
+
+    # model_name1 = "Mistral-7B-Instruct-v0.2"
+    # seed1 = "seed1000"
+    # seed2 = "seed2000"
+
+    # plot_scores_two_models(model_name1, seed1, model_name1, seed2)
+
+    plot_power_over_number_of_sequences(
+        base_model_name_list[2],
+        base_model_seed_list[2],
+        checkpoints_list[2],
+        seeds_list[2],
+        checkpoint_base_name=checkpoint_base_name_list[2],
+        group_by="Empirical Wasserstein Distance",
     )
-    print(df)
-    print(dist)

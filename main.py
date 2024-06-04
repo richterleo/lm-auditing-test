@@ -414,34 +414,34 @@ def main():
 
 
 if __name__ == "__main__":
-    alpha_seeds = [
-        "seed4000",
-        "seed4000",
-        "seed7000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed7000",
-        "seed5000",
-    ]
+    # alpha_seeds = [
+    #     "seed4000",
+    #     "seed4000",
+    #     "seed7000",
+    #     "seed7000",
+    #     "seed6000",
+    #     "seed7000",
+    #     "seed6000",
+    #     "seed7000",
+    #     "seed7000",
+    #     "seed5000",
+    # ]
 
-    checkpoint1 = "Llama-3-8B-ckpt1"
-    checkpoint1_list = [
-        "seed1000",
-        "seed2000",
-        "seed3000",
-        "seed4000",
-        "seed5000",
-        "seed7000",
-    ]
+    # checkpoint1 = "Llama-3-8B-ckpt1"
+    # checkpoint1_list = [
+    #     "seed1000",
+    #     "seed2000",
+    #     "seed3000",
+    #     "seed4000",
+    #     "seed5000",
+    #     "seed7000",
+    # ]
 
-    checkpoint_list = [f"Llama-3-8B-ckpt{i}" for i in range(1, 11)]
+    # checkpoint_list = [f"Llama-3-8B-ckpt{i}" for i in range(1, 11)]
 
-    config = load_config("config.yml")
-    train_cfg = TrainCfg()
-    fold_num = 1
+    # config = load_config("config.yml")
+    # train_cfg = TrainCfg()
+    # fold_num = 1
 
     # for model, seed in zip(checkpoint_list, alpha_seeds):
     #     # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
@@ -466,15 +466,15 @@ if __name__ == "__main__":
     #         fold_size=4000,
     #     )
 
-    kfold_train(
-        config,
-        train_cfg,
-        use_wandb=False,
-        model_name1=checkpoint1,
-        model_name2=checkpoint1,
-        seed1="seed3000",
-        seed2=seed,
-        fold_size=4000,
-    )
+    # kfold_train(
+    #     config,
+    #     train_cfg,
+    #     use_wandb=False,
+    #     model_name1=checkpoint1,
+    #     model_name2=checkpoint1,
+    #     seed1="seed3000",
+    #     seed2=seed,
+    #     fold_size=4000,
+    # )
 
-    # main()
+    main()
