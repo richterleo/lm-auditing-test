@@ -7,7 +7,6 @@ import random
 import sys
 import numpy as np
 import wandb
-import orjson  # Using orjson for faster JSON operations
 import time
 
 
@@ -129,13 +128,18 @@ def evaluate_single_model(
         data[epoch][f"{metric}_scores"] = []
 
         # if we have a lot of generations, we need to query the API in batches
-        if len(concatenated_generations) > 100 and metric == "perspective":
+        if len(concatenated_generations) > ds_batch_size and metric == "perspective":
             scores = []
-            for i in range(0, len(concatenated_generations), 100):
-                print(f"Processing batch {i} to {i+100}")
+            start = time.time()
+            for i in tqdm(range(0, len(concatenated_generations), ds_batch_size)):
+                end = time.time()
+                print(
+                    f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {end-start} seconds"
+                )
+                start = time.time()
                 new_scores = eval_on_metric(
                     metric,
-                    concatenated_generations[i : i + 100],
+                    concatenated_generations[i : i + ds_batch_size],
                     asynchronously=asynchronously,
                 )
                 scores.extend(new_scores)
@@ -145,7 +149,7 @@ def evaluate_single_model(
             ), f"Did not get all scores: only {len(scores)} scores, but {len(concatenated_generations)} generations"
 
         # tracking more to see why evaluations are so slow
-        elif len(concatenated_generations) > 1000:
+        elif len(concatenated_generations) > ds_batch_size:
             scores = []
             # metric_model = evaluate.load(metric) not on GPU
 
@@ -317,57 +321,6 @@ def create_common_json(
             wandb.finish()
 
 
-def create_common_json_fast(
-    model_name1, seed1, model_name2, seed2, metric, epoch=0, overwrite=True
-):
-    file_path1 = f"model_outputs/{model_name1}_{seed1}"
-    file_path2 = f"model_outputs/{model_name2}_{seed2}"
-    new_folder_path = (
-        Path("model_outputs") / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
-    )
-
-    new_folder_path.mkdir(parents=True, exist_ok=True)
-
-    with open(os.path.join(file_path1, f"{metric}_scores.json"), "rb") as file1, open(
-        os.path.join(file_path2, f"{metric}_scores.json"), "rb"
-    ) as file2:
-        data1 = orjson.loads(file1.read())
-        data2 = orjson.loads(file2.read())
-
-    data = defaultdict(list)
-    data["metadata1"] = data1["metadata"]
-    data["metadata2"] = data2["metadata"]
-
-    filtered_data1 = data1.get(str(epoch), {})
-    filtered_data2 = data2.get(str(epoch), {})
-
-    common_prompts = set(filtered_data1.get("prompts", [])) & set(
-        filtered_data2.get("prompts", [])
-    )
-
-    prompt_indices1 = {
-        prompt: i for i, prompt in enumerate(filtered_data1.get("prompts", []))
-    }
-    prompt_indices2 = {
-        prompt: i for i, prompt in enumerate(filtered_data2.get("prompts", []))
-    }
-
-    for prompt in common_prompts:
-        data["prompts"].append(prompt)
-        index1 = prompt_indices1[prompt]
-        index2 = prompt_indices2[prompt]
-
-        data["continuations1"].append(filtered_data1["continuations"][index1])
-        data["continuations2"].append(filtered_data2["continuations"][index2])
-        data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
-        data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
-
-    file_path = new_folder_path / f"{metric}_scores.json"
-    if overwrite or not file_path.exists():
-        with open(file_path, "wb") as file:
-            file.write(orjson.dumps(data))
-
-
 def cleanup_files(directory, pattern):
     files_to_delete = glob.glob(os.path.join(directory, pattern))
     for file_path in files_to_delete:
@@ -493,7 +446,7 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "Mistral-7B-Instruct-ckpt3"
+    model_name = "Meta-Llama-3-8B-Instruct"
     seed = "seed1000"
 
-    evaluate_single_model(model_name, seed, "toxicity", overwrite=True, use_wandb=False)
+    evaluate_single_model(model_name, seed, "perspective", overwrite=True)

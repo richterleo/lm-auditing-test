@@ -310,7 +310,7 @@ async def fetch_toxicity(session, text, retries=5):
             logger.error(f"Attempt {attempt + 1}: ClientError - {e}")
         except asyncio.TimeoutError:
             logger.error(f"Attempt {attempt + 1}: Request timed out")
-        await asyncio.sleep(1)  # Wait a bit before retrying
+        await asyncio.sleep(15)  # Wait a bit before retrying
 
     raise Exception(f"Failed to fetch toxicity data after {retries} attempts")
 
