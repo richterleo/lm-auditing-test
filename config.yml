@@ -1,6 +1,6 @@
 metric:
   behavior: toxicity
-  metric: toxicity
+  metric: perspective
   lower_lim: 0.0
   upper_lim: 1.0
   dataset_name: allenai/real-toxicity-prompts

@@ -1504,25 +1504,16 @@ if __name__ == "__main__":
     #     model_name2=base_model_name_list[2],
     # )
 
-    # dist = get_distance_scores(
-    #     base_model_name_list[2],
-    #     "seed1000",
-    #     "seed2000",
-    #     model_name2=base_model_name_list[2],
-    # )
-    # print(f"Distance: {dist:.5f}")
+    dist = get_distance_scores(
+        base_model_name_list[1],
+        "seed1000",
+        "seed1000",
+        model_name2="Mistral-7B-Instruct-ckpt1",
+    )
+    print(f"Distance: {dist:.5f}")
 
     # model_name1 = "Mistral-7B-Instruct-v0.2"
     # seed1 = "seed1000"
     # seed2 = "seed2000"
 
     # plot_scores_two_models(model_name1, seed1, model_name1, seed2)
-
-    plot_power_over_number_of_sequences(
-        base_model_name_list[2],
-        base_model_seed_list[2],
-        checkpoints_list[2],
-        seeds_list[2],
-        checkpoint_base_name=checkpoint_base_name_list[2],
-        group_by="Empirical Wasserstein Distance",
-    )
