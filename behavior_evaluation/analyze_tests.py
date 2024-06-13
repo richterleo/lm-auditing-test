@@ -20,8 +20,8 @@ from behavior_evaluation.distance_and_variation import (
 )
 
 
-pd.set_option("display.max_rows", 500)
-pd.set_option("display.max_columns", 500)
+pd.set_option("display.max_rows", 1000)
+pd.set_option("display.max_columns", 1000)
 pd.set_option("display.width", 1000)
 
 
@@ -55,7 +55,7 @@ def extract_data_for_models(
         else:
             file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
 
-    print(f"This is the file path: {file_path}")
+    print(f"This is the file path: {file_path} and this is the fold_size: {fold_size}")
     data = pd.read_csv(file_path)
 
     # TODO: make this less hacky
@@ -90,6 +90,12 @@ def get_power_over_sequences_from_whole_ds(
     # Initialize a dictionary to store the counts
     sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
 
+    pd.set_option("display.max_rows", 1000)
+    pd.set_option("display.max_columns", 1000)
+    pd.set_option("display.width", 1000)
+
+    print(f"This is the indexed df: {indexed_df}")
+
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
@@ -112,6 +118,8 @@ def get_power_over_sequences_from_whole_ds(
     result_df["Samples"] = result_df["Sequence"] * bs
 
     result_df.reset_index()
+
+    print(f"This is the result df: {result_df}")
 
     return result_df
 
@@ -149,6 +157,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
             seed2,
             checkpoint=checkpoint,
             checkpoint_base_name=checkpoint_base_name,
+            fold_size=fold_size,
         )
         result_df = get_power_over_sequences_from_whole_ds(data, fold_size, bs)
         result_df["Checkpoint"] = checkpoint
@@ -358,6 +367,12 @@ def extract_power_from_sequence_df(
     """ """
     cols_to_filter = ["Samples per Test"]
 
+    pd.set_option("display.max_rows", 1000)
+    pd.set_option("display.max_columns", 1000)
+    pd.set_option("display.width", 1000)
+
+    print(f"This is the df before extracting just the power: {df}")
+
     if by_checkpoints:
         cols_to_filter.append("Checkpoint")
         last_entries = df.groupby(cols_to_filter).last().reset_index()
@@ -374,6 +389,8 @@ def extract_power_from_sequence_df(
                 ]
             )
             smaller_df = last_entries[cols_to_filter]
+
+            print(f"This is the smaller df now: {smaller_df}")
 
     else:
         # in this case we just have model1 and model2 combinations
@@ -556,6 +573,14 @@ def plot_power_over_epsilon(
     palette = palette[-len(fold_sizes) :]
 
     plt.figure(figsize=(10, 6))
+
+    pd.set_option("display.max_rows", 1000)
+    pd.set_option("display.max_columns", 1000)
+    pd.set_option("display.width", 1000)
+
+    print(
+        f"This is the smaller df inside plot_power_over_epsilon: {smaller_df} for fold_sizes {fold_sizes}"
+    )
 
     sns.lineplot(
         x=f"Empirical {distance_measure} Distance",
@@ -1358,6 +1383,8 @@ if __name__ == "__main__":
         "seed7000",
         "seed5000",
     ]
+
+    alternative_seeds_list = [alternative_llama_seeds, seeds_list[1], seeds_list[2]]
     alternative_llama_palette = sns.color_palette("viridis", 10)
     alternative_llama_palette = alternative_llama_palette[::-1]
 
@@ -1463,12 +1490,13 @@ if __name__ == "__main__":
     #     marker="X",
     # )
 
-    # for bm_name, bm_seed, ckpt_list, seed_list, ckpt_bm in zip(
+    # for bm_name, bm_seed, ckpt_list, seed_list, ckpt_bm, marker in zip(
     #     base_model_name_list,
     #     base_model_seed_list,
     #     checkpoints_list,
-    #     seeds_list,
+    #     alternative_seeds_list,
     #     checkpoint_base_name_list,
+    #     base_model_markers,
     # ):
     #     plot_power_over_number_of_sequences(
     #         bm_name,
@@ -1477,6 +1505,7 @@ if __name__ == "__main__":
     #         seed_list,
     #         checkpoint_base_name=ckpt_bm,
     #         group_by="Empirical Wasserstein Distance",
+    #         marker=marker,
     #     )
 
     #     plot_power_over_epsilon(
@@ -1486,7 +1515,18 @@ if __name__ == "__main__":
     #         seed_list,
     #         checkpoint_base_name=ckpt_bm,
     #         fold_sizes=[1000, 2000, 3000, 4000],
+    #         marker=marker,
     #     )
+
+    plot_power_over_epsilon(
+        base_model_name_list[2],
+        base_model_seed_list[2],
+        checkpoints_list[2],
+        alternative_seeds_list[2],
+        checkpoint_base_name=checkpoint_base_name_list[2],
+        fold_sizes=[1000, 2000, 3000, 4000],
+        marker=base_model_markers[2],
+    )
 
     # plot_alpha_over_sequences(
     #     base_model_name_list, base_model_seed_list, ["seed2000", "seed2000", "seed2000"]
@@ -1504,16 +1544,155 @@ if __name__ == "__main__":
     #     model_name2=base_model_name_list[2],
     # )
 
-    dist = get_distance_scores(
-        base_model_name_list[1],
-        "seed1000",
-        "seed1000",
-        model_name2="Mistral-7B-Instruct-ckpt1",
-    )
-    print(f"Distance: {dist:.5f}")
+    for i, seed in enumerate(alternative_llama_seeds):
+        dist = get_distance_scores(
+            "Meta-Llama-3-8B-Instruct",
+            "seed1000",
+            seed,
+            model_name2=f"Llama-3-8B-ckpt{i+1}",
+        )
+        print(f"Distance for model Llama-3-8B-ckpt{i+1}_{seed}: {dist:.5f}")
+
+    for i in range(10):
+        dist = get_distance_scores(
+            base_model_name_list[1],
+            "seed1000",
+            "seed1000",
+            checkpoint=i + 1,
+            checkpoint_base_name=checkpoint_base_name_list[1],
+        )
+        print(
+            f"Distance for model {checkpoint_base_name_list[1]}{i+1}_seed1000: {dist:.5f}"
+        )
+
+    for i in range(10):
+        dist = get_distance_scores(
+            base_model_name_list[2],
+            "seed1000",
+            "seed1000",
+            checkpoint=i + 1,
+            checkpoint_base_name=checkpoint_base_name_list[2],
+        )
+        print(
+            f"Distance for model {checkpoint_base_name_list[2]}{i+1}_seed1000: {dist:.5f}"
+        )
 
     # model_name1 = "Mistral-7B-Instruct-v0.2"
     # seed1 = "seed1000"
     # seed2 = "seed2000"
 
     # plot_scores_two_models(model_name1, seed1, model_name1, seed2)
+
+    # Prepare the data
+    data = {
+        "Model": [
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Llama-3-8B",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "Mistral-7B-Instruct",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+            "gemma-1.1-7b-it",
+        ],
+        "Checkpoint": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+        ],
+        "Distance": [
+            0.00013,
+            0.00219,
+            0.00543,
+            0.00382,
+            0.00439,
+            0.00444,
+            0.00420,
+            0.00498,
+            0.00497,
+            0.00494,
+            0.00024,
+            0.00658,
+            0.02112,
+            0.00746,
+            0.00704,
+            0.01111,
+            0.00709,
+            0.00709,
+            0.00899,
+            0.00750,
+            0.00027,
+            0.00474,
+            0.01683,
+            0.01333,
+            0.00742,
+            0.00658,
+            0.00841,
+            0.00903,
+            0.01378,
+            0.01325,
+        ],
+    }
+
+    df = pd.DataFrame(data)
+
+    # Create the plot
+    plt.figure(figsize=(14, 7))
+    sns.lineplot(data=df, x="Checkpoint", y="Distance", hue="Model", marker="o")
+    plt.title("Distance over Checkpoints for Different Model Families")
+    plt.xlabel("Checkpoint")
+    plt.ylabel("Distance")
+    plt.legend(title="Model")
+    plt.grid(True)
+    plt.savefig(
+        "model_outputs/distance_over_checkpoints.pdf", bbox_inches="tight", format="pdf"
+    )

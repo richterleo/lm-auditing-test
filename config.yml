@@ -1,6 +1,6 @@
 metric:
   behavior: toxicity
-  metric: perspective
+  metric: toxicity
   lower_lim: 0.0
   upper_lim: 1.0
   dataset_name: allenai/real-toxicity-prompts
@@ -34,7 +34,7 @@ model_id: Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
   gen_batch_size: 8
 
 tau2: 
-  model_id: Mistral-7B-Instruct-v0.2
+  model_id: gemma-1.1-7b-it-ckpt2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
   model_kwargs:

@@ -414,18 +414,18 @@ def main():
 
 
 if __name__ == "__main__":
-    # alpha_seeds = [
-    #     "seed4000",
-    #     "seed4000",
-    #     "seed7000",
-    #     "seed7000",
-    #     "seed6000",
-    #     "seed7000",
-    #     "seed6000",
-    #     "seed7000",
-    #     "seed7000",
-    #     "seed5000",
-    # ]
+    alpha_seeds = [
+        "seed4000",
+        "seed4000",
+        "seed7000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed6000",
+        "seed7000",
+        "seed7000",
+        "seed5000",
+    ]
 
     # checkpoint1 = "Llama-3-8B-ckpt1"
     # checkpoint1_list = [
@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
     # config = load_config("config.yml")
     # train_cfg = TrainCfg()
-    # fold_num = 1
+    # # fold_num = 1
 
     # for model, seed in zip(checkpoint_list, alpha_seeds):
     #     # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
@@ -451,7 +451,7 @@ if __name__ == "__main__":
     #         use_wandb=False,
     #         model_name2=model,
     #         seed2=seed,
-    #         fold_size=1000,
+    #         fold_size=2000,
     #     )
 
     # for seed in checkpoint1_list[3:]:
