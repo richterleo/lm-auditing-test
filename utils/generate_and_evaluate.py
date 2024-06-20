@@ -273,7 +273,7 @@ def call_perspective_synchronously(continuations):
 #         return ratings
 
 
-async def fetch_toxicity(session, text, retries=5):
+async def fetch_toxicity(session, text, retries=10):
     from utils.keys import PERSPECTIVE_API_KEY
 
     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
@@ -284,6 +284,7 @@ async def fetch_toxicity(session, text, retries=5):
         "comment": {"text": text},
         "requestedAttributes": {"TOXICITY": {}},
         "doNotStore": True,
+        "languages": ["en"],
     }
     headers = {"Content-Type": "application/json"}
 
@@ -294,7 +295,7 @@ async def fetch_toxicity(session, text, retries=5):
                 params=params,
                 data=json.dumps(payload),
                 headers=headers,
-                timeout=100,
+                timeout=120,
             ) as response:
                 if response.status == 200:
                     resp_json = await response.json()
@@ -310,7 +311,7 @@ async def fetch_toxicity(session, text, retries=5):
             logger.error(f"Attempt {attempt + 1}: ClientError - {e}")
         except asyncio.TimeoutError:
             logger.error(f"Attempt {attempt + 1}: Request timed out")
-        await asyncio.sleep(15)  # Wait a bit before retrying
+        await asyncio.sleep(240)  # Wait a bit before retrying
 
     raise Exception(f"Failed to fetch toxicity data after {retries} attempts")
 

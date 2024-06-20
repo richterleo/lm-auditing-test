@@ -446,7 +446,7 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "Llama-3-8B-ckpt2"
-    seed = "seed3000"
+    model_name = "Meta-Llama-3-8B-Instruct"
+    seed = "seed1000"
 
-    evaluate_single_model(model_name, seed, "toxicity", overwrite=True)
+    evaluate_single_model(model_name, seed, "perspective", overwrite=True)
