@@ -209,6 +209,7 @@ def kfold_train(
     fold_size: int = 4000,
     pattern: str = r"_fold_(\d+)\.json$",
     metric: str = "toxicity",
+    output_dir: str = "tests",
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
@@ -246,7 +247,7 @@ def kfold_train(
         )
 
     # Check all folds available for the two runs
-    directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
+    directory = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
     folds = []
 
     create_folds_from_evaluations(
@@ -414,67 +415,4 @@ def main():
 
 
 if __name__ == "__main__":
-    alpha_seeds = [
-        "seed4000",
-        "seed4000",
-        "seed7000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed7000",
-        "seed5000",
-    ]
-
-    # checkpoint1 = "Llama-3-8B-ckpt1"
-    # checkpoint1_list = [
-    #     "seed1000",
-    #     "seed2000",
-    #     "seed3000",
-    #     "seed4000",
-    #     "seed5000",
-    #     "seed7000",
-    # ]
-
-    # checkpoint_list = [f"Llama-3-8B-ckpt{i}" for i in range(1, 11)]
-
-    # config = load_config("config.yml")
-    # train_cfg = TrainCfg()
-    # # fold_num = 1
-
-    # for model, seed in zip(checkpoint_list, alpha_seeds):
-    #     # run_test_with_wandb(config, train_cfg, fold_num=fold_num)
-    #     kfold_train(
-    #         config,
-    #         train_cfg,
-    #         use_wandb=False,
-    #         model_name2=model,
-    #         seed2=seed,
-    #         fold_size=2000,
-    #     )
-
-    # for seed in checkpoint1_list[3:]:
-    #     kfold_train(
-    #         config,
-    #         train_cfg,
-    #         use_wandb=False,
-    #         model_name1=checkpoint1,
-    #         model_name2=checkpoint1,
-    #         seed1="seed3000",
-    #         seed2=seed,
-    #         fold_size=4000,
-    #     )
-
-    # kfold_train(
-    #     config,
-    #     train_cfg,
-    #     use_wandb=False,
-    #     model_name1=checkpoint1,
-    #     model_name2=checkpoint1,
-    #     seed1="seed3000",
-    #     seed2=seed,
-    #     fold_size=4000,
-    # )
-
     main()

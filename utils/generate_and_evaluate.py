@@ -201,22 +201,52 @@ def generate_and_evaluate(
         )
 
 
-def eval_on_metric(metric, continuations, asynchronously=True):
-    """ """
+def eval_on_metric(metric, continuations, asynchronously=True, batch_size=8):
+    """Evaluate the given metric on a list of continuations.
+
+    Args:
+        metric (str): The metric to evaluate. Possible values are "perspective" and "toxicity".
+        continuations (list): A list of continuations to evaluate.
+        asynchronously (bool, optional): Whether to evaluate asynchronously. Defaults to True.
+        batch_size (int, optional): The batch size for toxicity evaluation. Defaults to 8.
+
+    Returns:
+        list: A list of scores corresponding to each continuation.
+
+    Raises:
+        ValueError: If an invalid metric is provided.
+
+    """
 
     if metric == "perspective":
         if asynchronously:
-            ratings = asyncio.run(call_perspective(continuations))
+            scores = asyncio.run(call_perspective(continuations))
         else:
-            ratings = call_perspective_synchronously(continuations)
+            scores = call_perspective_synchronously(continuations)
+
+    elif metric == "toxicity":
+        model_name = "facebook/roberta-hate-speech-dynabench-r4-target"
+        toxic_classifier = pipeline(
+            "text-classification",
+            model=model_name,
+            top_k=99999,
+            truncation=True,
+            device_map="auto",
+        )
+
+        toxicity_scores = toxic_classifier(
+            continuations,
+            batch_size=batch_size,
+        )
+
+        scores = [score[1]["score"] for score in toxicity_scores]
 
     else:
-        metric_name = metric
-        metric = evaluate.load(metric)
-        rating_dict = metric.compute(predictions=continuations)
-        ratings = rating_dict[metric_name]
+        raise ValueError(
+            "Invalid metric provided. Supported metrics are 'perspective' and 'toxicity'."
+        )
 
-    return ratings
+    return scores
 
 
 def call_perspective_synchronously(continuations):

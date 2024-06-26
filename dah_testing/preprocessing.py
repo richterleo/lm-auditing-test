@@ -80,9 +80,10 @@ def load_json_skipping_errors(filepath):
 
 
 def evaluate_single_model(
-    model_name: str,
-    seed: str,
-    metric,
+    model_name: Optional[str] = None,
+    seed: Optional[str] = None,
+    model_dir: Optional[str] = None,
+    metric: str = "toxicity",
     overwrite=True,
     asynchronously=True,
     use_wandb=True,
@@ -91,10 +92,42 @@ def evaluate_single_model(
     ds_batch_size=1000,
     model_batch_size=8,
     remove_intermediate_files=True,
+    gen_dir="model_outputs",
+    output_dir="model_scores",
+    verbose=True,
 ):
     """
-    Evaluate a single model and save the scores in the same directory as the generations.
+    Evaluate a single model and save the scores.
+
+    Args:
+        model_name (str): The name of the model to evaluate.
+        seed (str): The seed value for reproducibility.
+        model_dir (str): alternatively, give the directory where the generations are stored.
+        metric: The evaluation metric to use.
+        overwrite (bool, optional): Whether to overwrite existing scores file. Defaults to True.
+        asynchronously (bool, optional): Whether to evaluate the generations asynchronously. Defaults to True.
+        use_wandb (bool, optional): Whether to use wandb for logging. Defaults to True.
+        entity (str, optional): The wandb entity to use. Defaults to "LLM_Accountability".
+        save_intermittently (bool, optional): Whether to save scores intermittently during evaluation. Defaults to True.
+        ds_batch_size (int, optional): The batch size for querying the API. Defaults to 1000.
+        model_batch_size (int, optional): The batch size for evaluating the generations. Defaults to 8.
+        remove_intermediate_files (bool, optional): Whether to remove intermediate files. Defaults to True.
+        output_dir (str, optional): The directory to save the scores file. Defaults to "model_scores".
+
+    Raises:
+        FileNotFoundError: If the data file is not found.
+
+    Returns:
+        None
     """
+    data = None
+    if (model_name is None or seed is None) and model_dir is None:
+        raise ValueError("Either model_name and seed or dir must be provided.")
+
+    if not model_name:
+        split = model_dir.split("_seed")
+        model_name = split[0]
+        seed = f"seed{split[1]}"
 
     if use_wandb:
         wandb.init(
@@ -105,123 +138,145 @@ def evaluate_single_model(
             tags=["evaluate_single_model"],
         )
 
-    gen_file_path = f"model_outputs/{model_name}_{seed}"
-    scores_file_path = os.path.join(gen_file_path, f"{metric}_scores.json")
-    if overwrite or not os.path.exists(scores_file_path):
-        for file_name in os.listdir(gen_file_path):
+    gen_dir = f"{gen_dir}/{model_name}_{seed}"
+    score_dir = f"{output_dir}/{model_name}_{seed}"
+
+    # check if folder exists already
+    if not Path(score_dir).exists():
+        Path(score_dir).mkdir(parents=True, exist_ok=True)
+    score_path = Path(score_dir) / f"{metric}_scores.json"
+
+    # get continuation file
+    if overwrite or not os.path.exists(score_path):
+        for file_name in os.listdir(gen_dir):
             if "continuations" in file_name:
-                with open(os.path.join(gen_file_path, file_name), "r") as file:
+                with open(os.path.join(gen_dir, file_name), "r") as file:
                     data = json.load(file)
                 break
 
-    if data is None:
-        raise FileNotFoundError
+        if data is None:
+            raise FileNotFoundError
 
-    filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
+        filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
 
-    for epoch, d in filtered_dict.items():
-        concatenated_generations = [
-            f"{prompt} {continuation}"
-            for prompt, continuation in zip(d["prompts"], d["continuations"])
-        ]
+        # loop over epochs (epochs is usually = 1)
+        for epoch, d in filtered_dict.items():
+            # concatenate prompt and continuation
+            concatenated_generations = [
+                f"{prompt} {continuation}"
+                for prompt, continuation in zip(d["prompts"], d["continuations"])
+            ]
 
-        data[epoch][f"{metric}_scores"] = []
+            data[epoch][f"{metric}_scores"] = []
 
-        # if we have a lot of generations, we need to query the API in batches
-        if len(concatenated_generations) > ds_batch_size and metric == "perspective":
-            scores = []
-            start = time.time()
-            for i in tqdm(range(0, len(concatenated_generations), ds_batch_size)):
-                end = time.time()
-                print(
-                    f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {end-start} seconds"
-                )
-                start = time.time()
-                new_scores = eval_on_metric(
+            # if we have a lot of generations, we need to query the API in batches
+            if len(concatenated_generations) > ds_batch_size:
+                scores = []
+                for i in tqdm(
+                    range(0, len(concatenated_generations), ds_batch_size),
+                    disable=not verbose,
+                ):
+                    start = time.time()
+
+                    new_scores = eval_on_metric(
+                        metric,
+                        concatenated_generations[i : i + ds_batch_size],
+                        asynchronously=asynchronously,
+                        batch_size=model_batch_size,
+                    )
+
+                    scores.extend(new_scores)
+
+                    if i > 0 and i % 10000 == 0 and save_intermittently:
+                        _save_intermittently(
+                            scores, score_dir, metric, i, data, epoch, ds_batch_size
+                        )
+
+                    end = time.time()
+                    if verbose:
+                        print(
+                            f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {end-start} seconds"
+                        )
+
+            else:
+                if verbose:
+                    print(
+                        f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
+                    )
+                scores = eval_on_metric(
                     metric,
-                    concatenated_generations[i : i + ds_batch_size],
+                    concatenated_generations,
                     asynchronously=asynchronously,
-                )
-                scores.extend(new_scores)
-
-            assert (
-                len(scores) == len(concatenated_generations)
-            ), f"Did not get all scores: only {len(scores)} scores, but {len(concatenated_generations)} generations"
-
-        # tracking more to see why evaluations are so slow
-        elif len(concatenated_generations) > ds_batch_size:
-            scores = []
-            # metric_model = evaluate.load(metric) not on GPU
-
-            # TODO: this is hardcoded now, should not be in future
-            model_name = "facebook/roberta-hate-speech-dynabench-r4-target"
-            toxic_classifier = pipeline(
-                "text-classification",
-                model=model_name,
-                top_k=99999,
-                truncation=True,
-                device_map="auto",
-            )
-            print(f"Evaluation metric using device: {toxic_classifier.device}")
-
-            # TODO remove this
-            start = time.time()
-
-            for i in tqdm(range(0, len(concatenated_generations), ds_batch_size)):
-                end = time.time()
-                print(
-                    f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {end-start} seconds"
-                )
-                start = time.time()
-
-                toxic_or_not_toxic_scores = toxic_classifier(
-                    concatenated_generations[i : i + ds_batch_size],
                     batch_size=model_batch_size,
                 )
-                new_toxic_scores = [
-                    score[1]["score"] for score in toxic_or_not_toxic_scores
-                ]  # r["score"] for r in pred_toxic if r["label"] == "hate"
 
-                scores.extend(new_toxic_scores)
+            data[epoch][f"{metric}_scores"] = scores
 
-                if i > 0 and i % 10000 == 0 and save_intermittently:
-                    current_scores_path = os.path.join(
-                        gen_file_path, f"{metric}_scores_{i}.json"
-                    )
-                    data[epoch][f"{metric}_scores"] = scores
-                    assert (
-                        len(data[epoch][f"{metric}_scores"]) == i + ds_batch_size
-                    ), f"The current number of scores is not the same as the index: {len(data[epoch][f'{metric}_scores'])} and {i}"
-                    with open(current_scores_path, "w") as file:
-                        json.dump(data, file, indent=4)
+            assert (
+                len(data[epoch][f"{metric}_scores"]) == len(data[epoch]["prompts"])
+            ), f"Number of scores is not the same as number of prompts: {len(data[epoch][f'{metric}_scores'])} and {len(data[epoch]['prompts'])}"
+        with open(score_path, "w") as file:
+            json.dump(data, file, indent=4)
 
-                    if use_wandb:
-                        wandb.save(current_scores_path)
+        if verbose:
+            print(f"Evaluation should be completed. File stored in {score_path} ")
 
-        else:
-            print(
-                f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
+        if remove_intermediate_files:
+            cleanup_files(score_dir, f"{metric}_scores_*.json")
+
+        if use_wandb:
+            wandb.save(score_path)
+
+        wandb.finish()
+
+
+def evaluate_all_models(
+    metric: str = "toxicity",
+    overwrite=True,
+    asynchronously=True,
+    use_wandb=False,  # This is changed now. We don't need to upload all evals.
+    entity="LLM_Accountability",
+    save_intermittently=True,
+    ds_batch_size=1000,
+    model_batch_size=8,
+    remove_intermediate_files=True,
+    gen_dir="model_outputs",
+    output_dir="model_scores",
+):
+    for model_dir in tqdm(os.listdir(gen_dir)):
+        start = time.time()
+
+        try:
+            evaluate_single_model(
+                model_dir=model_dir,
+                metric=metric,
+                overwrite=overwrite,
+                asynchronously=asynchronously,
+                use_wandb=use_wandb,
+                entity=entity,
+                save_intermittently=save_intermittently,
+                ds_batch_size=ds_batch_size,
+                model_batch_size=model_batch_size,
+                remove_intermediate_files=remove_intermediate_files,
+                output_dir=output_dir,
+                verbose=False,
             )
-            scores = eval_on_metric(
-                metric, concatenated_generations, asynchronously=asynchronously
-            )
+            end = time.time()
+            print(f"Model {model_dir} took {end-start} seconds to evaluate.")
 
-        data[epoch][f"{metric}_scores"] = scores
+        except IndexError:
+            print(f"{model_dir} does not contain the correct files. Skipping...")
+            continue
 
-        assert (
-            len(data[epoch][f"{metric}_scores"]) == len(data[epoch]["prompts"])
-        ), f"Number of scores is not the same as number of prompts: {len(data[epoch][f'{metric}_scores'])} and {len(data[epoch]['prompts'])}"
-    with open(scores_file_path, "w") as file:
+
+def _save_intermittently(scores, score_dir, metric, i, data, epoch, ds_batch_size):
+    current_scores_path = os.path.join(score_dir, f"{metric}_scores_{i}.json")
+    data[epoch][f"{metric}_scores"] = scores
+    assert (
+        len(data[epoch][f"{metric}_scores"]) == i + ds_batch_size
+    ), f"The current number of scores is not the same as the index: {len(data[epoch][f'{metric}_scores'])} and {i}"
+    with open(current_scores_path, "w") as file:
         json.dump(data, file, indent=4)
-
-    print(f"Evaluation should be completed. File stored in {scores_file_path} ")
-
-    cleanup_files(gen_file_path, f"{metric}_scores_*.json")
-
-    if use_wandb:
-        wandb.save(scores_file_path)
-
-    wandb.finish()
 
 
 def create_common_json(
@@ -235,13 +290,13 @@ def create_common_json(
     overwrite=True,
     use_wandb=False,
     entity="LLM_Accountability",
+    score_path="model_scores",
+    output_path="tests",
 ):
     """ """
-    file_path1 = f"model_outputs/{model_name1}_{seed1}"
-    file_path2 = f"model_outputs/{model_name2}_{seed2}"
-    new_folder_path = (
-        Path("model_outputs") / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
-    )
+    file_path1 = f"{score_path}/{model_name1}_{seed1}"
+    file_path2 = f"{score_path}/{model_name2}_{seed2}"
+    new_folder_path = Path(output_path) / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
 
     if use_wandb:
         wandb.init(
@@ -321,12 +376,13 @@ def create_common_json(
             wandb.finish()
 
 
-def cleanup_files(directory, pattern):
+def cleanup_files(directory, pattern, verbose=True):
     files_to_delete = glob.glob(os.path.join(directory, pattern))
     for file_path in files_to_delete:
         try:
             os.remove(file_path)
-            print(f"Deleted file: {file_path}")
+            if verbose:
+                print(f"Deleted file: {file_path}")
         except OSError as e:
             print(f"Error deleting file {file_path}: {e.strerror}")
 
@@ -339,19 +395,20 @@ def create_folds(
     metric="toxicity",
     fold_size=4000,
     overwrite=True,
+    output_dir="tests",
 ):
     """ """
     # Fix random seed to be different for each fold_size, such that the folds always have different samples.
     random.seed(fold_size)
 
-    directory = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}"
+    directory = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
     file_pattern = f"{metric}_scores_fold_*.json"
 
     # Cleanup existing fold files
-    cleanup_files(directory, file_pattern)
+    cleanup_files(directory, file_pattern, verbose=False)
 
     try:
-        file_name = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+        file_name = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
         data = load_entire_json(file_name)
 
         # Extract metadata and other lists
@@ -367,7 +424,7 @@ def create_folds(
         ]
 
         for i, batch in tqdm(enumerate(index_batches)):
-            fold_file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
+            fold_file_path = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
             if overwrite or not os.path.exists(fold_file_path):
                 fold_data = defaultdict(list)
                 fold_data["metadata1"] = metadata1
@@ -396,8 +453,12 @@ def create_folds_from_generations(
     fold_size=4000,
     overwrite=True,
 ):
-    evaluate_single_model(model_name1, seed1, metric, overwrite=overwrite)
-    evaluate_single_model(model_name2, seed2, metric, overwrite=overwrite)
+    evaluate_single_model(
+        model_name=model_name1, seed=seed1, metric=metric, overwrite=overwrite
+    )
+    evaluate_single_model(
+        model_name=model_name2, seed=seed2, metric=metric, overwrite=overwrite
+    )
 
     create_common_json(
         model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
@@ -446,7 +507,4 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "Meta-Llama-3-8B-Instruct"
-    seed = "seed1000"
-
-    evaluate_single_model(model_name, seed, "perspective", overwrite=True)
+    evaluate_all_models(metric="perspective", overwrite=False)

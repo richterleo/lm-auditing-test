@@ -49,14 +49,20 @@ def collate_fn(batch):
 
 
 def load_into_scores_ds(
-    model_name1: str, seed1: str, model_name2: str, seed2: str, metric, fold_num=None
+    model_name1: str,
+    seed1: str,
+    model_name2: str,
+    seed2: str,
+    metric,
+    fold_num=None,
+    output_dir="tests",
 ):
     """ """
     try:
         file_path = (
-            f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
+            f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
             if fold_num or fold_num == 0
-            else f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+            else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
         )
 
         with open(file_path, "r") as file:
@@ -71,9 +77,9 @@ def load_into_scores_ds(
             model_name1, seed1, model_name2, seed2, overwrite=False
         )
         file_path = (
-            f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
+            f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
             if fold_num
-            else f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+            else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
         )
         with open(file_path, "r") as file:
             data = json.load(file)
