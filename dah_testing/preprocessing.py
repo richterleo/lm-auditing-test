@@ -291,7 +291,7 @@ def create_common_json(
     use_wandb=False,
     entity="LLM_Accountability",
     score_path="model_scores",
-    output_path="tests",
+    output_path="test_outputs",
 ):
     """ """
     file_path1 = f"{score_path}/{model_name1}_{seed1}"
@@ -395,7 +395,7 @@ def create_folds(
     metric="toxicity",
     fold_size=4000,
     overwrite=True,
-    output_dir="tests",
+    output_dir="test_outputs",
 ):
     """ """
     # Fix random seed to be different for each fold_size, such that the folds always have different samples.
@@ -423,7 +423,13 @@ def create_folds(
             indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)
         ]
 
-        for i, batch in tqdm(enumerate(index_batches)):
+        # The last batch might contain fewer samples
+        if len(index_batches[-1]) < fold_size:
+            index_batches = index_batches[:-1]
+
+        for i, batch in tqdm(
+            enumerate(index_batches)
+        ):  # The last batch is not used because it
             fold_file_path = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
             if overwrite or not os.path.exists(fold_file_path):
                 fold_data = defaultdict(list)

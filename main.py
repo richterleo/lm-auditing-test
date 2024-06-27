@@ -209,7 +209,7 @@ def kfold_train(
     fold_size: int = 4000,
     pattern: str = r"_fold_(\d+)\.json$",
     metric: str = "toxicity",
-    output_dir: str = "tests",
+    output_dir: str = "test_outputs",
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled

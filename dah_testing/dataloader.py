@@ -55,7 +55,7 @@ def load_into_scores_ds(
     seed2: str,
     metric,
     fold_num=None,
-    output_dir="tests",
+    output_dir="test_outputs",
 ):
     """ """
     try:

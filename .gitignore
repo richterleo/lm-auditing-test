@@ -10,3 +10,6 @@ Llama-3-8B-ckpt*_continuations_seed1000.json
 model_outputs
 model_outputs_2405.zip
 model_continuations*
+outputs
+plots
+model_scores

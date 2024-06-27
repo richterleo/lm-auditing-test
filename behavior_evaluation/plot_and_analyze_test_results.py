@@ -4,6 +4,10 @@ import numpy as np
 import sys
 import os
 
+import hydra
+from omegaconf import DictConfig
+from hydra.utils import instantiate
+
 from pathlib import Path
 from scipy.stats import skew
 from typing import Union, List, Optional
@@ -33,6 +37,7 @@ def extract_data_for_models(
     checkpoint: Optional[str] = None,
     checkpoint_base_name: Optional[str] = None,
     fold_size=4000,
+    test_dir="/root/DistanceSimulation/test_outputs",
 ):
     """ """
     assert model_name2 or (
@@ -42,18 +47,18 @@ def extract_data_for_models(
     print(f"model_name2: {model_name2}")
     if model_name2:
         if fold_size == 4000:
-            file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results.csv"
             if not Path(file_path).exists():
-                file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
+                file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
         else:
-            file_path = f"model_outputs/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
     else:
         if fold_size == 4000:
-            file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results.csv"
             if not Path(file_path).exists():
-                file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
+                file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
         else:
-            file_path = f"model_outputs/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
 
     print(f"This is the file path: {file_path} and this is the fold_size: {fold_size}")
     data = pd.read_csv(file_path)
@@ -210,7 +215,9 @@ def get_power_over_sequences_for_checkpoints(
             result_dfs.append(result_df)
 
         except FileNotFoundError:
-            print(f"File for checkpoint {checkpoint} does not exist yet")
+            print(
+                f"File for checkpoint {checkpoint} and seed {seed} does not exist yet"
+            )
 
     final_df = pd.concat(result_dfs, ignore_index=True)
 
@@ -228,6 +235,8 @@ def get_distance_scores(
     epoch1=0,
     epoch2=0,
     distance_measure="Wasserstein",
+    score_dir="model_scores",
+    test_dir="test_outputs",
 ):
     """ """
     if not (checkpoint and checkpoint_base_name) and not model_name2:
@@ -235,12 +244,18 @@ def get_distance_scores(
             "Either checkpoint and checkpoint_base_name or model_name2 must be provided"
         )
 
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    score_dir = os.path.join(script_dir, "..", score_dir)
+    test_dir = os.path.join(script_dir, "..", test_dir)
+
     try:
-        score_path1 = f"model_outputs/{model_name1}_{seed1}/{metric}_scores.json"
+        score_path1 = f"{score_dir}/{model_name1}_{seed1}/{metric}_scores.json"
         if checkpoint:
-            score_path2 = f"model_outputs/{checkpoint_base_name}{checkpoint}_{seed2}/{metric}_scores.json"
+            score_path2 = f"{score_dir}/{checkpoint_base_name}{checkpoint}_{seed2}/{metric}_scores.json"
         else:
-            score_path2 = f"model_outputs/{model_name2}_{seed2}/{metric}_scores.json"
+            score_path2 = f"{score_dir}/{model_name2}_{seed2}/{metric}_scores.json"
         with open(score_path1, "r") as f:
             scores1 = json.load(f)
         with open(score_path2, "r") as f:
@@ -427,7 +442,16 @@ def plot_power_over_number_of_sequences(
     group_by: str = "Checkpoint",
     marker: str = "X",
     save_as_pdf: bool = True,
+    test_dir: str = "test_outputs",
+    plot_dir: str = "plots",
+    metric: str = "perspective",
 ):
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    test_dir = os.path.join(script_dir, "..", test_dir)
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
+
     if group_by == "Checkpoint":
         result_df = get_power_over_sequences_for_checkpoints(
             base_model_name,
@@ -446,6 +470,7 @@ def plot_power_over_number_of_sequences(
             checkpoints,
             seeds,
             checkpoint_base_name=checkpoint_base_name,
+            metric="perspective",
         )
 
         result_df["Empirical Wasserstein Distance"] = result_df[
@@ -496,7 +521,7 @@ def plot_power_over_number_of_sequences(
     plt.gca().spines["left"].set_linewidth(1.5)
 
     if save:
-        directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         else:
@@ -534,10 +559,16 @@ def plot_power_over_epsilon(
     marker="X",
     palette=["#E49B0F", "#C46210", "#B7410E", "#A81C07"],
     save_as_pdf=True,
+    plot_dir: str = "plots",
 ):
     """
     This plots power over distance measure, potentially for different fold_sizes and models.
     """
+
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
 
     if isinstance(fold_sizes, list):
         result_df = get_power_over_sequences_for_ranked_checkpoints_wrapper(
@@ -617,7 +648,7 @@ def plot_power_over_epsilon(
         spine.set_linewidth(1.5)
 
     if save:
-        directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         else:
@@ -689,7 +720,7 @@ def plot_power_over_epsilon(
         spine.set_linewidth(1.5)
 
     if save:
-        directory = f"model_outputs/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         else:
@@ -754,7 +785,13 @@ def plot_alpha_over_sequences(
     markers=["X", "o", "s"],
     palette=["#94D2BD", "#EE9B00", "#BB3E03"],
     fold_size=4000,
+    plot_dir: str = "plots",
 ):
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
+
     result_df = get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=fold_size)
     group_by_model = "model_id" in result_df.columns
 
@@ -812,7 +849,7 @@ def plot_alpha_over_sequences(
     plt.grid(True, linewidth=0.5, color="#ddddee")
 
     if save:
-        directory = "model_outputs/alpha_plots"
+        directory = f"{plot_dir}/alpha_plots"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         fig_path = f"{directory}/alpha_error_over_number_of_sequences"
@@ -842,11 +879,17 @@ def plot_rejection_rate_matrix(
     epoch2: Optional[int] = 0,
     save: bool = True,
     save_as_pdf: bool = True,
+    plot_dir: str = "plots",
 ):
     """ """
     assert (model_names2 is None and seeds2 is None) or (
         model_names2 is not None and seeds2 is not None
     ), "Either give full list of test models or expect to iterate over all combinations"
+
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
 
     results_df = []
     if not model_names2:
@@ -896,7 +939,7 @@ def plot_rejection_rate_matrix(
     heatmap.set_title(f"Positive Test Rates for model {model_names1[0]}")
 
     if save:
-        directory = "model_outputs/power_heatmaps"
+        directory = f"{plot_dir}/power_heatmaps"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
         file_name = "power_heatmap"
@@ -935,7 +978,7 @@ def plot_rejection_rate_matrix(
         heatmap.set_title(f"Distance Heatmap for model {model_names1[0]}")
 
         if save:
-            directory = "model_outputs/power_heatmaps"
+            directory = f"{plot_dir}/power_heatmaps"
             if not Path(directory).exists():
                 Path(directory).mkdir(parents=True, exist_ok=True)
 
@@ -967,9 +1010,15 @@ def plot_scores(
     use_log_scale=True,
     color="blue",
     save_as_pdf=True,
+    plot_dir: str = "plots",
 ):
     """ """
-    directory = f"model_outputs/{model_name}_{seed}"
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
+
+    directory = f"{plot_dir}/{model_name}_{seed}"
     file_path = f"{directory}/{metric}_scores.json"
     with open(file_path, "r") as f:
         data = json.load(f)
@@ -1084,11 +1133,17 @@ def plot_scores_base_most_extreme(
     corrupted_color="red",
     darker_corrupted_color="red",
     save_as_pdf=True,
+    plot_dir: str = "plots",
 ):
     if not epochs:
         epochs = [0 for i in checkpoints]
 
-    directory = f"model_outputs/{base_model_name}_{base_model_seed}"
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
+
+    directory = f"{plot_dir}/{base_model_name}_{base_model_seed}"
     file_path = f"{directory}/{metric}_scores.json"
     print(f"This is the original model: {file_path}")
     with open(file_path, "r") as f:
@@ -1099,7 +1154,7 @@ def plot_scores_base_most_extreme(
     wasserstein_distances = {}
 
     for ckpt, seed, epoch in zip(checkpoints, checkpoint_seeds, epochs):
-        checkpoint_directory = f"model_outputs/{checkpoint_base_name}{ckpt}_{seed}"
+        checkpoint_directory = f"{plot_dir}/{checkpoint_base_name}{ckpt}_{seed}"
         file_path = f"{checkpoint_directory}/{metric}_scores.json"
         with open(file_path, "r") as f:
             checkpoint_data = json.load(f)
@@ -1241,16 +1296,26 @@ def plot_scores_two_models(
     corrupted_color="red",
     darker_corrupted_color="red",
     save_as_pdf=True,
+    score_dir: str = "model_scores",
+    plot_dir: str = "plots",
 ):
-    directory1 = f"model_outputs/{model_name1}_{seed1}"
-    file_path1 = f"{directory1}/{metric}_scores.json"
-    directory2 = f"model_outputs/{model_name2}_{seed2}"
-    file_path2 = f"{directory2}/{metric}_scores.json"
+    script_dir = os.path.dirname(__file__)
 
-    with open(file_path1, "r") as f:
+    # Construct the absolute path to "test_outputs"
+    score_dir = os.path.join(script_dir, "..", score_dir)
+    plot_dir = os.path.join(script_dir, "..", plot_dir)
+
+    score_dir1 = f"{score_dir}/{model_name1}_{seed1}"
+    score_path1 = f"{score_dir1}/{metric}_scores.json"
+    score_dir2 = f"{score_dir}/{model_name2}_{seed2}"
+    score_path2 = f"{score_dir2}/{metric}_scores.json"
+    save_dir1 = f"{plot_dir}/{model_name1}_{seed1}"
+    save_dir2 = f"{plot_dir}/{model_name2}_{seed2}"
+
+    with open(score_path1, "r") as f:
         data1 = json.load(f)
 
-    with open(file_path2, "r") as f:
+    with open(score_path2, "r") as f:
         data2 = json.load(f)
 
     scores1 = data1[str(epoch1)][f"{metric}_scores"]
@@ -1326,26 +1391,26 @@ def plot_scores_two_models(
         if use_log_scale:
             if save_as_pdf:
                 output_path = os.path.join(
-                    directory1,
+                    save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}_log.pdf",
                 )
                 plt.savefig(output_path, bbox_inches="tight", format="pdf")
             else:
                 output_path = os.path.join(
-                    directory1,
+                    save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}_log.png",
                 )
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
         else:
             if save_as_pdf:
                 output_path = os.path.join(
-                    directory1,
+                    save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}.pdf",
                 )
                 plt.savefig(output_path, bbox_inches="tight", format="pdf")
             else:
                 output_path = os.path.join(
-                    directory1,
+                    save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}.png",
                 )
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
@@ -1353,6 +1418,79 @@ def plot_scores_two_models(
         plt.show()
 
     plt.close()
+
+
+@hydra.main(
+    config_path="/root/DistanceSimulation/behavior_evaluation",
+    config_name="plotting_config.yml",
+)
+def plot_all(
+    cfg: DictConfig, use_alternative_seeds: bool = False
+):  # TODO: add alternative seeds
+    # Loop over all base models
+    for bm in cfg.models:
+        checkpoints = [i for i in range(1, int(bm.checkpoint_range))]
+        seeds = ["seed1000" for i in range(1, int(bm.checkpoint_range))]
+
+        # Create power plot over sequences:
+        # plot_power_over_number_of_sequences(
+        #     bm.name,
+        #     bm.seed,
+        #     checkpoints,
+        #     seeds,
+        #     checkpoint_base_name=bm.checkpoint_base_name,
+        #     save=True,
+        #     group_by="Empirical Wasserstein Distance",
+        #     marker=bm.marker,
+        # )
+
+        # Create power plot over distance:
+        plot_power_over_epsilon(
+            bm.name,
+            "seed1000",
+            checkpoints,
+            seeds,
+            checkpoint_base_name=bm.checkpoint_base_name,
+            fold_sizes=cfg.fold_sizes,
+            marker=bm.marker,
+            metric=cfg.metric,
+        )
+
+    # for (
+    #     bm_name,
+    #     checkpoints,
+    #     seeds,
+    #     checkpoint_base_name,
+    #     color,
+    #     darker_color,
+    #     corrupted_color,
+    #     darker_corrupted_color,
+    # ) in zip(
+    #     base_model_name_list,
+    #     custom_colors,
+    #     checkpoints_list,
+    #     seeds_list,
+    #     checkpoint_base_name_list,
+    #     custom_colors,
+    #     darker_custom_colors,
+    #     corrupted_model_custom_colors,
+    #     darker_corrupted_model_custom_colors,
+    # ):
+    #     plot_scores_base_most_extreme(
+    #         bm_name,
+    #         "seed1000",
+    #         checkpoints,
+    #         seeds,
+    #         checkpoint_base_name,
+    #         metric="toxicity",
+    #         color=color,
+    #         darker_color=darker_color,
+    #         corrupted_color=corrupted_color,
+    #         darker_corrupted_color=darker_corrupted_color,
+    #         save=True,
+    #         use_log_scale=False,
+    #         save_as_pdf=False,
+    #     )
 
 
 if __name__ == "__main__":
@@ -1405,79 +1543,6 @@ if __name__ == "__main__":
     checkpoint1_seeds1 = ["seed1000" for i in range(3)]
     checkpoint1_seeds2 = ["seed4000", "seed5000", "seed7000"]
 
-    # plot_alpha_over_sequences(model_names, seed1s, seed2s, print_df=True)
-    # for bm_name, color in zip(model_names, custom_colors):
-    #     plot_scores(bm_name, "seed1000", metric="toxicity", save=True, color=color)
-    #     plot_scores(
-    #         bm_name,
-    #         "seed1000",
-    #         metric="toxicity",
-    #         save=True,
-    #         use_log_scale=False,
-    #         color=color,
-    #     )
-    # # plot_scores_multiple_models(model_names_for_dist_plot, seeds_for_dist_plot)
-
-    # for bm_name, ckpts, seeds, ckpt_name, marker in zip(
-    #     model_names, checkpoints_list, seeds_list, checkpoint_base_names, markers
-    # ):
-    #     plot_power_over_epsilon(
-    #         bm_name,
-    #         "seed1000",
-    #         ckpts,
-    #         seeds,
-    #         checkpoint_base_name=ckpt_name,
-    #         fold_sizes=fold_sizes,
-    #         marker=marker,
-    #     )
-    #     plot_power_over_number_of_sequences(
-    #         bm_name,
-    #         "seed1000",
-    #         ckpts,
-    #         seeds,
-    #         checkpoint_base_name=ckpt_name,
-    #         save=True,
-    #         group_by="Empirical Wasserstein Distance",  # "Rank based on Wasserstein Distance",
-    #         marker=marker,
-    #     )
-
-    # for (
-    #     bm_name,
-    #     bm_seed,
-    #     checkpoints,
-    #     seeds,
-    #     checkpoint_base_name,
-    #     color,
-    #     darker_color,
-    #     corrupted_color,
-    #     darker_corrupted_color,
-    # ) in zip(
-    #     base_model_name_list,
-    #     custom_colors,
-    #     checkpoints_list,
-    #     seeds_list,
-    #     checkpoint_base_name_list,
-    #     custom_colors,
-    #     darker_custom_colors,
-    #     corrupted_model_custom_colors,
-    #     darker_corrupted_model_custom_colors,
-    # ):
-    #     plot_scores_base_most_extreme(
-    #         bm_name,
-    #         "seed1000",
-    #         checkpoints,
-    #         seeds,
-    #         checkpoint_base_name,
-    #         metric="toxicity",
-    #         color=color,
-    #         darker_color=darker_color,
-    #         corrupted_color=corrupted_color,
-    #         darker_corrupted_color=darker_corrupted_color,
-    #         save=True,
-    #         use_log_scale=False,
-    #         save_as_pdf=False,
-    #     )
-
     # checkpoint1_list = [1, 1, 1, 1]
     # checkpoint1_seeds_list = ["seed1000", "seed4000", "seed5000", "seed7000"]
     # df = get_alpha_wrapper(
@@ -1518,16 +1583,6 @@ if __name__ == "__main__":
     #         marker=marker,
     #     )
 
-    plot_power_over_epsilon(
-        base_model_name_list[2],
-        base_model_seed_list[2],
-        checkpoints_list[2],
-        alternative_seeds_list[2],
-        checkpoint_base_name=checkpoint_base_name_list[2],
-        fold_sizes=[1000, 2000, 3000, 4000],
-        marker=base_model_markers[2],
-    )
-
     # plot_alpha_over_sequences(
     #     base_model_name_list, base_model_seed_list, ["seed2000", "seed2000", "seed2000"]
     # )
@@ -1544,38 +1599,38 @@ if __name__ == "__main__":
     #     model_name2=base_model_name_list[2],
     # )
 
-    for i, seed in enumerate(alternative_llama_seeds):
-        dist = get_distance_scores(
-            "Meta-Llama-3-8B-Instruct",
-            "seed1000",
-            seed,
-            model_name2=f"Llama-3-8B-ckpt{i+1}",
-        )
-        print(f"Distance for model Llama-3-8B-ckpt{i+1}_{seed}: {dist:.5f}")
+    # for i, seed in enumerate(alternative_llama_seeds):
+    #     dist = get_distance_scores(
+    #         "Meta-Llama-3-8B-Instruct",
+    #         "seed1000",
+    #         seed,
+    #         model_name2=f"Llama-3-8B-ckpt{i+1}",
+    #     )
+    #     print(f"Distance for model Llama-3-8B-ckpt{i+1}_{seed}: {dist:.5f}")
 
-    for i in range(10):
-        dist = get_distance_scores(
-            base_model_name_list[1],
-            "seed1000",
-            "seed1000",
-            checkpoint=i + 1,
-            checkpoint_base_name=checkpoint_base_name_list[1],
-        )
-        print(
-            f"Distance for model {checkpoint_base_name_list[1]}{i+1}_seed1000: {dist:.5f}"
-        )
+    # for i in range(10):
+    #     dist = get_distance_scores(
+    #         base_model_name_list[1],
+    #         "seed1000",
+    #         "seed1000",
+    #         checkpoint=i + 1,
+    #         checkpoint_base_name=checkpoint_base_name_list[1],
+    #     )
+    #     print(
+    #         f"Distance for model {checkpoint_base_name_list[1]}{i+1}_seed1000: {dist:.5f}"
+    #     )
 
-    for i in range(10):
-        dist = get_distance_scores(
-            base_model_name_list[2],
-            "seed1000",
-            "seed1000",
-            checkpoint=i + 1,
-            checkpoint_base_name=checkpoint_base_name_list[2],
-        )
-        print(
-            f"Distance for model {checkpoint_base_name_list[2]}{i+1}_seed1000: {dist:.5f}"
-        )
+    # for i in range(10):
+    #     dist = get_distance_scores(
+    #         base_model_name_list[2],
+    #         "seed1000",
+    #         "seed1000",
+    #         checkpoint=i + 1,
+    #         checkpoint_base_name=checkpoint_base_name_list[2],
+    #     )
+    #     print(
+    #         f"Distance for model {checkpoint_base_name_list[2]}{i+1}_seed1000: {dist:.5f}"
+    #     )
 
     # model_name1 = "Mistral-7B-Instruct-v0.2"
     # seed1 = "seed1000"
@@ -1584,115 +1639,117 @@ if __name__ == "__main__":
     # plot_scores_two_models(model_name1, seed1, model_name1, seed2)
 
     # Prepare the data
-    data = {
-        "Model": [
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Llama-3-8B",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "Mistral-7B-Instruct",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-            "gemma-1.1-7b-it",
-        ],
-        "Checkpoint": [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-        ],
-        "Distance": [
-            0.00013,
-            0.00219,
-            0.00543,
-            0.00382,
-            0.00439,
-            0.00444,
-            0.00420,
-            0.00498,
-            0.00497,
-            0.00494,
-            0.00024,
-            0.00658,
-            0.02112,
-            0.00746,
-            0.00704,
-            0.01111,
-            0.00709,
-            0.00709,
-            0.00899,
-            0.00750,
-            0.00027,
-            0.00474,
-            0.01683,
-            0.01333,
-            0.00742,
-            0.00658,
-            0.00841,
-            0.00903,
-            0.01378,
-            0.01325,
-        ],
-    }
+    # data = {
+    #     "Model": [
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Llama-3-8B",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "Mistral-7B-Instruct",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #         "gemma-1.1-7b-it",
+    #     ],
+    #     "Checkpoint": [
+    #         1,
+    #         2,
+    #         3,
+    #         4,
+    #         5,
+    #         6,
+    #         7,
+    #         8,
+    #         9,
+    #         10,
+    #         1,
+    #         2,
+    #         3,
+    #         4,
+    #         5,
+    #         6,
+    #         7,
+    #         8,
+    #         9,
+    #         10,
+    #         1,
+    #         2,
+    #         3,
+    #         4,
+    #         5,
+    #         6,
+    #         7,
+    #         8,
+    #         9,
+    #         10,
+    #     ],
+    #     "Distance": [
+    #         0.00013,
+    #         0.00219,
+    #         0.00543,
+    #         0.00382,
+    #         0.00439,
+    #         0.00444,
+    #         0.00420,
+    #         0.00498,
+    #         0.00497,
+    #         0.00494,
+    #         0.00024,
+    #         0.00658,
+    #         0.02112,
+    #         0.00746,
+    #         0.00704,
+    #         0.01111,
+    #         0.00709,
+    #         0.00709,
+    #         0.00899,
+    #         0.00750,
+    #         0.00027,
+    #         0.00474,
+    #         0.01683,
+    #         0.01333,
+    #         0.00742,
+    #         0.00658,
+    #         0.00841,
+    #         0.00903,
+    #         0.01378,
+    #         0.01325,
+    #     ],
+    # }
 
-    df = pd.DataFrame(data)
+    # df = pd.DataFrame(data)
 
-    # Create the plot
-    plt.figure(figsize=(14, 7))
-    sns.lineplot(data=df, x="Checkpoint", y="Distance", hue="Model", marker="o")
-    plt.title("Distance over Checkpoints for Different Model Families")
-    plt.xlabel("Checkpoint")
-    plt.ylabel("Distance")
-    plt.legend(title="Model")
-    plt.grid(True)
-    plt.savefig(
-        "model_outputs/distance_over_checkpoints.pdf", bbox_inches="tight", format="pdf"
-    )
+    # # Create the plot
+    # plt.figure(figsize=(14, 7))
+    # sns.lineplot(data=df, x="Checkpoint", y="Distance", hue="Model", marker="o")
+    # plt.title("Distance over Checkpoints for Different Model Families")
+    # plt.xlabel("Checkpoint")
+    # plt.ylabel("Distance")
+    # plt.legend(title="Model")
+    # plt.grid(True)
+    # plt.savefig(
+    #     "model_outputs/distance_over_checkpoints.pdf", bbox_inches="tight", format="pdf"
+    # )
+
+    plot_all()

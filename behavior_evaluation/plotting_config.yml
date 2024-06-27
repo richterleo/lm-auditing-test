@@ -1,0 +1,53 @@
+
+# This file contains the configuration for the plotting script. It specifies the models to be plotted, the seeds and checkpoints to be used for each model, and the metrics to be plotted.
+models:
+  - name: Meta-Llama-3-8B-Instruct
+    seed: seed1000
+    seed2: seed2000
+    checkpoint_base_name: Llama-3-8B-ckpt
+    checkpoint_range: 10
+    alternative_seeds: 
+      - seed4000
+      - seed4000
+      - seed7000
+      - seed7000
+      - seed6000
+      - seed7000
+      - seed6000
+      - seed7000
+      - seed7000
+      - seed5000
+    marker: X
+    color: "#94D2BD"
+    darker_color: "#85BDAA"
+    corrupted_color: "#25453a"
+    darker_corrupted_color: "#101e19"
+
+  - name: Mistral-7B-Instruct-v0.2
+    seed: seed1000
+    seed2: seed2000
+    checkpoint_base_name: Mistral-7B-Instruct-ckpt
+    checkpoint_range: 10
+    marker: o
+    color: "#EE9B00"
+    darker_color: "#D28B00"
+    corrupted_color: "#4f3300"
+    darker_corrupted_color: "#221600"
+
+  - name: gemma-1.1-7b-it
+    seed: seed1000
+    seed2: seed2000
+    checkpoint_base_name: gemma-1.1-7b-it-ckpt
+    checkpoint_range: 10
+    marker: s
+    color: "#BB3E03"
+    darker_color: "#A63703"
+    corrupted_color: "#3e1401"
+    darker_corrupted_color: "#1b0900"
+
+fold_sizes:
+  - 1000
+  - 2000
+  - 3000
+  - 4000
+metric: "perspective"
