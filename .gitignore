@@ -13,3 +13,5 @@ model_continuations*
 outputs
 plots
 model_scores
+model_outputs
+test_outputs
