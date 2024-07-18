@@ -177,7 +177,7 @@ class OnlineTrainer(Trainer):
             # in the first sequence, we don't train our model
             test_ds = self.get_score_ds(batches[0])
             test_loader = DataLoader(
-                test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
             )
             _, davt = self.train_evaluate_epoch(test_loader, mode="test")
             davts.append(davt.item())
@@ -212,10 +212,13 @@ class OnlineTrainer(Trainer):
                 train_ds = self.get_score_ds(train_indices)
                 val_ds = self.get_score_ds(val_indices)
                 train_loader = DataLoader(
-                    train_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                    train_ds,
+                    batch_size=self.net_bs,
+                    shuffle=True,
+                    collate_fn=collate_fn,
                 )
                 val_loader = DataLoader(
-                    val_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                    val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
                 )
 
             # Actual model training
@@ -236,7 +239,10 @@ class OnlineTrainer(Trainer):
                     batch_indices = batches[k]
                     test_ds = self.get_score_ds(batch_indices)
                     test_loader = DataLoader(
-                        test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                        test_ds,
+                        batch_size=self.net_bs,
+                        shuffle=True,
+                        collate_fn=collate_fn,
                     )
 
                     # Get S_t value on current batch
@@ -257,7 +263,7 @@ class OnlineTrainer(Trainer):
                     train_ds = ConcatDataset([train_ds, val_ds])
                     train_loader = DataLoader(
                         train_ds,
-                        batch_size=self.bs,
+                        batch_size=self.net_bs,
                         shuffle=True,
                         collate_fn=collate_fn,
                     )
@@ -442,6 +448,7 @@ class OfflineTrainer(Trainer):
         use_wandb=True,
         fold_num=None,
         verbose=False,
+        net_bs=64,
     ):
         super().__init__(
             train_cfg,
@@ -466,6 +473,7 @@ class OfflineTrainer(Trainer):
             model_name1, seed1, model_name2, seed2, metric, fold_num=fold_num
         )
 
+        self.net_bs = train_cfg.net_batch_size
         self.num_batches = (len(self.dataset) + self.bs - 1) // self.bs
         self.batches = self.get_kfold_batches()
 
@@ -584,13 +592,12 @@ class OfflineTrainer(Trainer):
 
         self.current_seq = 0
         self.current_epoch = 0
-        self.current_total_epoch = 0
 
         # In the first sequence, we don't train our model, directly evaluate
         test_ds = self.batches[0]
         self.num_samples = len(test_ds)
         test_loader = DataLoader(
-            test_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+            test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
         )
         test_loss, davt = self.train_evaluate_epoch(test_loader, mode="test")
         davts.append(davt.item())
@@ -623,18 +630,24 @@ class OfflineTrainer(Trainer):
         # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
         if davt > (1.0 / self.alpha):
             logging.info("Reject null at %f", davt)
-            self.log({"steps": 0}, self.current_seq, self.current_epoch, 0)
+            self.log(
+                {"aggregated_test_e-value": davt},
+                self.current_seq,
+                self.current_epoch,
+                self.current_total_epoch,
+                int(self.current_epoch == 0),
+            )
 
         else:
             # In first sequence, we need to distribute the data into train and val set
             train_ds, val_ds = train_test_split(
-                self.batches[0], test_size=0.3, random_state=self.seed
+                self.batches[0], test_size=0.2, random_state=self.seed
             )
             train_loader = DataLoader(
-                train_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
             )
             val_loader = DataLoader(
-                val_ds, batch_size=self.bs, shuffle=True, collate_fn=collate_fn
+                val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
             )
 
             for k in tqdm(range(1, min(self.seqs, self.num_batches))):
@@ -666,7 +679,7 @@ class OfflineTrainer(Trainer):
                             self.num_samples += len(test_ds)
                             test_loader = DataLoader(
                                 test_ds,
-                                batch_size=self.bs,
+                                batch_size=self.net_bs,
                                 shuffle=True,
                                 collate_fn=collate_fn,
                             )
@@ -698,7 +711,7 @@ class OfflineTrainer(Trainer):
                             train_ds = ConcatDataset([train_ds, val_ds])
                             train_loader = DataLoader(
                                 train_ds,
-                                batch_size=self.bs,
+                                batch_size=self.net_bs,
                                 shuffle=True,
                                 collate_fn=collate_fn,
                             )
@@ -734,7 +747,7 @@ class OfflineTrainer(Trainer):
         """ """
 
         aggregated_loss = 0
-        davt = 1
+        davt = 1  # This does not mean we are calculating wealth from scratch, just functions as blank slate for current betting score
         num_samples = len(data_loader.dataset)
 
         self.log(

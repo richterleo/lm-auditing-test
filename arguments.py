@@ -109,7 +109,7 @@ class TrainCfg:
     )  # significance level
     T: int = field(default=0, metadata={"help": "Warm start."})
     batch_size: int = field(
-        default=96, metadata={"help": "Batch size for training regression network."}
+        default=100, metadata={"help": "Batch size for sequences in test."}
     )  # 64 (they use 90)
     save_dir: Optional[str] = field(
         default="models", metadata={"help": "Directoy to save regression network to."}
@@ -122,3 +122,6 @@ class TrainCfg:
 
     # Include the early_stopping configuration as a nested attribute
     earlystopping: EarlyStopping = field(default_factory=EarlyStopping)
+    net_batch_size: int = field(
+        default=64, metadata={"help": "Batch size of regression network."}
+    )

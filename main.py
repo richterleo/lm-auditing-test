@@ -266,6 +266,8 @@ def kfold_train(
             fold_number = int(match.group(1))
             folds.append(fold_number)
 
+    folds.sort()
+
     end = time.time()
     print(
         f"We have {len(folds)} folds. The whole initialization took {end-start} seconds."
@@ -277,8 +279,8 @@ def kfold_train(
     # Iterate over the folds and call test_daht
     all_folds_data = pd.DataFrame()
 
-    for i, fold_num in enumerate(folds):
-        print(f"Now starting experiment for fold {i}")
+    for fold_num in folds:
+        print(f"Now starting experiment for fold {fold_num}")
         data = test_daht(
             config,
             train_cfg,
@@ -415,4 +417,18 @@ def main():
 
 
 if __name__ == "__main__":
+    # config = load_config("config.yml")
+    # train_cfg = TrainCfg()
+
+    # kfold_train(
+    #     config,
+    #     train_cfg,
+    #     model_name1="Mistral-7B-Instruct-v0.2",
+    #     seed1="seed1000",
+    #     model_name2="Mistral-7B-Instruct-ckpt6",
+    #     seed2="seed1000",
+    #     use_wandb=False,
+    #     fold_size=2000,
+    # )
+
     main()

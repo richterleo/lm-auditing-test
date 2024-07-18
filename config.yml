@@ -57,18 +57,18 @@ net:
 
 
 
-train:
-  seed: 0
-  lr: 0.0005
-  earlystopping:
-    patience: 10
-    delta: 0.0
-  epochs: 100
-  seqs: 60 # number of mini-batches
-  T: 0 #Warm start number of mini-batches used for the training only
-  alpha: 0.05 # significance level
-  batch_size: 96
-  save: false
-  save_dir: ""
-  l1_lambda: 0.0
-  l2_lambda: 0.0
+# train:
+#   seed: 0
+#   lr: 0.0005
+#   earlystopping:
+#     patience: 10
+#     delta: 0.0
+#   epochs: 100
+#   seqs: 60 # number of mini-batches
+#   T: 0 #Warm start number of mini-batches used for the training only
+#   alpha: 0.05 # significance level
+#   batch_size: 100 #TODO: make clear that this is changed somewhere
+#   save: false
+#   save_dir: ""
+#   l1_lambda: 0.0
+#   l2_lambda: 0.0

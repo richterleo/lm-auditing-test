@@ -37,12 +37,18 @@ def extract_data_for_models(
     checkpoint: Optional[str] = None,
     checkpoint_base_name: Optional[str] = None,
     fold_size=4000,
-    test_dir="/root/DistanceSimulation/test_outputs",
+    test_dir="test_outputs",
 ):
     """ """
+
     assert model_name2 or (
         checkpoint and checkpoint_base_name
     ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
+
+    script_dir = os.path.dirname(__file__)
+
+    # Construct the absolute path to "test_outputs"
+    test_dir = os.path.join(script_dir, "..", test_dir)
 
     print(f"model_name2: {model_name2}")
     if model_name2:
@@ -386,8 +392,6 @@ def extract_power_from_sequence_df(
     pd.set_option("display.max_columns", 1000)
     pd.set_option("display.width", 1000)
 
-    print(f"This is the df before extracting just the power: {df}")
-
     if by_checkpoints:
         cols_to_filter.append("Checkpoint")
         last_entries = df.groupby(cols_to_filter).last().reset_index()
@@ -404,8 +408,6 @@ def extract_power_from_sequence_df(
                 ]
             )
             smaller_df = last_entries[cols_to_filter]
-
-            print(f"This is the smaller df now: {smaller_df}")
 
     else:
         # in this case we just have model1 and model2 combinations
@@ -1433,16 +1435,16 @@ def plot_all(
         seeds = ["seed1000" for i in range(1, int(bm.checkpoint_range))]
 
         # Create power plot over sequences:
-        # plot_power_over_number_of_sequences(
-        #     bm.name,
-        #     bm.seed,
-        #     checkpoints,
-        #     seeds,
-        #     checkpoint_base_name=bm.checkpoint_base_name,
-        #     save=True,
-        #     group_by="Empirical Wasserstein Distance",
-        #     marker=bm.marker,
-        # )
+        plot_power_over_number_of_sequences(
+            bm.name,
+            bm.seed,
+            checkpoints,
+            seeds,
+            checkpoint_base_name=bm.checkpoint_base_name,
+            save=True,
+            group_by="Empirical Wasserstein Distance",
+            marker=bm.marker,
+        )
 
         # Create power plot over distance:
         plot_power_over_epsilon(
@@ -1451,7 +1453,7 @@ def plot_all(
             checkpoints,
             seeds,
             checkpoint_base_name=bm.checkpoint_base_name,
-            fold_sizes=cfg.fold_sizes,
+            fold_sizes=list(cfg.fold_sizes),
             marker=bm.marker,
             metric=cfg.metric,
         )
