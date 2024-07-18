@@ -54,4 +54,4 @@ before running experiments with wandb.
 
 ## Contact
 
-For any questions or issues, please contact [leonie.richter.23@ucl.ac.uk].
+For any questions or issues, please contact [the authors](leonie.richter.23@ucl.ac.uk).
