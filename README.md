@@ -17,6 +17,12 @@ source ~/.bashrc
 ```
 Make sure to put your `WANDB_API_KEY` in the file first.
 
+To add the `deep-anytime-testing` submodule, execute
+
+```bash
+git submodule update --init
+```
+
 ## Evaluating a Model
 To run experiments that evaluate a model with respect to a certain behavior and metric, use the following command:
 
