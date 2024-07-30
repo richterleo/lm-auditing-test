@@ -36,6 +36,7 @@ Trainer = getattr(train, "Trainer")
 
 
 class OnlineTrainer(Trainer):
+    ''' deprecated, use OfflineTrainer instead '''
     def __init__(
         self,
         train_cfg,

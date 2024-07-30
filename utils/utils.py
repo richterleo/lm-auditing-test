@@ -119,15 +119,19 @@ def load_config(config_path):
     return config
 
 
-def initialize_from_config(cfg_dict, net):
+def initialize_from_config(net, net_cfg, eps):
+    ''' This only works with the TMLP model '''
+    
+
     return net(
-        cfg_dict["input_size"],
-        cfg_dict["hidden_layer_size"],
+        net_cfg["input_size"],
+        net_cfg["hidden_layer_size"],
         1,
-        cfg_dict["layer_norm"],
+        net_cfg["layer_norm"],
         False,
         0.4,
-        cfg_dict["bias"],
+        net_cfg["bias"],
+        epsilon=eps,
     )
 
 
