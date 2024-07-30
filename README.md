@@ -9,15 +9,13 @@ This repository accompanies the paper *An Auditing Test to Detect Behavioral Shi
 
 ## Setup
 
-Ensure you have all the necessary dependencies installed. You can install them using:
+Ensure you have all the necessary dependencies installed. You can do this by 
 
 ```bash
-pip install -r requirements.txt
+bash setup_utils/configure_working_environment
+source ~/.bashrc
 ```
-or 
-```bash
-conda env create -f environment.yml
-```
+Make sure to put your `WANDB_API_KEY` in the file first.
 
 ## Evaluating a Model
 To run experiments that evaluate a model with respect to a certain behavior and metric, use the following command:

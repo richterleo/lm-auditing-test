@@ -1,4 +1,4 @@
-name: censorenv
+name: auditenv
 channels:
   - pytorch
   - nvidia
@@ -161,4 +161,4 @@ dependencies:
       - wandb==0.16.6
       - xxhash==3.4.1
       - yarl==1.9.4
-prefix: /root/miniconda3/envs/distancevenv
+prefix: /root/miniconda3/envs/auditenv
