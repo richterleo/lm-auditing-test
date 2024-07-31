@@ -1,5 +1,4 @@
 import argparse
-import importlib
 import os
 import re
 import time
@@ -20,27 +19,8 @@ from utils.utils import (
 )
 from utils.generate_and_evaluate import generate_and_evaluate
 
-# # Add the submodule to the path for eval_trainer
-# submodule_path = os.path.abspath(
-#     os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
-# )
-# if submodule_path not in sys.path:
-#     sys.path.append(submodule_path)
-
-# # Assuming the 'models' module is inside the 'deep-anytime-testing' directory
-# models_path = os.path.join(
-#     submodule_path, "models"
-# )  # Adjust this path if the location is different
-# if models_path not in sys.path:
-#     sys.path.append(models_path)
-
 from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
 from dah_testing.preprocessing import create_folds_from_evaluations, cleanup_files
-from dah_testing.betting_score import TMLP
-
-# Dynamically import the module
-# deep_anytime_testing = importlib.import_module("deep-anytime-testing")
-
 
 def test_daht(
     config,
@@ -55,12 +35,7 @@ def test_daht(
     use_wandb: Optional[str] = None,
 ):
     """ """
-
-    # models = importlib.import_module(
-    #     "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
-    # )
-    # MMDEMLP = getattr(models, "MMDEMLP")
-    net = initialize_from_config(TMLP, config["net"], config["metric"]["epsilon"])
+    net = initialize_from_config(config["net"])
 
     if train_online:
         if tau2_cfg:
@@ -104,6 +79,7 @@ def test_daht(
             metric=config["metric"]["metric"],
             use_wandb=use_wandb,
             fold_num=fold_num,
+            epsilon=config["epsilon"]
         )
 
     data = trainer.train()

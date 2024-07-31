@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 import random
@@ -5,6 +6,7 @@ import time
 import torch
 import wandb
 import yaml
+import sys
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -14,6 +16,14 @@ from datetime import datetime
 
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
+
+# Add the submodule and models to the path for eval_trainer
+submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
+models_path = os.path.join(submodule_path, "models")
+
+for path in [submodule_path, models_path]:
+    if path not in sys.path:
+        sys.path.append(path)
 
 
 terminator = {"llama3": "<|eot_id|>", "mistral": "</s>", "gemma": "<end_of_turn>"}
@@ -119,11 +129,13 @@ def load_config(config_path):
     return config
 
 
-def initialize_from_config(net, net_cfg, eps):
-    ''' This only works with the TMLP model '''
+def initialize_from_config(net_cfg):
+    '''  '''
     
+    models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
+    MMDEMLP = getattr(models, "MMDEMLP")
 
-    return net(
+    return MMDEMLP(
         net_cfg["input_size"],
         net_cfg["hidden_layer_size"],
         1,
@@ -131,7 +143,6 @@ def initialize_from_config(net, net_cfg, eps):
         False,
         0.4,
         net_cfg["bias"],
-        epsilon=eps,
     )
 
 

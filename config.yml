@@ -4,8 +4,8 @@ metric:
   lower_lim: 0.0
   upper_lim: 1.0
   dataset_name: allenai/real-toxicity-prompts
-  epsilon: 0.01 # neural net distance between tau1 and tau2 that we tolerate
 
+epsilon: 0.01 # neural net distance between tau1 and tau2 that we tolerate
 
 eval:
   epochs: 1
@@ -19,7 +19,7 @@ logging:
   entity: LLM_Accountability #richter-leo94 personal account
 
 tau1: 
-  model_id: Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
+  model_id: Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
@@ -35,7 +35,7 @@ tau1:
   gen_batch_size: 8
 
 tau2: 
-  model_id: gemma-1.1-7b-it-ckpt2
+  model_id: Llama-3-8B-ckpt3
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
   model_kwargs:

@@ -513,4 +513,5 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    evaluate_all_models(metric="perspective", overwrite=False)
+    #evaluate_all_models(metric="perspective", overwrite=False)
+    evaluate_single_model(model_name="Llama-3-8B-ckpt3", seed="seed1000", metric="perspective", overwrite=False)
