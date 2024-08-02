@@ -246,9 +246,14 @@ def get_distance_scores(
     distance_measures: list = ["neuralnet", "Wasserstein"],
     net_cfg: Optional[dict] = None,
     train_cfg: Optional[DictConfig] = None,
-    score_dir: str = "model_scores"
+    shuffle: bool = False,
+    score_dir: str = "model_scores",
+    random_seed: int = 0,
+    num_samples: int = 100000
 ) -> dict:
     """ """
+    np.random.seed(random_seed)
+    
     if not (checkpoint and checkpoint_base_name) and not model_name2:
         raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
 
@@ -264,6 +269,14 @@ def get_distance_scores(
         with open(score_path2, "r") as f:
             scores2 = json.load(f)[str(epoch2)][f"{metric}_scores"]
 
+        # TODO: remove this later
+        if num_samples < len(scores1):
+            random_indices = np.random.randint(0, len(scores1), num_samples)
+
+            # Create a new list using the random indices
+            scores1= [scores1[i] for i in random_indices]
+            scores2 = [scores2[i] for i in random_indices]
+
         dist_dict = {}
         if "Wasserstein" in distance_measures:
             dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(scores1, scores2)
@@ -273,8 +286,13 @@ def get_distance_scores(
         if "neuralnet" in distance_measures:
             assert net_cfg, "net_dict must be provided for neuralnet distance"
             assert train_cfg, "train_cfg must be provided for neuralnet distance"
+            
+            if shuffle:
+                neural_net_distance_shuffled = NeuralNetDistance(net_cfg, scores1, scores2, train_cfg, shuffle=shuffle, random_seed=random_seed)
+                dist_dict["neural_net_shuffled"] = neural_net_distance_shuffled.train().item()
             neural_net_distance = NeuralNetDistance(net_cfg, scores1, scores2, train_cfg)
-            dist_dict["neuralnet"] = neural_net_distance.train().item()
+            dist_dict["neural_net"] = neural_net_distance.train().item()
+            
 
         return dist_dict
 
@@ -1766,5 +1784,24 @@ if __name__ == "__main__":
     net_cfg = load_config("config.yml")
     train_cfg = TrainCfg()
     
-    dist_dict = get_distance_scores(model_name1, seed1, seed2, model_name2=model_name2, metric=metric, net_cfg=net_cfg, train_cfg=train_cfg)
+    data = []
+    
+    # for i in range(10):
+    
+    #     dist_dict = get_distance_scores(model_name1, seed1, seed2, model_name2=model_name2, metric=metric, net_cfg=net_cfg, train_cfg=train_cfg, shuffle=True, random_seed = i, num_samples=20000)
+    #     data.append(dist_dict)
+        
+        
+    dist_dict = get_distance_scores(model_name1, seed1, seed2, model_name2=model_name2, metric=metric, net_cfg=net_cfg, train_cfg=train_cfg, shuffle=True, random_seed = 1)
     print(dist_dict)
+    # Convert the list of dictionaries to a DataFrame
+    # df = pd.DataFrame(data)
+
+    # # Create a box plot
+    # plt.figure(figsize=(10, 6))
+    # df.boxplot()
+    # plt.title('Box Plot of Different Methods to calculate Distance')
+    # plt.ylabel('Distance')
+    # plt.xticks(rotation=45)
+    # plt.grid(True)
+    # plt.savefig("model_outputs/box_plot_distance.pdf", bbox_inches="tight", format="pdf")

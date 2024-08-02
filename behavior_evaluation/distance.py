@@ -160,7 +160,7 @@ def empirical_wasserstein_distance(samples1, samples2, p=1):
 
 
 class NeuralNetDistance:
-    def __init__(self, net_cfg, samples1, samples2, train_cfg, random_seed=0, epochs=100, net_type="MMDEMLP"):
+    def __init__(self, net_cfg, samples1, samples2, train_cfg, random_seed=0, epochs=100, net_type="MMDEMLP", shuffle=False):
         """
         Initializes the NeuralNetDistance object.
 
@@ -213,6 +213,10 @@ class NeuralNetDistance:
         # samples from distribution 1 and 2
         self.samples1 = samples1
         self.samples2 = samples2
+        
+        if shuffle:
+            np.random.shuffle(self.samples1)
+            np.random.shuffle(self.samples2)
         
     def l1_regularization(self):
         l1_regularization = torch.tensor(0., requires_grad=True)
@@ -271,13 +275,9 @@ class NeuralNetDistance:
         aggregated_loss = 0
         aggregated_diff = 0
         num_samples = len(data_loader.dataset)
-        num_samples_control = 0
         
 
         for i, batch in enumerate(data_loader):
-            if mode == "test":
-                print(f"batch number: {i}")
-                print(f"This batch has length {len(batch)}")
             tau1, tau2 = torch.split(batch, 1, dim=1)
             tau1 = tau1.to(self.device)
             tau2 = tau2.to(self.device)
@@ -298,13 +298,11 @@ class NeuralNetDistance:
                 self.optimizer.step()
                 
             elif mode == "test":
-                num_samples_control += out.shape[0]
                 aggregated_diff += torch.exp(out).sum()
                 
 
         if mode == "test":
             # 1 + g(X)- g(Y) -1 = g(X) - g(Y)
-            print(f"num_samples control: {num_samples_control}, num_samples: {num_samples}")
             distance = (aggregated_diff / num_samples) - 1
             return distance
         
@@ -321,18 +319,33 @@ if __name__ == "__main__":
     samples_N01 = np.random.normal(0, 1, 100000)
 
     # Generate 100,000 samples from N(0.5, 1)
-    samples_N05_1 = np.random.normal(0.01, 1, 100000)
+    # samples_N05_1 = np.random.normal(0.02, 1, 100000)
 
-    net_cfg = load_config("config.yml")
-    train_cfg = TrainCfg()
+    # net_cfg = load_config("config.yml")
+    # train_cfg = TrainCfg()
     
+    # # Gaussian test
+    # # w_dist_Gaussian = wasserstein_distance(samples_N01, samples_N05_1)
+    # # nn_dist_class_Gaussian = NeuralNetDistance(net_cfg, samples_N01, samples_N05_1, train_cfg)
+    # # nn_dist_Gaussian = nn_dist_class_Gaussian.train()
     
-    w_dist = wasserstein_distance(samples_N01, samples_N05_1)
-    nn_dist_class = NeuralNetDistance(net_cfg, samples_N01, samples_N05_1, train_cfg)
-    nn_dist = nn_dist_class.train()
+    # # Exponential test
+    # # Generate 100,000 samples from Exponential(λ=1)
+    # samples_exp1 = np.random.exponential(1, 100000)
+
+    # # Generate 100,000 samples from Exponential(λ=0.9804)
+    # # Note: The scale parameter of np.random.exponential is the inverse of lambda.
+    # samples_exp09804 = np.random.exponential(1/0.9804, 100000)
     
-    print(f"This is the empirical wasserstein distance: {w_dist}")
-    print(f"This is the neural net distance {nn_dist}")
+    # w_dist_exp = wasserstein_distance(samples_exp1, samples_exp09804)
+    # nn_dist_class_exp = NeuralNetDistance(net_cfg, samples_exp1, samples_exp09804, train_cfg)
+    # nn_dist_exp = nn_dist_class_exp.train()
+    
+    # # print(f"Gaussian: This is the empirical wasserstein distance: {w_dist_Gaussian}")
+    # # print(f"Gaussian: This is the neural net distance {nn_dist_Gaussian}")
+    
+    # print(f"Exp: This is the empirical wasserstein distance: {w_dist_exp}")
+    # print(f"Exp: This is the neural net distance {nn_dist_exp}")
     
     
     
