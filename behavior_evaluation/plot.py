@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 from hydra.utils import instantiate
 
 from pathlib import Path
-from scipy.stats import skew
+from scipy.stats import skew, wasserstein_distance
 from typing import Union, List, Optional
 
 import matplotlib.pyplot as plt
@@ -17,11 +17,14 @@ from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from behavior_evaluation.distance_and_variation import (
+from behavior_evaluation.distance import (
     empirical_wasserstein_distance_p1,
     kolmogorov_variation,
+    NeuralNetDistance,
     calc_tot_discrete_variation,
 )
+from utils.utils import load_config
+from arguments import TrainCfg
 
 
 pd.set_option("display.max_rows", 1000)
@@ -231,58 +234,56 @@ def get_power_over_sequences_for_checkpoints(
 
 
 def get_distance_scores(
-    model_name1,
-    seed1,
-    seed2,
+    model_name1: str,
+    seed1: int,
+    seed2: int,
     checkpoint: Optional[str] = None,
     checkpoint_base_name: Optional[str] = None,
     model_name2: Optional[str] = None,
-    metric="toxicity",
-    epoch1=0,
-    epoch2=0,
-    distance_measure="Wasserstein",
-    score_dir="model_scores",
-    test_dir="test_outputs",
-):
+    metric: str = "toxicity",
+    epoch1: int = 0,
+    epoch2: int = 0,
+    distance_measures: list = ["neuralnet", "Wasserstein"],
+    net_cfg: Optional[dict] = None,
+    train_cfg: Optional[DictConfig] = None,
+    score_dir: str = "model_scores"
+) -> dict:
     """ """
     if not (checkpoint and checkpoint_base_name) and not model_name2:
-        raise ValueError(
-            "Either checkpoint and checkpoint_base_name or model_name2 must be provided"
-        )
+        raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
 
     script_dir = os.path.dirname(__file__)
-
-    # Construct the absolute path to "test_outputs"
     score_dir = os.path.join(script_dir, "..", score_dir)
-    test_dir = os.path.join(script_dir, "..", test_dir)
+
+    score_path1 = os.path.join(score_dir, f"{model_name1}_{seed1}", f"{metric}_scores.json")
+    score_path2 = os.path.join(score_dir, f"{checkpoint_base_name}{checkpoint}_{seed2}" if checkpoint else f"{model_name2}_{seed2}", f"{metric}_scores.json")
 
     try:
-        score_path1 = f"{score_dir}/{model_name1}_{seed1}/{metric}_scores.json"
-        if checkpoint:
-            score_path2 = f"{score_dir}/{checkpoint_base_name}{checkpoint}_{seed2}/{metric}_scores.json"
-        else:
-            score_path2 = f"{score_dir}/{model_name2}_{seed2}/{metric}_scores.json"
         with open(score_path1, "r") as f:
-            scores1 = json.load(f)
+            scores1 = json.load(f)[str(epoch1)][f"{metric}_scores"]
         with open(score_path2, "r") as f:
-            scores2 = json.load(f)
+            scores2 = json.load(f)[str(epoch2)][f"{metric}_scores"]
 
-        scores1 = scores1[str(epoch1)][f"{metric}_scores"]
-        scores2 = scores2[str(epoch2)][f"{metric}_scores"]
+        dist_dict = {}
+        if "Wasserstein" in distance_measures:
+            dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(scores1, scores2)
+            dist_dict["Wasserstein_scipy"] = wasserstein_distance(scores1, scores2)
+        if "Kolmogorov" in distance_measures:
+            dist_dict["Kolmogorov"] = kolmogorov_variation(scores1, scores2)
+        if "neuralnet" in distance_measures:
+            assert net_cfg, "net_dict must be provided for neuralnet distance"
+            assert train_cfg, "train_cfg must be provided for neuralnet distance"
+            neural_net_distance = NeuralNetDistance(net_cfg, scores1, scores2, train_cfg)
+            dist_dict["neuralnet"] = neural_net_distance.train().item()
 
-        if distance_measure == "Wasserstein":
-            dist = empirical_wasserstein_distance_p1(scores1, scores2)
-
-        elif distance_measure == "Kolmogorov":
-            dist = kolmogorov_variation(scores1, scores2)
-
-        return dist
+        return dist_dict
 
     except FileNotFoundError:
         if checkpoint:
             print(f"File for checkpoint {checkpoint} does not exist yet")
         else:
             print(f"File for model {model_name2} does not exist yet")
+
 
 
 def get_power_over_sequences_for_ranked_checkpoints(
@@ -1754,4 +1755,16 @@ if __name__ == "__main__":
     #     "model_outputs/distance_over_checkpoints.pdf", bbox_inches="tight", format="pdf"
     # )
 
-    plot_all()
+    #plot_all()
+    
+    model_name1 = "Meta-Llama-3-8B-Instruct"
+    model_name2 = "Llama-3-8B-ckpt3"
+    seed1 = "seed1000"
+    seed2 = "seed1000"
+    metric = "perspective"
+    
+    net_cfg = load_config("config.yml")
+    train_cfg = TrainCfg()
+    
+    dist_dict = get_distance_scores(model_name1, seed1, seed2, model_name2=model_name2, metric=metric, net_cfg=net_cfg, train_cfg=train_cfg)
+    print(dist_dict)

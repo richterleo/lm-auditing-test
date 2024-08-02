@@ -129,21 +129,22 @@ def load_config(config_path):
     return config
 
 
-def initialize_from_config(net_cfg):
+def initialize_from_config(net_cfg, net_type="MMDEMLP"):
     '''  '''
     
-    models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
-    MMDEMLP = getattr(models, "MMDEMLP")
+    if net_type == "MMDEMLPT":
+        models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
+        MMDEMLP = getattr(models, "MMDEMLP")
 
-    return MMDEMLP(
-        net_cfg["input_size"],
-        net_cfg["hidden_layer_size"],
-        1,
-        net_cfg["layer_norm"],
-        False,
-        0.4,
-        net_cfg["bias"],
-    )
+        return MMDEMLP(
+            net_cfg["input_size"],
+            net_cfg["hidden_layer_size"],
+            1,
+            net_cfg["layer_norm"],
+            False,
+            0.4,
+            net_cfg["bias"],
+        )
 
 
 def translate_model_kwargs(model_kwargs):

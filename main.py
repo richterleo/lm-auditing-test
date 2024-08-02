@@ -19,14 +19,20 @@ from utils.utils import (
 )
 from utils.generate_and_evaluate import generate_and_evaluate
 
+# Add the submodule and models to the path for eval_trainer
+submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
+models_path = os.path.join(submodule_path, "models")
+
+for path in [submodule_path, models_path]:
+    if path not in sys.path:
+        sys.path.append(path)
+
 from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
 from dah_testing.preprocessing import create_folds_from_evaluations, cleanup_files
 
-def test_daht(
+def davtt(
     config,
     train_cfg,
-    tau2_cfg: Optional[Dict] = None,
-    train_online: bool = False,
     fold_num: int = 0,
     model_name1: Optional[str] = None,
     seed1: Optional[str] = None,
@@ -34,53 +40,40 @@ def test_daht(
     seed2: Optional[str] = None,
     use_wandb: Optional[str] = None,
 ):
-    """ """
-    net = initialize_from_config(config["net"])
-
-    if train_online:
-        if tau2_cfg:
-            trainer = OnlineTrainer(
-                train_cfg,
-                net,
-                config["tau1"],
-                config["metric"]["dataset_name"],
-                config["metric"]["behavior"],
-                config["metric"]["metric"],
-                config["logging"]["use_wandb"],
-                tau2_cfg,
-            )
-        else:
-            trainer = OnlineTrainer(
-                train_cfg,
-                net,
-                config["tau1"],
-                config["metric"]["dataset_name"],
-                config["metric"]["behavior"],
-                config["metric"]["metric"],
-                config["logging"]["use_wandb"],
-                config["tau2"],
-            )
-
-    else:
-        use_wandb = (
-            use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
-        )
-        model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
-        seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
-        model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
-        seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
-        trainer = OfflineTrainer(
-            train_cfg,
-            net,
-            model_name1,
-            seed1,
-            model_name2,
-            seed2,
-            metric=config["metric"]["metric"],
-            use_wandb=use_wandb,
-            fold_num=fold_num,
-            epsilon=config["epsilon"]
-        )
+    """ 
+    Deep anytime-valid tolerance test 
+    
+    Args:
+    config: Dict
+        Configuration dictionary
+    train_cfg: TrainCfg
+        Training configuration
+    """
+    # Whether to use logging
+    use_wandb = (
+        use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+    )
+    
+    model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
+    seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
+    model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
+    seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
+    
+    # Define network for betting score
+    betting_net = initialize_from_config(config["net"])
+    
+    trainer = OfflineTrainer(
+        train_cfg,
+        betting_net,
+        model_name1,
+        seed1,
+        model_name2,
+        seed2,
+        metric=config["metric"]["metric"],
+        use_wandb=use_wandb,
+        fold_num=fold_num,
+        epsilon=config["epsilon"]
+    )
 
     data = trainer.train()
     return data
@@ -90,7 +83,6 @@ def run_test_with_wandb(
     config,
     train_cfg,
     tau2_cfg: Optional[Dict] = None,
-    train_online: bool = False,
     fold_num: int = 0,
     model_name1: Optional[str] = None,
     seed1: Optional[str] = None,
@@ -106,26 +98,11 @@ def run_test_with_wandb(
             name=create_run_string(),
             config=config,
         )
-        wandb.config.update({"train_online": train_online})
-        if train_online:
-            model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
-            seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
-            model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
-            seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
-            wandb.config.update(
-                {
-                    "model_name1": model_name1,
-                    "seed1": seed1,
-                    "model_name2": model_name2,
-                    "seed2": seed2,
-                }
-            )
 
-    test_daht(
+    davtt(
         config,
         train_cfg,
         tau2_cfg=tau2_cfg,
-        train_online=train_online,
         fold_num=fold_num,
         model_name1=model_name1,
         seed1=seed1,
@@ -185,13 +162,14 @@ def kfold_train(
     use_wandb: Optional[bool] = None,
     fold_size: int = 4000,
     pattern: str = r"_fold_(\d+)\.json$",
-    metric: str = "toxicity",
+    metric: Optional[bool] = None,
     output_dir: str = "test_outputs",
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
 
     use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+    metric = metric if metric else config["metric"]["metric"]
     if use_wandb:
         wandb.init(
             project=f"{config['metric']['behavior']}_test",
@@ -258,10 +236,9 @@ def kfold_train(
 
     for fold_num in folds:
         print(f"Now starting experiment for fold {fold_num}")
-        data = test_daht(
+        data = davtt(
             config,
             train_cfg,
-            train_online=False,
             fold_num=fold_num,
             model_name1=model_name1,
             seed1=seed1,
@@ -271,7 +248,11 @@ def kfold_train(
         )
         all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
 
-    file_path = Path(directory) / f"kfold_test_results_{fold_size}.csv"
+    print(f"Calculating neural net distance.")
+    
+    
+
+    file_path = Path(directory) / f"kfold_test_results_{fold_size}_epsilon_{config['epsilon']}.csv"
     all_folds_data.to_csv(file_path, index=False)
 
     cleanup_files(directory, f"{metric}_scores_fold_*.json")
@@ -366,7 +347,7 @@ def main():
     if args.exp == "generation":
         eval_model(config, evaluate=args.evaluate)
 
-    elif args.exp == "test_daht":
+    elif args.exp == "davtt":
         train_cfg = TrainCfg()
         if not args.fold_num:
             kfold_train(
@@ -394,18 +375,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # config = load_config("config.yml")
-    # train_cfg = TrainCfg()
-
-    # kfold_train(
-    #     config,
-    #     train_cfg,
-    #     model_name1="Mistral-7B-Instruct-v0.2",
-    #     seed1="seed1000",
-    #     model_name2="Mistral-7B-Instruct-ckpt6",
-    #     seed2="seed1000",
-    #     use_wandb=False,
-    #     fold_size=2000,
-    # )
-
     main()
+
+
