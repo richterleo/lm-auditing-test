@@ -31,426 +31,51 @@ pd.set_option("display.max_rows", 1000)
 pd.set_option("display.max_columns", 1000)
 pd.set_option("display.width", 1000)
 
+from analyze import (
+    extract_data_for_models,
+    get_power_over_sequences_from_whole_ds,
+    get_power_over_sequences_for_models_or_checkpoints,
+    get_power_over_sequences_for_checkpoints,
+    get_distance_scores,
+    get_matrix_for_models,
+    get_power_over_sequences_for_ranked_checkpoints,
+    get_power_over_sequences_for_ranked_checkpoints_wrapper,
+    extract_power_from_sequence_df,
+    get_alpha_wrapper,
+)
 
-def extract_data_for_models(
+
+def distance_box_plot(
+    df,
     model_name1,
     seed1,
     seed2,
-    model_name2: Optional[str] = None,
-    checkpoint: Optional[str] = None,
-    checkpoint_base_name: Optional[str] = None,
-    fold_size=4000,
-    test_dir="test_outputs",
+    model_name2,
+    num_samples,
+    pre_shuffled=False,
+    metric="perspective",
+    plot_dir: str = "test_outputs",
 ):
     """ """
 
-    assert model_name2 or (
-        checkpoint and checkpoint_base_name
-    ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
+    # Create a box plot
+    plt.figure(figsize=(10, 6))
+    df.boxplot()
+    plt.title("Box Plot of Different Methods to calculate Distance")
+    plt.ylabel("Distance")
+    plt.xticks(rotation=45)
+    plt.grid(True)
 
-    script_dir = os.path.dirname(__file__)
-
-    # Construct the absolute path to "test_outputs"
-    test_dir = os.path.join(script_dir, "..", test_dir)
-
-    print(f"model_name2: {model_name2}")
-    if model_name2:
-        if fold_size == 4000:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results.csv"
-            if not Path(file_path).exists():
-                file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
-        else:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
+    if pre_shuffled:
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}_preshuffled.pdf"
     else:
-        if fold_size == 4000:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results.csv"
-            if not Path(file_path).exists():
-                file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
-        else:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}.pdf"
 
-    print(f"This is the file path: {file_path} and this is the fold_size: {fold_size}")
-    data = pd.read_csv(file_path)
-
-    # TODO: make this less hacky
-    # we're just discarding the last fold for now, because it is smaller than the rest
-    data = data[data["fold_number"] != data["fold_number"].max()]
-
-    return data
-
-
-def get_power_over_sequences_from_whole_ds(
-    data: pd.DataFrame, fold_size: int = 4000, bs: int = 96
-):
-    """ """
-    max_sequences = (fold_size + bs - 1) // bs
-    selected_columns = data[
-        [
-            "fold_number",
-            "sequence",
-            "aggregated_davt",
-            "sequences_until_end_of_experiment",
-        ]
-    ]
-
-    filtered_df = selected_columns.drop_duplicates(subset=["sequence", "fold_number"])
-
-    num_folds = filtered_df["fold_number"].nunique()
-    # Set 'sequence' as the index of the DataFrame
-    indexed_df = filtered_df.set_index("sequence")
-
-    unique_fold_numbers = indexed_df["fold_number"].unique()
-
-    # Initialize a dictionary to store the counts
-    sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
-
-    pd.set_option("display.max_rows", 1000)
-    pd.set_option("display.max_columns", 1000)
-    pd.set_option("display.width", 1000)
-
-    print(f"This is the indexed df: {indexed_df}")
-
-    # Iterate over each fold number
-    for fold in unique_fold_numbers:
-        fold_data = indexed_df[indexed_df["fold_number"] == fold]
-        for sequence in range(max_sequences):  # sequence_counts.keys()
-            if (
-                sequence in fold_data.index
-                and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
-                == sequence
-            ):
-                sequence_counts[sequence] += 1
-            elif sequence not in fold_data.index:
-                sequence_counts[sequence] += 1
-
-    # Convert the result to a DataFrame for better visualization
-    result_df = pd.DataFrame(
-        list(sequence_counts.items()), columns=["Sequence", "Count"]
+    plt.savefig(
+        file_path,
+        bbox_inches="tight",
+        format="pdf",
     )
-    result_df["Power"] = result_df["Count"] / num_folds
-    result_df["Samples per Test"] = fold_size
-    result_df["Samples"] = result_df["Sequence"] * bs
-
-    result_df.reset_index()
-
-    print(f"This is the result df: {result_df}")
-
-    return result_df
-
-
-def get_power_over_sequences_for_models_or_checkpoints(
-    model_name1,
-    seed1,
-    seed2,
-    model_name2: Optional[str] = None,
-    checkpoint: Optional[str] = None,
-    checkpoint_base_name: Optional[str] = None,
-    fold_size: int = 4000,
-    bs: int = 96,
-):
-    """ """
-    assert model_name2 or (
-        checkpoint and checkpoint_base_name
-    ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
-
-    if model_name2:
-        data = extract_data_for_models(
-            model_name1, seed1, seed2, model_name2=model_name2
-        )
-        result_df = get_power_over_sequences_from_whole_ds(
-            data, fold_size=fold_size, bs=bs
-        )
-        result_df["model_name1"] = model_name1
-        result_df["seed1"] = seed1
-        result_df["model_name2"] = model_name2
-        result_df["seed2"] = seed2
-    else:
-        data = extract_data_for_models(
-            model_name1,
-            seed1,
-            seed2,
-            checkpoint=checkpoint,
-            checkpoint_base_name=checkpoint_base_name,
-            fold_size=fold_size,
-        )
-        result_df = get_power_over_sequences_from_whole_ds(data, fold_size, bs)
-        result_df["Checkpoint"] = checkpoint
-
-    return result_df
-
-
-def get_matrix_for_models(model_names, seeds, fold_size=4000):
-    """ """
-    all_scores = []
-
-    for model_name1, seed1 in zip(model_names, seeds):
-        for model_name2, seed2 in zip(model_names[1:], seeds[1:]):
-            power_df = get_power_over_sequences_for_models_or_checkpoints(
-                model_name1, seed1, seed2, model_name2=model_name2, fold_size=fold_size
-            )
-            all_scores.append(power_df)
-
-    all_scores_df = pd.concat(all_scores, ignore_index=True)
-    print(all_scores_df)
-
-
-def get_power_over_sequences_for_checkpoints(
-    base_model_name: Union[str, List[str]],
-    base_model_seed: Union[str, List[str]],
-    checkpoints: Union[str, List[str]],
-    seeds: Union[str, List[str]],
-    checkpoint_base_name: str = "Llama-3-8B-ckpt",
-):
-    if not isinstance(checkpoints, list):
-        checkpoints = [checkpoints]
-    if not isinstance(seeds, list):
-        seeds = [seeds]
-
-    result_dfs = []
-
-    for checkpoint, seed in zip(checkpoints, seeds):
-        print(
-            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
-        )
-        try:
-            result_df = get_power_over_sequences_for_models_or_checkpoints(
-                base_model_name,
-                base_model_seed,
-                seed,
-                checkpoint=checkpoint,
-                checkpoint_base_name=checkpoint_base_name,
-            )
-
-            result_dfs.append(result_df)
-
-        except FileNotFoundError:
-            print(
-                f"File for checkpoint {checkpoint} and seed {seed} does not exist yet"
-            )
-
-    final_df = pd.concat(result_dfs, ignore_index=True)
-
-    return final_df
-
-
-def get_distance_scores(
-    model_name1: str,
-    seed1: int,
-    seed2: int,
-    checkpoint: Optional[str] = None,
-    checkpoint_base_name: Optional[str] = None,
-    model_name2: Optional[str] = None,
-    metric: str = "toxicity",
-    epoch1: int = 0,
-    epoch2: int = 0,
-    distance_measures: list = ["neuralnet", "Wasserstein"],
-    net_cfg: Optional[dict] = None,
-    train_cfg: Optional[DictConfig] = None,
-    shuffle: bool = False,
-    score_dir: str = "model_scores",
-    random_seed: int = 0,
-    num_samples: int = 100000
-) -> dict:
-    """ """
-    np.random.seed(random_seed)
-    
-    if not (checkpoint and checkpoint_base_name) and not model_name2:
-        raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
-
-    script_dir = os.path.dirname(__file__)
-    score_dir = os.path.join(script_dir, "..", score_dir)
-
-    score_path1 = os.path.join(score_dir, f"{model_name1}_{seed1}", f"{metric}_scores.json")
-    score_path2 = os.path.join(score_dir, f"{checkpoint_base_name}{checkpoint}_{seed2}" if checkpoint else f"{model_name2}_{seed2}", f"{metric}_scores.json")
-
-    try:
-        with open(score_path1, "r") as f:
-            scores1 = json.load(f)[str(epoch1)][f"{metric}_scores"]
-        with open(score_path2, "r") as f:
-            scores2 = json.load(f)[str(epoch2)][f"{metric}_scores"]
-
-        # TODO: remove this later
-        if num_samples < len(scores1):
-            random_indices = np.random.randint(0, len(scores1), num_samples)
-
-            # Create a new list using the random indices
-            scores1= [scores1[i] for i in random_indices]
-            scores2 = [scores2[i] for i in random_indices]
-
-        dist_dict = {}
-        if "Wasserstein" in distance_measures:
-            dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(scores1, scores2)
-            dist_dict["Wasserstein_scipy"] = wasserstein_distance(scores1, scores2)
-        if "Kolmogorov" in distance_measures:
-            dist_dict["Kolmogorov"] = kolmogorov_variation(scores1, scores2)
-        if "neuralnet" in distance_measures:
-            assert net_cfg, "net_dict must be provided for neuralnet distance"
-            assert train_cfg, "train_cfg must be provided for neuralnet distance"
-            
-            if shuffle:
-                neural_net_distance_shuffled = NeuralNetDistance(net_cfg, scores1, scores2, train_cfg, shuffle=shuffle, random_seed=random_seed)
-                dist_dict["neural_net_shuffled"] = neural_net_distance_shuffled.train().item()
-            neural_net_distance = NeuralNetDistance(net_cfg, scores1, scores2, train_cfg)
-            dist_dict["neural_net"] = neural_net_distance.train().item()
-            
-
-        return dist_dict
-
-    except FileNotFoundError:
-        if checkpoint:
-            print(f"File for checkpoint {checkpoint} does not exist yet")
-        else:
-            print(f"File for model {model_name2} does not exist yet")
-
-
-
-def get_power_over_sequences_for_ranked_checkpoints(
-    base_model_name,
-    base_model_seed,
-    checkpoints,
-    seeds,
-    checkpoint_base_name="LLama-3-8B-ckpt",
-    epoch1=0,
-    epoch2=0,
-    metric="toxicity",
-    distance_measure="Wasserstein",
-    fold_size=4000,
-):
-    if not isinstance(checkpoints, list):
-        checkpoints = [checkpoints]
-    if not isinstance(seeds, list):
-        seeds = [seeds]
-
-    result_dfs = []
-
-    for checkpoint, seed in zip(checkpoints, seeds):
-        print(
-            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
-        )
-
-        dist = get_distance_scores(
-            base_model_name,
-            base_model_seed,
-            seed,
-            checkpoint=checkpoint,
-            checkpoint_base_name=checkpoint_base_name,
-            metric=metric,
-            distance_measure=distance_measure,
-            epoch1=epoch1,
-            epoch2=epoch2,
-        )
-
-        result_df = get_power_over_sequences_for_models_or_checkpoints(
-            base_model_name,
-            base_model_seed,
-            seed,
-            checkpoint=checkpoint,
-            checkpoint_base_name=checkpoint_base_name,
-            fold_size=fold_size,
-        )
-
-        result_df[f"Empirical {distance_measure} Distance"] = dist
-        result_dfs.append(result_df)
-
-    final_df = pd.concat(result_dfs, ignore_index=True)
-    final_df[f"Rank based on {distance_measure} Distance"] = (
-        final_df[f"Empirical {distance_measure} Distance"]
-        .rank(method="dense", ascending=True)
-        .astype(int)
-    )
-
-    return final_df
-
-
-def get_power_over_sequences_for_ranked_checkpoints_wrapper(
-    base_model_name,
-    base_model_seed,
-    checkpoints,
-    seeds,
-    checkpoint_base_name="LLama-3-8B-ckpt",
-    fold_sizes: List[int] = [1000, 2000, 3000, 4000],
-    epoch1=0,
-    epoch2=0,
-    metric="toxicity",
-    distance_measure="Wasserstein",
-):
-    """
-    This is a wrapper for get_power_over_sequences_for_ranked_checkpoints to use to multiple fold sizes and returns a concatenated dataframe.
-    """
-    result_dfs = []
-
-    for fold_size in fold_sizes:
-        result_dfs.append(
-            get_power_over_sequences_for_ranked_checkpoints(
-                base_model_name,
-                base_model_seed,
-                checkpoints,
-                seeds,
-                checkpoint_base_name=checkpoint_base_name,
-                epoch1=epoch1,
-                epoch2=epoch2,
-                metric=metric,
-                distance_measure=distance_measure,
-                fold_size=fold_size,
-            )
-        )
-
-    result_df = pd.concat(result_dfs)
-    return result_df
-
-
-def extract_power_from_sequence_df(
-    df: pd.DataFrame,
-    distance_measure: Optional[str] = "Wasserstein",
-    by_checkpoints=True,
-):
-    """ """
-    cols_to_filter = ["Samples per Test"]
-
-    pd.set_option("display.max_rows", 1000)
-    pd.set_option("display.max_columns", 1000)
-    pd.set_option("display.width", 1000)
-
-    if by_checkpoints:
-        cols_to_filter.append("Checkpoint")
-        last_entries = df.groupby(cols_to_filter).last().reset_index()
-
-        cols_to_filter.append("Power")
-
-        if not distance_measure:
-            smaller_df = last_entries[cols_to_filter]
-        else:
-            cols_to_filter.extend(
-                [
-                    f"Empirical {distance_measure} Distance",
-                    f"Rank based on {distance_measure} Distance",
-                ]
-            )
-            smaller_df = last_entries[cols_to_filter]
-
-    else:
-        # in this case we just have model1 and model2 combinations
-        cols_to_filter.extend(["model_name1", "model_name2", "seed1", "seed2"])
-
-        last_entries = df.groupby(cols_to_filter).last().reset_index()
-
-        cols_to_filter.append("Power")
-        if not distance_measure:
-            smaller_df = last_entries[cols_to_filter]
-        else:
-            if "Rank based on Wasserstein Distance" in last_entries.columns:
-                cols_to_filter.extend(
-                    [
-                        f"Empirical {distance_measure} Distance",
-                        f"Rank based on {distance_measure} Distance",
-                    ]
-                )
-                smaller_df = last_entries[cols_to_filter]
-            else:
-                cols_to_filter.append(f"Empirical {distance_measure} Distance")
-                smaller_df = last_entries[cols_to_filter]
-
-    return smaller_df
 
 
 def plot_power_over_number_of_sequences(
@@ -775,26 +400,6 @@ def plot_power_over_epsilon(
                     dpi=300,
                     bbox_inches="tight",
                 )
-
-
-def get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=4000):
-    if not isinstance(model_names, list):
-        result_df = get_power_over_sequences_for_models_or_checkpoints(
-            model_names, seeds1, seeds2, model_name2=model_names, fold_size=fold_size
-        )
-
-    else:
-        result_dfs = []
-        for model_name, seed1, seed2 in zip(model_names, seeds1, seeds2):
-            result_df = get_power_over_sequences_for_models_or_checkpoints(
-                model_name, seed1, seed2, model_name2=model_name, fold_size=fold_size
-            )
-            result_dfs.append(result_df)
-
-    final_df = pd.concat(result_dfs, ignore_index=True)
-    final_df["model_id"] = final_df["model_name1"]
-
-    return final_df
 
 
 def plot_alpha_over_sequences(
@@ -1515,293 +1120,215 @@ def plot_all(
 
 
 if __name__ == "__main__":
-    # Definitions for plotting
-    base_model_name_list = [
-        "Meta-Llama-3-8B-Instruct",
-        "Mistral-7B-Instruct-v0.2",
-        "gemma-1.1-7b-it",
-    ]
-    checkpoint_base_name_list = [
-        "Llama-3-8B-ckpt",
-        "Mistral-7B-Instruct-ckpt",
-        "gemma-1.1-7b-it-ckpt",
-    ]
-    base_model_seed_list = ["seed1000" for i in base_model_name_list]
-    checkpoints_list = [[i for i in range(1, 11)] for j in range(3)]
-    seeds_list = [["seed1000" for i in ckpts] for ckpts in checkpoints_list]
-
-    alternative_llama_seeds = [
-        "seed4000",
-        "seed4000",
-        "seed7000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed6000",
-        "seed7000",
-        "seed7000",
-        "seed5000",
-    ]
-
-    alternative_seeds_list = [alternative_llama_seeds, seeds_list[1], seeds_list[2]]
-    alternative_llama_palette = sns.color_palette("viridis", 10)
-    alternative_llama_palette = alternative_llama_palette[::-1]
-
-    base_model_markers = ["X", "o", "s"]
-
-    # for power_over_epsilon
-    fold_sizes = [1000, 2000, 3000, 4000]
-
-    # for alpha_over_sequences
-    custom_colors = ["#94D2BD", "#EE9B00", "#BB3E03"]
-    darker_custom_colors = ["#85BDAA", "#D28B00", "#A63703"]
-    corrupted_model_custom_colors = ["#25453a", "#4f3300", "#3e1401"]
-    darker_corrupted_model_custom_colors = ["#101e19", "#221600", "#1b0900"]
-
-    checkpoint1_palette = ["red", "green", "blue"]
-    checkpoint1_markers = ["X", "X", "X"]
-    checkpoint1_models = ["Llama-3-8B-ckpt1" for i in range(3)]
-    checkpoint1_seeds1 = ["seed1000" for i in range(3)]
-    checkpoint1_seeds2 = ["seed4000", "seed5000", "seed7000"]
-
-    # checkpoint1_list = [1, 1, 1, 1]
-    # checkpoint1_seeds_list = ["seed1000", "seed4000", "seed5000", "seed7000"]
-    # df = get_alpha_wrapper(
-    #     "Meta-Llama-3-8B-Instruct",
-    #     "seed1000",
-    #     checkpoint1_list,
-    #     checkpoint1_seeds_list,
-    #     checkpoint_base_name="Llama-3-8B-ckpt",
-    #     fold_sizes=fold_sizes,
-    #     marker="X",
-    # )
-
-    # for bm_name, bm_seed, ckpt_list, seed_list, ckpt_bm, marker in zip(
-    #     base_model_name_list,
-    #     base_model_seed_list,
-    #     checkpoints_list,
-    #     alternative_seeds_list,
-    #     checkpoint_base_name_list,
-    #     base_model_markers,
-    # ):
-    #     plot_power_over_number_of_sequences(
-    #         bm_name,
-    #         bm_seed,
-    #         ckpt_list,
-    #         seed_list,
-    #         checkpoint_base_name=ckpt_bm,
-    #         group_by="Empirical Wasserstein Distance",
-    #         marker=marker,
-    #     )
-
-    #     plot_power_over_epsilon(
-    #         bm_name,
-    #         bm_seed,
-    #         ckpt_list,
-    #         seed_list,
-    #         checkpoint_base_name=ckpt_bm,
-    #         fold_sizes=[1000, 2000, 3000, 4000],
-    #         marker=marker,
-    #     )
-
-    # plot_alpha_over_sequences(
-    #     base_model_name_list, base_model_seed_list, ["seed2000", "seed2000", "seed2000"]
-    # )
-
-    # plot_rejection_rate_matrix(
-    #     ["Llama-3-8B-ckpt1" for i in range(4)],
-    #     ["seed1000", "seed4000", "seed5000", "seed7000"],
-    # )
-
-    # df = get_power_over_sequences_for_models_or_checkpoints(
-    #     base_model_name_list[2],
-    #     "seed1000",
-    #     "seed2000",
-    #     model_name2=base_model_name_list[2],
-    # )
-
-    # for i, seed in enumerate(alternative_llama_seeds):
-    #     dist = get_distance_scores(
-    #         "Meta-Llama-3-8B-Instruct",
-    #         "seed1000",
-    #         seed,
-    #         model_name2=f"Llama-3-8B-ckpt{i+1}",
-    #     )
-    #     print(f"Distance for model Llama-3-8B-ckpt{i+1}_{seed}: {dist:.5f}")
-
-    # for i in range(10):
-    #     dist = get_distance_scores(
-    #         base_model_name_list[1],
-    #         "seed1000",
-    #         "seed1000",
-    #         checkpoint=i + 1,
-    #         checkpoint_base_name=checkpoint_base_name_list[1],
-    #     )
-    #     print(
-    #         f"Distance for model {checkpoint_base_name_list[1]}{i+1}_seed1000: {dist:.5f}"
-    #     )
-
-    # for i in range(10):
-    #     dist = get_distance_scores(
-    #         base_model_name_list[2],
-    #         "seed1000",
-    #         "seed1000",
-    #         checkpoint=i + 1,
-    #         checkpoint_base_name=checkpoint_base_name_list[2],
-    #     )
-    #     print(
-    #         f"Distance for model {checkpoint_base_name_list[2]}{i+1}_seed1000: {dist:.5f}"
-    #     )
-
-    # model_name1 = "Mistral-7B-Instruct-v0.2"
-    # seed1 = "seed1000"
-    # seed2 = "seed2000"
-
-    # plot_scores_two_models(model_name1, seed1, model_name1, seed2)
-
-    # Prepare the data
-    # data = {
-    #     "Model": [
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Llama-3-8B",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "Mistral-7B-Instruct",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #         "gemma-1.1-7b-it",
-    #     ],
-    #     "Checkpoint": [
-    #         1,
-    #         2,
-    #         3,
-    #         4,
-    #         5,
-    #         6,
-    #         7,
-    #         8,
-    #         9,
-    #         10,
-    #         1,
-    #         2,
-    #         3,
-    #         4,
-    #         5,
-    #         6,
-    #         7,
-    #         8,
-    #         9,
-    #         10,
-    #         1,
-    #         2,
-    #         3,
-    #         4,
-    #         5,
-    #         6,
-    #         7,
-    #         8,
-    #         9,
-    #         10,
-    #     ],
-    #     "Distance": [
-    #         0.00013,
-    #         0.00219,
-    #         0.00543,
-    #         0.00382,
-    #         0.00439,
-    #         0.00444,
-    #         0.00420,
-    #         0.00498,
-    #         0.00497,
-    #         0.00494,
-    #         0.00024,
-    #         0.00658,
-    #         0.02112,
-    #         0.00746,
-    #         0.00704,
-    #         0.01111,
-    #         0.00709,
-    #         0.00709,
-    #         0.00899,
-    #         0.00750,
-    #         0.00027,
-    #         0.00474,
-    #         0.01683,
-    #         0.01333,
-    #         0.00742,
-    #         0.00658,
-    #         0.00841,
-    #         0.00903,
-    #         0.01378,
-    #         0.01325,
-    #     ],
-    # }
-
-    # df = pd.DataFrame(data)
-
-    # # Create the plot
-    # plt.figure(figsize=(14, 7))
-    # sns.lineplot(data=df, x="Checkpoint", y="Distance", hue="Model", marker="o")
-    # plt.title("Distance over Checkpoints for Different Model Families")
-    # plt.xlabel("Checkpoint")
-    # plt.ylabel("Distance")
-    # plt.legend(title="Model")
-    # plt.grid(True)
-    # plt.savefig(
-    #     "model_outputs/distance_over_checkpoints.pdf", bbox_inches="tight", format="pdf"
-    # )
-
-    #plot_all()
-    
     model_name1 = "Meta-Llama-3-8B-Instruct"
     model_name2 = "Llama-3-8B-ckpt3"
     seed1 = "seed1000"
     seed2 = "seed1000"
     metric = "perspective"
-    
+
     net_cfg = load_config("config.yml")
     train_cfg = TrainCfg()
-    
-    data = []
-    
-    # for i in range(10):
-    
-    #     dist_dict = get_distance_scores(model_name1, seed1, seed2, model_name2=model_name2, metric=metric, net_cfg=net_cfg, train_cfg=train_cfg, shuffle=True, random_seed = i, num_samples=20000)
+
+    num_samples = 10000
+    pre_shuffle = True
+
+    # data = []
+
+    full_dict = []
+    for rand_val in range(10):
+        dist_dict = get_distance_scores(
+            model_name1,
+            seed1,
+            seed2,
+            model_name2=model_name2,
+            metric=metric,
+            net_cfg=net_cfg,
+            train_cfg=train_cfg,
+            pre_shuffle=pre_shuffle,
+            random_seed=rand_val,
+            num_samples=num_samples,
+        )
+        full_dict.append(dist_dict)
+        print(dist_dict)
+
+    # averages = {}
+    # for key in dist_dict.keys():
+    #     values = [d[key] for d in full_dict]
+    #     average = sum(values) / len(values)
+    #     averages[key] = average
+    # print(averages)
+
+    df = pd.DataFrame(full_dict)
+
+    # Create the plot
+    distance_box_plot(
+        df,
+        model_name1,
+        seed1,
+        seed2,
+        model_name2,
+        num_samples,
+        metric="perspective",
+        pre_shuffled=pre_shuffle,
+    )
+
+    # for i in range(5):
+    #     dist_dict = get_distance_scores(
+    #         model_name1,
+    #         seed1,
+    #         seed2,
+    #         model_name2=model_name2,
+    #         metric=metric,
+    #         net_cfg=net_cfg,
+    #         train_cfg=train_cfg,
+    #         pre_shuffle=pre_shuffle,
+    #         random_seed=i,
+    #         num_samples=num_samples,
+    #     )
     #     data.append(dist_dict)
-        
-        
-    dist_dict = get_distance_scores(model_name1, seed1, seed2, model_name2=model_name2, metric=metric, net_cfg=net_cfg, train_cfg=train_cfg, shuffle=True, random_seed = 1)
-    print(dist_dict)
-    # Convert the list of dictionaries to a DataFrame
+
+    # # Convert the list of dictionaries to a DataFrame
     # df = pd.DataFrame(data)
 
-    # # Create a box plot
+    # # Create the plot
+    # distance_box_plot(
+    #     df,
+    #     model_name1,
+    #     seed1,
+    #     seed2,
+    #     model_name2,
+    #     num_samples,
+    #     metric="perspective",
+    #     pre_shuffled=pre_shuffle,
+    # )
+
+    # ns_data = []
+
+    # nn = 0
+    # ws = 0
+    # nn_shuffled = 0
+    # ws_scipy = 0
+
+    # for i in range(1, 11):
+    #     dist_dict = get_distance_scores(
+    #         model_name1,
+    #         seed1,
+    #         seed2,
+    #         model_name2=model_name2,
+    #         metric=metric,
+    #         net_cfg=net_cfg,
+    #         train_cfg=train_cfg,
+    #         distance_measures=["NeuralNet", "Wasserstein"],
+    #         pre_shuffle=pre_shuffle,
+    #         random_seed=i,
+    #         num_samples=num_samples,
+    #     )
+
+    #     nn += dist_dict["NeuralNet"]
+    #     nn_shuffled += dist_dict["NeuralNet_shuffled"]
+    #     ws += dist_dict["Wasserstein"]
+    #     ws_scipy += dist_dict["Wasserstein_scipy"]
+
+    # ns_data.append(
+    #     {
+    #         # "num_samples": ns * 10000,
+    #         "NeuralNet": nn / 10,
+    #         "NeuralNet_shuffled": nn_shuffled / 10,
+    #         "Wasserstein": ws / 10,
+    #         "Wasserstein_scipy": ws_scipy / 10,
+    #     }
+    # )
+
+    # ns_df = pd.DataFrame(ns_data)
+
+    # # # Create the plot
+    # distance_box_plot(
+    #     ns_df,
+    #     model_name1,
+    #     seed1,
+    #     seed2,
+    #     model_name2,
+    #     num_samples,
+    #     metric="perspective",
+    #     pre_shuffled=pre_shuffle,
+    # )
+
+    # Create the plot
+
+    # Sample data generation for demonstration purposes (replace with your actual data collection code)
+    # Melt the dataframe for easier plotting with seaborn
+    # ns_df_melted = ns_df.melt(
+    #     id_vars="num_samples",
+    #     value_vars=[
+    #         "NeuralNet",
+    #         "NeuralNet_shuffled",
+    #         "Wasserstein",
+    #         "Wasserstein_scipy",
+    #     ],
+    #     var_name="Distance Type",
+    #     value_name="Distance",
+    # )
+
+    # # Plotting with seaborn
     # plt.figure(figsize=(10, 6))
-    # df.boxplot()
-    # plt.title('Box Plot of Different Methods to calculate Distance')
-    # plt.ylabel('Distance')
-    # plt.xticks(rotation=45)
+    # sns.lineplot(
+    #     data=ns_df_melted,
+    #     x="num_samples",
+    #     y="Distance",
+    #     hue="Distance Type",
+    #     marker="o",
+    # )
+
+    # plt.xlabel("Number of Samples")
+    # plt.ylabel("Distance")
+    # plt.title("Distances over Number of Samples")
     # plt.grid(True)
-    # plt.savefig("model_outputs/box_plot_distance.pdf", bbox_inches="tight", format="pdf")
+    # plt.savefig(
+    #     "Wasserstein_neural_net_distance_vs_num_samples.pdf",
+    #     bbox_inches="tight",
+    #     format="pdf",
+    # )
+
+    # ws_data = []
+
+    # for ns in range(1, 101):
+    #     wasserstein = 0
+    #     wasserstein_scipy = 0
+    #     for i in range(5, 10):
+    #         dist_dict = get_distance_scores(
+    #             model_name1,
+    #             seed1,
+    #             seed2,
+    #             model_name2=model_name2,
+    #             metric=metric,
+    #             net_cfg=net_cfg,
+    #             train_cfg=train_cfg,
+    #             distance_measures=["Wasserstein"],
+    #             random_seed=i,
+    #             num_samples=ns * 1000,
+    #         )
+
+    #         wasserstein += dist_dict["Wasserstein"]
+    #         wasserstein_scipy += dist_dict["Wasserstein_scipy"]
+
+    #     ws_data.append(
+    #         {
+    #             "num_samples": ns * 1000,
+    #             "Wasserstein": wasserstein / 5,
+    #             "Wasserstein_scipy": wasserstein_scipy / 5,
+    #         }
+    #     )
+
+    # ws_df = pd.DataFrame(ws_data)
+    # ws_df.to_json("wasserstein_distance_vs_num_samples.json", orient="records")
+
+    # # Create the plot
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(ws_df["num_samples"], ws_df["Wasserstein"], marker="o")
+    # plt.xlabel("Number of Samples")
+    # plt.ylabel("Wasserstein Distance")
+    # plt.title("Wasserstein Distance vs Number of Samples")
+    # plt.grid(True)
+    # plt.savefig(
+    #     "wasserstein_distance_vs_num_samples.pdf", format="pdf", bbox_inches="tight"
+    # )

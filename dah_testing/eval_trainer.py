@@ -35,9 +35,6 @@ train = importlib.import_module("deep-anytime-testing.trainer.trainer")
 Trainer = getattr(train, "Trainer")
 
 
-
-
-
 class OfflineTrainer(Trainer):
     def __init__(
         self,
@@ -52,7 +49,7 @@ class OfflineTrainer(Trainer):
         fold_num=None,
         verbose=False,
         net_bs=64,
-        epsilon=1
+        epsilon=1,
     ):
         super().__init__(
             train_cfg,
@@ -80,7 +77,7 @@ class OfflineTrainer(Trainer):
         self.net_bs = train_cfg.net_batch_size
         self.num_batches = (len(self.dataset) + self.bs - 1) // self.bs
         self.batches = self.get_kfold_batches()
-        
+
         self.epsilon = epsilon
 
         self.use_wandb = use_wandb
@@ -371,18 +368,18 @@ class OfflineTrainer(Trainer):
             if mode == "train":
                 self.net.train()
                 # values for tau1 and tau2
-                out = self.net(tau1, tau2) 
+                out = self.net(tau1, tau2)
             else:
                 self.net.eval()
                 out = self.net(tau1, tau2).detach()
 
             loss = -out.mean() + self.l1_lambda * self.l1_regularization()
-            aggregated_loss += -out.sum() # we can leave epsilon out for optimization
-            
+            aggregated_loss += -out.sum()  # we can leave epsilon out for optimization
+
             # need epsilon here for calculating the tolerant betting score
             num_batch_samples = out.shape[0]
-            davt *= torch.exp(-self.epsilon * num_batch_samples + out.sum()) 
-            
+            davt *= torch.exp(-self.epsilon * num_batch_samples + out.sum())
+
             if mode == "train":
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -401,12 +398,9 @@ class OfflineTrainer(Trainer):
         return aggregated_loss / num_samples, davt
 
 
-
-
-
-
 class OnlineTrainer(Trainer):
-    ''' deprecated, use OfflineTrainer instead '''
+    """deprecated, use OfflineTrainer instead"""
+
     def __init__(
         self,
         train_cfg,

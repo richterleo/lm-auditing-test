@@ -1,10 +1,13 @@
 import importlib
 import os
 import torch
+import torch.nn as nn
 import sys
 
 # Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
+submodule_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
+)
 models_path = os.path.join(submodule_path, "models")
 
 for path in [submodule_path, models_path]:
@@ -12,8 +15,8 @@ for path in [submodule_path, models_path]:
         sys.path.append(path)
 
 orig_models = importlib.import_module(
-        "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
-    )
+    "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
+)
 MLP = getattr(orig_models, "MLP")
 
 
@@ -25,8 +28,17 @@ class CMLP(MLP):
     The forward method implements a custom operation over the outputs of the base MLP.
     """
 
-    def __init__(self, input_size, hidden_layer_size, output_size, layer_norm, drop_out, drop_out_p, bias,
-                 flatten=True):
+    def __init__(
+        self,
+        input_size,
+        hidden_layer_size,
+        output_size,
+        layer_norm,
+        drop_out,
+        drop_out_p,
+        bias,
+        flatten=True,
+    ):
         """
         Initializes the MMDEMLP object.
 
@@ -42,8 +54,15 @@ class CMLP(MLP):
         """
 
         # Initialize the base MLP
-        super(CMLP, self).__init__(input_size, hidden_layer_size, output_size, layer_norm, drop_out, drop_out_p,
-                                      bias)
+        super(CMLP, self).__init__(
+            input_size,
+            hidden_layer_size,
+            output_size,
+            layer_norm,
+            drop_out,
+            drop_out_p,
+            bias,
+        )
 
         # Activation function for the custom operation in the forward method
         self.sigma = torch.nn.Tanh()
@@ -74,8 +93,12 @@ class CMLP(MLP):
                 g_x, g_y = 0, 0
                 # Process each sample in the tensor
                 for i in range(num_samples):
-                    g_x += self.model(torch.flatten(x[..., i], start_dim=1)) / num_samples
-                    g_y += self.model(torch.flatten(y[..., i], start_dim=1)) / num_samples
+                    g_x += (
+                        self.model(torch.flatten(x[..., i], start_dim=1)) / num_samples
+                    )
+                    g_y += (
+                        self.model(torch.flatten(y[..., i], start_dim=1)) / num_samples
+                    )
         else:
             # If tensors are two-dimensional
             g_x = self.model(x)
@@ -83,6 +106,6 @@ class CMLP(MLP):
 
         # Compute the custom output based on the difference of outputs
         # ! This is a more direct implementation of the custom operation
-        output = torch.log(1 + 0.5*self.sigma(g_x) - 0.5*self.sigma(g_y))
+        output = torch.log(1 + 0.5 * self.sigma(g_x) - 0.5 * self.sigma(g_y))
 
         return output

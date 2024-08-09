@@ -20,7 +20,9 @@ from utils.utils import (
 from utils.generate_and_evaluate import generate_and_evaluate
 
 # Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
+submodule_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
+)
 models_path = os.path.join(submodule_path, "models")
 
 for path in [submodule_path, models_path]:
@@ -29,6 +31,9 @@ for path in [submodule_path, models_path]:
 
 from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
 from dah_testing.preprocessing import create_folds_from_evaluations, cleanup_files
+
+from behavior_evaluation.nn_for_nn_distance import CMLP
+
 
 def davtt(
     config,
@@ -40,9 +45,9 @@ def davtt(
     seed2: Optional[str] = None,
     use_wandb: Optional[str] = None,
 ):
-    """ 
-    Deep anytime-valid tolerance test 
-    
+    """
+    Deep anytime-valid tolerance test
+
     Args:
     config: Dict
         Configuration dictionary
@@ -50,18 +55,26 @@ def davtt(
         Training configuration
     """
     # Whether to use logging
-    use_wandb = (
-        use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
-    )
-    
+    use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+
     model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
     seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
     model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
     seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
-    
+
     # Define network for betting score
-    betting_net = initialize_from_config(config["net"])
-    
+
+    # TODO: change this betting_net = initialize_from_config(config["net"])
+    betting_net = CMLP(
+        config["net"]["input_size"],
+        config["net"]["hidden_layer_size"],
+        1,
+        config["net"]["layer_norm"],
+        False,
+        0.4,
+        config["net"]["bias"],
+    )
+
     trainer = OfflineTrainer(
         train_cfg,
         betting_net,
@@ -72,7 +85,7 @@ def davtt(
         metric=config["metric"]["metric"],
         use_wandb=use_wandb,
         fold_num=fold_num,
-        epsilon=config["epsilon"]
+        epsilon=config["epsilon"],
     )
 
     data = trainer.train()
@@ -249,10 +262,11 @@ def kfold_train(
         all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
 
     print(f"Calculating neural net distance.")
-    
-    
 
-    file_path = Path(directory) / f"kfold_test_results_{fold_size}_epsilon_{config['epsilon']}.csv"
+    file_path = (
+        Path(directory)
+        / f"kfold_test_results_{fold_size}_epsilon_{config['epsilon']}.csv"
+    )
     all_folds_data.to_csv(file_path, index=False)
 
     cleanup_files(directory, f"{metric}_scores_fold_*.json")
@@ -376,5 +390,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
