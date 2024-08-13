@@ -17,7 +17,7 @@ from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from behavior_evaluation.distance import (
+from evaluation.distance import (
     empirical_wasserstein_distance_p1,
     kolmogorov_variation,
     NeuralNetDistance,
@@ -1134,43 +1134,43 @@ if __name__ == "__main__":
 
     # data = []
 
-    full_dict = []
-    for rand_val in range(10):
-        dist_dict = get_distance_scores(
-            model_name1,
-            seed1,
-            seed2,
-            model_name2=model_name2,
-            metric=metric,
-            net_cfg=net_cfg,
-            train_cfg=train_cfg,
-            pre_shuffle=pre_shuffle,
-            random_seed=rand_val,
-            num_samples=num_samples,
-        )
-        full_dict.append(dist_dict)
-        print(dist_dict)
+    # full_dict = []
+    # for rand_val in range(10):
+    #     dist_dict = get_distance_scores(
+    #         model_name1,
+    #         seed1,
+    #         seed2,
+    #         model_name2=model_name2,
+    #         metric=metric,
+    #         net_cfg=net_cfg,
+    #         train_cfg=train_cfg,
+    #         pre_shuffle=pre_shuffle,
+    #         random_seed=rand_val,
+    #         num_samples=num_samples,
+    #     )
+    #     full_dict.append(dist_dict)
+    #     print(dist_dict)
 
-    # averages = {}
-    # for key in dist_dict.keys():
-    #     values = [d[key] for d in full_dict]
-    #     average = sum(values) / len(values)
-    #     averages[key] = average
-    # print(averages)
+    # # averages = {}
+    # # for key in dist_dict.keys():
+    # #     values = [d[key] for d in full_dict]
+    # #     average = sum(values) / len(values)
+    # #     averages[key] = average
+    # # print(averages)
 
-    df = pd.DataFrame(full_dict)
+    # df = pd.DataFrame(full_dict)
 
-    # Create the plot
-    distance_box_plot(
-        df,
-        model_name1,
-        seed1,
-        seed2,
-        model_name2,
-        num_samples,
-        metric="perspective",
-        pre_shuffled=pre_shuffle,
-    )
+    # # Create the plot
+    # distance_box_plot(
+    #     df,
+    #     model_name1,
+    #     seed1,
+    #     seed2,
+    #     model_name2,
+    #     num_samples,
+    #     metric="perspective",
+    #     pre_shuffled=pre_shuffle,
+    # )
 
     # for i in range(5):
     #     dist_dict = get_distance_scores(
@@ -1332,3 +1332,12 @@ if __name__ == "__main__":
     # plt.savefig(
     #     "wasserstein_distance_vs_num_samples.pdf", format="pdf", bbox_inches="tight"
     # )
+
+    res_df = get_power_over_sequences_for_models_or_checkpoints(
+        model_name1, seed1, seed2, model_name2=model_name2, epsilon=0.02
+    )
+
+    power_df = extract_power_from_sequence_df(
+        res_df, distance_measure=None, by_checkpoints=False
+    )
+    print(power_df)

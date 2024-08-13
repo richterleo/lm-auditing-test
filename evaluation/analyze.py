@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import logging
 import numpy as np
 import sys
 import os
@@ -13,12 +14,8 @@ from pathlib import Path
 from scipy.stats import skew, wasserstein_distance
 from typing import Union, List, Optional
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
-import seaborn as sns
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from behavior_evaluation.distance import (
+from evaluation.distance import (
     empirical_wasserstein_distance_p1,
     kolmogorov_variation,
     NeuralNetDistance,
@@ -28,10 +25,12 @@ from utils.utils import load_config
 from arguments import TrainCfg
 import random
 
-
 pd.set_option("display.max_rows", 1000)
 pd.set_option("display.max_columns", 1000)
 pd.set_option("display.width", 1000)
+
+# setup_logging()
+logger = logging.getLogger(__name__)
 
 
 def extract_data_for_models(
@@ -43,6 +42,7 @@ def extract_data_for_models(
     checkpoint_base_name: Optional[str] = None,
     fold_size=4000,
     test_dir="test_outputs",
+    epsilon: float = 0,
 ):
     """ """
 
@@ -55,23 +55,21 @@ def extract_data_for_models(
     # Construct the absolute path to "test_outputs"
     test_dir = os.path.join(script_dir, "..", test_dir)
 
-    print(f"model_name2: {model_name2}")
     if model_name2:
         if fold_size == 4000:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_epsilon_{epsilon}.csv"
             if not Path(file_path).exists():
-                file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
+                file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
         else:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
     else:
         if fold_size == 4000:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_epsilon_{epsilon}.csv"
             if not Path(file_path).exists():
-                file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
+                file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
         else:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}.csv"
+            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
 
-    print(f"This is the file path: {file_path} and this is the fold_size: {fold_size}")
     data = pd.read_csv(file_path)
 
     # TODO: make this less hacky
@@ -133,8 +131,6 @@ def get_power_over_sequences_from_whole_ds(
 
     result_df.reset_index()
 
-    print(f"This is the result df: {result_df}")
-
     return result_df
 
 
@@ -147,6 +143,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
     checkpoint_base_name: Optional[str] = None,
     fold_size: int = 4000,
     bs: int = 96,
+    epsilon: float = 0,
 ):
     """ """
     assert model_name2 or (
@@ -155,7 +152,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
 
     if model_name2:
         data = extract_data_for_models(
-            model_name1, seed1, seed2, model_name2=model_name2
+            model_name1, seed1, seed2, model_name2=model_name2, epsilon=epsilon
         )
         result_df = get_power_over_sequences_from_whole_ds(
             data, fold_size=fold_size, bs=bs
@@ -288,8 +285,6 @@ def get_distance_scores(
         # set separate random seed for test samples
         np.random.seed(test_random_seed)
         random_test_indices = np.random.randint(0, len(scores1), num_test_samples)
-        print(f"These are the random test indices: {random_test_indices}")
-        print(f"This is the number of random test indices: {len(random_test_indices)}")
 
         test_scores1 = [scores1[i] for i in random_test_indices]
         test_scores2 = [scores2[i] for i in random_test_indices]

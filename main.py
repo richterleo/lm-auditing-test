@@ -1,5 +1,6 @@
 import argparse
 import os
+import logging
 import re
 import time
 import sys
@@ -29,10 +30,13 @@ for path in [submodule_path, models_path]:
     if path not in sys.path:
         sys.path.append(path)
 
-from dah_testing.eval_trainer import OnlineTrainer, OfflineTrainer
-from dah_testing.preprocessing import create_folds_from_evaluations, cleanup_files
+# logging
+from logging_config import setup_logging
 
-from behavior_evaluation.nn_for_nn_distance import CMLP
+from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
+from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
+
+from evaluation.nn_for_nn_distance import CMLP
 
 
 def davtt(
@@ -88,8 +92,7 @@ def davtt(
         epsilon=config["epsilon"],
     )
 
-    data = trainer.train()
-    return data
+    return trainer.train()
 
 
 def run_test_with_wandb(
@@ -177,6 +180,7 @@ def kfold_train(
     pattern: str = r"_fold_(\d+)\.json$",
     metric: Optional[bool] = None,
     output_dir: str = "test_outputs",
+    verbose: bool = True,
 ):
     """Do repeats on"""
     # Initialize wandb if logging is enabled
@@ -194,12 +198,16 @@ def kfold_train(
 
     start = time.time()
 
-    print("hello")
-
     model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
     seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
     model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
     seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
+
+    setup_logging(model_name1, seed1, model_name2, seed2, fold_size, config["epsilon"])
+    logger = logging.getLogger(__name__)
+
+    # for fast analysis
+    sum_positive = 0
 
     if use_wandb:
         wandb.config.update(
@@ -212,7 +220,7 @@ def kfold_train(
             }
         )
     else:
-        print(
+        logger.info(
             f"Testing {model_name1} with seed {seed1} against {model_name2} with seed {seed2}. Fold size: {fold_size}"
         )
 
@@ -239,8 +247,8 @@ def kfold_train(
     folds.sort()
 
     end = time.time()
-    print(
-        f"We have {len(folds)} folds. The whole initialization took {end-start} seconds."
+    logger.info(
+        f"We have {len(folds)} folds. The whole initialization took {round(end-start, 3)} seconds."
     )
 
     if use_wandb:
@@ -250,8 +258,8 @@ def kfold_train(
     all_folds_data = pd.DataFrame()
 
     for fold_num in folds:
-        print(f"Now starting experiment for fold {fold_num}")
-        data = davtt(
+        logger.info(f"Now starting experiment for fold {fold_num}")
+        data, test_positive = davtt(
             config,
             train_cfg,
             fold_num=fold_num,
@@ -262,8 +270,8 @@ def kfold_train(
             use_wandb=use_wandb,
         )
         all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
-
-    print(f"Calculating neural net distance.")
+        if test_positive:
+            sum_positive += 1
 
     file_path = (
         Path(directory)
@@ -272,6 +280,8 @@ def kfold_train(
     all_folds_data.to_csv(file_path, index=False)
 
     cleanup_files(directory, f"{metric}_scores_fold_*.json")
+
+    logger.info(f"Positive tests: {sum_positive}/{len(folds)}")
 
     if use_wandb:
         wandb.finish()

@@ -5,7 +5,7 @@ import torch
 
 from torch.utils.data import Dataset
 
-from dah_testing.preprocessing import create_folds_from_generations
+from auditing_test.preprocessing import create_folds_from_generations
 
 
 class ScoresDataset(Dataset):

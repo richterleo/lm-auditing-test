@@ -1,0 +1,235 @@
+2024-08-13 14:03:03,518 - __main__ - INFO - Testing Meta-Llama-3-8B-Instruct with seed seed1000 against Llama-3-8B-ckpt3 with seed seed1000. Fold size: 4000
+2024-08-13 14:03:03,518 - auditing_test.preprocessing - INFO - Creating the common json takes 0.0 seconds
+2024-08-13 14:03:03,763 - auditing_test.preprocessing - WARNING - Last fold contains fewer samples and is discarded, result in 3442 samples being discarded.
+2024-08-13 14:03:04,491 - auditing_test.preprocessing - INFO - Creating the folds takes 0.973 seconds.
+2024-08-13 14:03:04,492 - __main__ - INFO - We have 24 folds. The whole initialization took 0.975 seconds.
+2024-08-13 14:03:04,493 - __main__ - INFO - Now starting experiment for fold 0
+2024-08-13 14:03:04,655 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 14:03:05,018 - utils.utils - INFO - Sequence 1/40: 0.229 seconds
+2024-08-13 14:03:05,624 - utils.utils - INFO - Sequence 2/40: 0.606 seconds
+2024-08-13 14:03:06,523 - utils.utils - INFO - Sequence 3/40: 0.899 seconds
+2024-08-13 14:03:07,228 - utils.utils - INFO - Sequence 4/40: 0.704 seconds
+2024-08-13 14:03:07,794 - utils.utils - INFO - Sequence 5/40: 0.565 seconds
+2024-08-13 14:03:08,479 - utils.utils - INFO - Sequence 6/40: 0.685 seconds
+2024-08-13 14:03:09,280 - utils.utils - INFO - Sequence 7/40: 0.801 seconds
+2024-08-13 14:03:10,220 - utils.utils - INFO - Sequence 8/40: 0.939 seconds
+2024-08-13 14:03:11,246 - utils.utils - INFO - Sequence 9/40: 1.025 seconds
+2024-08-13 14:03:12,226 - utils.utils - INFO - Sequence 10/40: 0.979 seconds
+2024-08-13 14:03:13,443 - utils.utils - INFO - Sequence 11/40: 1.217 seconds
+2024-08-13 14:03:14,787 - utils.utils - INFO - Sequence 12/40: 1.343 seconds
+2024-08-13 14:03:16,331 - utils.utils - INFO - Sequence 13/40: 1.544 seconds
+2024-08-13 14:03:18,038 - utils.utils - INFO - Sequence 14/40: 1.707 seconds
+2024-08-13 14:03:19,869 - utils.utils - INFO - Sequence 15/40: 1.83 seconds
+2024-08-13 14:03:21,914 - utils.utils - INFO - Sequence 16/40: 2.044 seconds
+2024-08-13 14:03:23,995 - utils.utils - INFO - Sequence 17/40: 2.081 seconds
+2024-08-13 14:03:26,218 - utils.utils - INFO - Sequence 18/40: 2.222 seconds
+2024-08-13 14:03:28,586 - utils.utils - INFO - Sequence 19/40: 2.367 seconds
+2024-08-13 14:03:31,027 - utils.utils - INFO - Sequence 20/40: 2.441 seconds
+2024-08-13 14:03:33,629 - utils.utils - INFO - Sequence 21/40: 2.6 seconds
+2024-08-13 14:03:36,322 - utils.utils - INFO - Sequence 22/40: 2.693 seconds
+2024-08-13 14:03:39,166 - utils.utils - INFO - Sequence 23/40: 2.843 seconds
+2024-08-13 14:03:42,219 - utils.utils - INFO - Sequence 24/40: 3.053 seconds
+2024-08-13 14:03:45,403 - utils.utils - INFO - Sequence 25/40: 3.183 seconds
+2024-08-13 14:03:48,708 - utils.utils - INFO - Sequence 26/40: 3.305 seconds
+2024-08-13 14:03:54,948 - utils.utils - INFO - Sequence 27/40: 6.239 seconds
+2024-08-13 14:03:58,511 - utils.utils - INFO - Sequence 28/40: 3.562 seconds
+2024-08-13 14:04:02,288 - utils.utils - INFO - Sequence 29/40: 3.777 seconds
+2024-08-13 14:04:06,173 - utils.utils - INFO - Sequence 30/40: 3.884 seconds
+2024-08-13 14:04:10,185 - utils.utils - INFO - Sequence 31/40: 4.011 seconds
+2024-08-13 14:04:14,344 - utils.utils - INFO - Sequence 32/40: 4.159 seconds
+2024-08-13 14:04:18,654 - utils.utils - INFO - Sequence 33/40: 4.309 seconds
+2024-08-13 14:04:23,097 - utils.utils - INFO - Sequence 34/40: 4.443 seconds
+2024-08-13 14:04:27,575 - utils.utils - INFO - Sequence 35/40: 4.477 seconds
+2024-08-13 14:04:31,915 - utils.utils - INFO - Sequence 36/40: 4.339 seconds
+2024-08-13 14:04:57,150 - __main__ - INFO - Testing Meta-Llama-3-8B-Instruct with seed seed1000 against Llama-3-8B-ckpt3 with seed seed1000. Fold size: 4000
+2024-08-13 14:04:57,150 - auditing_test.preprocessing - INFO - Creating the common json takes 0.0 seconds
+2024-08-13 14:04:57,398 - auditing_test.preprocessing - WARNING - Last fold contains fewer samples and is discarded, resulting in 3442 samples being discarded.
+2024-08-13 14:04:58,150 - auditing_test.preprocessing - INFO - Creating the folds takes 1.0 seconds.
+2024-08-13 14:04:58,151 - __main__ - INFO - We have 24 folds. The whole initialization took 1.002 seconds.
+2024-08-13 14:04:58,152 - __main__ - INFO - Now starting experiment for fold 0
+2024-08-13 14:04:58,324 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 14:04:58,633 - utils.utils - INFO - Sequence 1/40: 0.166 seconds
+2024-08-13 14:04:58,750 - utils.utils - INFO - Sequence 2/40: 0.117 seconds
+2024-08-13 14:04:59,469 - utils.utils - INFO - Sequence 3/40: 0.718 seconds
+2024-08-13 14:04:59,774 - utils.utils - INFO - Sequence 4/40: 0.304 seconds
+2024-08-13 14:05:00,125 - utils.utils - INFO - Sequence 5/40: 0.351 seconds
+2024-08-13 14:05:00,581 - utils.utils - INFO - Sequence 6/40: 0.456 seconds
+2024-08-13 14:05:01,112 - utils.utils - INFO - Sequence 7/40: 0.53 seconds
+2024-08-13 14:05:01,732 - utils.utils - INFO - Sequence 8/40: 0.62 seconds
+2024-08-13 14:05:02,397 - utils.utils - INFO - Sequence 9/40: 0.664 seconds
+2024-08-13 14:05:03,137 - utils.utils - INFO - Sequence 10/40: 0.739 seconds
+2024-08-13 14:05:04,002 - utils.utils - INFO - Sequence 11/40: 0.865 seconds
+2024-08-13 14:05:04,911 - utils.utils - INFO - Sequence 12/40: 0.908 seconds
+2024-08-13 14:05:05,918 - utils.utils - INFO - Sequence 13/40: 1.006 seconds
+2024-08-13 14:05:07,110 - utils.utils - INFO - Sequence 14/40: 1.192 seconds
+2024-08-13 14:05:08,325 - utils.utils - INFO - Sequence 15/40: 1.215 seconds
+2024-08-13 14:05:09,607 - utils.utils - INFO - Sequence 16/40: 1.281 seconds
+2024-08-13 14:05:10,963 - utils.utils - INFO - Sequence 17/40: 1.355 seconds
+2024-08-13 14:05:12,497 - utils.utils - INFO - Sequence 18/40: 1.533 seconds
+2024-08-13 14:05:14,032 - utils.utils - INFO - Sequence 19/40: 1.535 seconds
+2024-08-13 14:05:15,655 - utils.utils - INFO - Sequence 20/40: 1.622 seconds
+2024-08-13 14:05:17,382 - utils.utils - INFO - Sequence 21/40: 1.726 seconds
+2024-08-13 14:05:19,095 - utils.utils - INFO - Sequence 22/40: 1.713 seconds
+2024-08-13 14:05:20,865 - utils.utils - INFO - Sequence 23/40: 1.769 seconds
+2024-08-13 14:05:22,688 - utils.utils - INFO - Sequence 24/40: 1.822 seconds
+2024-08-13 14:05:24,597 - utils.utils - INFO - Sequence 25/40: 1.909 seconds
+2024-08-13 14:05:26,426 - utils.utils - INFO - Sequence 26/40: 1.828 seconds
+2024-08-13 14:05:28,493 - utils.utils - INFO - Sequence 27/40: 2.066 seconds
+2024-08-13 14:05:30,665 - utils.utils - INFO - Sequence 28/40: 2.172 seconds
+2024-08-13 14:05:32,991 - utils.utils - INFO - Sequence 29/40: 2.325 seconds
+2024-08-13 14:05:35,375 - utils.utils - INFO - Sequence 30/40: 2.384 seconds
+2024-08-13 14:05:37,883 - utils.utils - INFO - Sequence 31/40: 2.508 seconds
+2024-08-13 14:05:40,348 - utils.utils - INFO - Sequence 32/40: 2.465 seconds
+2024-08-13 14:05:43,043 - utils.utils - INFO - Sequence 33/40: 2.694 seconds
+2024-08-13 14:05:45,960 - utils.utils - INFO - Sequence 34/40: 2.917 seconds
+2024-08-13 14:05:49,022 - utils.utils - INFO - Sequence 35/40: 3.061 seconds
+2024-08-13 14:05:52,731 - utils.utils - INFO - Sequence 36/40: 3.708 seconds
+2024-08-13 14:05:55,791 - utils.utils - INFO - Sequence 37/40: 3.059 seconds
+2024-08-13 14:05:58,909 - utils.utils - INFO - Sequence 38/40: 3.117 seconds
+2024-08-13 14:06:02,025 - utils.utils - INFO - Sequence 39/40: 3.116 seconds
+2024-08-13 14:06:02,026 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.184278045561361e-16.
+2024-08-13 14:06:02,028 - __main__ - INFO - Now starting experiment for fold 1
+2024-08-13 14:06:02,040 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 14:06:03,017 - utils.utils - INFO - Sequence 1/40: 0.968 seconds
+2024-08-13 14:06:03,136 - utils.utils - INFO - Sequence 2/40: 0.119 seconds
+2024-08-13 14:06:03,342 - utils.utils - INFO - Sequence 3/40: 0.205 seconds
+2024-08-13 14:06:03,616 - utils.utils - INFO - Sequence 4/40: 0.274 seconds
+2024-08-13 14:06:03,990 - utils.utils - INFO - Sequence 5/40: 0.374 seconds
+2024-08-13 14:06:04,433 - utils.utils - INFO - Sequence 6/40: 0.443 seconds
+2024-08-13 14:06:04,940 - utils.utils - INFO - Sequence 7/40: 0.507 seconds
+2024-08-13 14:06:05,512 - utils.utils - INFO - Sequence 8/40: 0.571 seconds
+2024-08-13 14:06:06,170 - utils.utils - INFO - Sequence 9/40: 0.658 seconds
+2024-08-13 14:06:06,897 - utils.utils - INFO - Sequence 10/40: 0.726 seconds
+2024-08-13 14:06:07,705 - utils.utils - INFO - Sequence 11/40: 0.808 seconds
+2024-08-13 14:06:08,590 - utils.utils - INFO - Sequence 12/40: 0.884 seconds
+2024-08-13 14:06:09,546 - utils.utils - INFO - Sequence 13/40: 0.956 seconds
+2024-08-13 14:06:10,582 - utils.utils - INFO - Sequence 14/40: 1.036 seconds
+2024-08-13 14:06:11,736 - utils.utils - INFO - Sequence 15/40: 1.154 seconds
+2024-08-13 14:06:12,934 - utils.utils - INFO - Sequence 16/40: 1.198 seconds
+2024-08-13 14:06:14,253 - utils.utils - INFO - Sequence 17/40: 1.318 seconds
+2024-08-13 14:06:15,641 - utils.utils - INFO - Sequence 18/40: 1.387 seconds
+2024-08-13 14:06:17,248 - utils.utils - INFO - Sequence 19/40: 1.607 seconds
+2024-08-13 14:06:18,785 - utils.utils - INFO - Sequence 20/40: 1.537 seconds
+2024-08-13 14:06:20,355 - utils.utils - INFO - Sequence 21/40: 1.569 seconds
+2024-08-13 14:06:22,146 - utils.utils - INFO - Sequence 22/40: 1.791 seconds
+2024-08-13 14:06:23,965 - utils.utils - INFO - Sequence 23/40: 1.818 seconds
+2024-08-13 14:06:25,909 - utils.utils - INFO - Sequence 24/40: 1.944 seconds
+2024-08-13 14:06:27,910 - utils.utils - INFO - Sequence 25/40: 2.001 seconds
+2024-08-13 14:06:30,073 - utils.utils - INFO - Sequence 26/40: 2.163 seconds
+2024-08-13 14:06:32,378 - utils.utils - INFO - Sequence 27/40: 2.304 seconds
+2024-08-13 14:06:34,733 - utils.utils - INFO - Sequence 28/40: 2.355 seconds
+2024-08-13 14:06:37,167 - utils.utils - INFO - Sequence 29/40: 2.433 seconds
+2024-08-13 14:06:39,545 - utils.utils - INFO - Sequence 30/40: 2.378 seconds
+2024-08-13 14:06:44,452 - utils.utils - INFO - Sequence 31/40: 4.906 seconds
+2024-08-13 14:06:46,971 - utils.utils - INFO - Sequence 32/40: 2.518 seconds
+2024-08-13 14:06:49,541 - utils.utils - INFO - Sequence 33/40: 2.569 seconds
+2024-08-13 14:06:52,216 - utils.utils - INFO - Sequence 34/40: 2.674 seconds
+2024-08-13 14:06:55,007 - utils.utils - INFO - Sequence 35/40: 2.791 seconds
+2024-08-13 14:06:57,904 - utils.utils - INFO - Sequence 36/40: 2.896 seconds
+2024-08-13 14:07:00,892 - utils.utils - INFO - Sequence 37/40: 2.987 seconds
+2024-08-13 14:07:04,155 - utils.utils - INFO - Sequence 38/40: 3.263 seconds
+2024-08-13 14:07:07,479 - utils.utils - INFO - Sequence 39/40: 3.324 seconds
+2024-08-13 14:07:07,480 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 4.001895034891755e-26.
+2024-08-13 14:07:07,483 - __main__ - INFO - Now starting experiment for fold 2
+2024-08-13 14:07:07,495 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 14:07:08,517 - utils.utils - INFO - Sequence 1/40: 1.011 seconds
+2024-08-13 14:07:08,653 - utils.utils - INFO - Sequence 2/40: 0.135 seconds
+2024-08-13 14:07:08,873 - utils.utils - INFO - Sequence 3/40: 0.22 seconds
+2024-08-13 14:07:09,151 - utils.utils - INFO - Sequence 4/40: 0.278 seconds
+2024-08-13 14:07:09,508 - utils.utils - INFO - Sequence 5/40: 0.356 seconds
+2024-08-13 14:07:09,956 - utils.utils - INFO - Sequence 6/40: 0.447 seconds
+2024-08-13 14:07:10,497 - utils.utils - INFO - Sequence 7/40: 0.541 seconds
+2024-08-13 14:07:11,197 - utils.utils - INFO - Sequence 8/40: 0.7 seconds
+2024-08-13 14:07:11,887 - utils.utils - INFO - Sequence 9/40: 0.689 seconds
+2024-08-13 14:07:12,562 - utils.utils - INFO - Sequence 10/40: 0.674 seconds
+2024-08-13 14:07:14,285 - utils.utils - INFO - Sequence 11/40: 1.723 seconds
+2024-08-13 14:07:15,213 - utils.utils - INFO - Sequence 12/40: 0.928 seconds
+2024-08-13 14:07:16,225 - utils.utils - INFO - Sequence 13/40: 1.011 seconds
+2024-08-13 14:07:17,721 - utils.utils - INFO - Sequence 14/40: 1.495 seconds
+2024-08-13 14:07:18,846 - utils.utils - INFO - Sequence 15/40: 1.125 seconds
+2024-08-13 14:07:20,043 - utils.utils - INFO - Sequence 16/40: 1.197 seconds
+2024-08-13 14:07:21,317 - utils.utils - INFO - Sequence 17/40: 1.273 seconds
+2024-08-13 14:07:23,199 - utils.utils - INFO - Sequence 18/40: 1.882 seconds
+2024-08-13 14:07:24,624 - utils.utils - INFO - Sequence 19/40: 1.424 seconds
+2024-08-13 14:07:26,135 - utils.utils - INFO - Sequence 20/40: 1.51 seconds
+2024-08-13 14:07:27,723 - utils.utils - INFO - Sequence 21/40: 1.587 seconds
+2024-08-13 14:07:29,396 - utils.utils - INFO - Sequence 22/40: 1.673 seconds
+2024-08-13 14:07:31,160 - utils.utils - INFO - Sequence 23/40: 1.763 seconds
+2024-08-13 14:07:33,010 - utils.utils - INFO - Sequence 24/40: 1.85 seconds
+2024-08-13 14:07:34,958 - utils.utils - INFO - Sequence 25/40: 1.948 seconds
+2024-08-13 14:07:37,019 - utils.utils - INFO - Sequence 26/40: 2.06 seconds
+2024-08-13 14:07:39,169 - utils.utils - INFO - Sequence 27/40: 2.149 seconds
+2024-08-13 14:07:41,400 - utils.utils - INFO - Sequence 28/40: 2.231 seconds
+2024-08-13 14:07:43,862 - utils.utils - INFO - Sequence 29/40: 2.461 seconds
+2024-08-13 14:07:46,274 - utils.utils - INFO - Sequence 30/40: 2.411 seconds
+2024-08-13 14:07:48,897 - utils.utils - INFO - Sequence 31/40: 2.622 seconds
+2024-08-13 14:07:51,599 - utils.utils - INFO - Sequence 32/40: 2.701 seconds
+2024-08-13 14:07:54,304 - utils.utils - INFO - Sequence 33/40: 2.705 seconds
+2024-08-13 14:07:57,036 - utils.utils - INFO - Sequence 34/40: 2.731 seconds
+2024-08-13 14:07:59,806 - utils.utils - INFO - Sequence 35/40: 2.77 seconds
+2024-08-13 14:08:02,654 - utils.utils - INFO - Sequence 36/40: 2.848 seconds
+2024-08-13 14:08:05,644 - utils.utils - INFO - Sequence 37/40: 2.989 seconds
+2024-08-13 14:08:08,717 - utils.utils - INFO - Sequence 38/40: 3.072 seconds
+2024-08-13 14:08:11,894 - utils.utils - INFO - Sequence 39/40: 3.177 seconds
+2024-08-13 14:08:11,895 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.4102306331953646e-18.
+2024-08-13 14:08:11,898 - __main__ - INFO - Now starting experiment for fold 3
+2024-08-13 14:08:11,908 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 14:08:12,060 - utils.utils - INFO - Sequence 1/40: 0.143 seconds
+2024-08-13 14:08:12,676 - utils.utils - INFO - Sequence 2/40: 0.616 seconds
+2024-08-13 14:08:12,965 - utils.utils - INFO - Sequence 3/40: 0.288 seconds
+2024-08-13 14:08:13,242 - utils.utils - INFO - Sequence 4/40: 0.276 seconds
+2024-08-13 14:08:13,601 - utils.utils - INFO - Sequence 5/40: 0.359 seconds
+2024-08-13 14:08:14,053 - utils.utils - INFO - Sequence 6/40: 0.451 seconds
+2024-08-13 14:08:14,601 - utils.utils - INFO - Sequence 7/40: 0.547 seconds
+2024-08-13 14:08:15,247 - utils.utils - INFO - Sequence 8/40: 0.645 seconds
+2024-08-13 14:08:15,915 - utils.utils - INFO - Sequence 9/40: 0.668 seconds
+2024-08-13 14:08:16,709 - utils.utils - INFO - Sequence 10/40: 0.793 seconds
+2024-08-13 14:08:17,904 - utils.utils - INFO - Sequence 11/40: 1.194 seconds
+2024-08-13 14:08:18,817 - utils.utils - INFO - Sequence 12/40: 0.912 seconds
+2024-08-13 14:08:19,814 - utils.utils - INFO - Sequence 13/40: 0.997 seconds
+2024-08-13 14:08:20,930 - utils.utils - INFO - Sequence 14/40: 1.115 seconds
+2024-08-13 14:08:22,118 - utils.utils - INFO - Sequence 15/40: 1.187 seconds
+2024-08-13 14:08:23,340 - utils.utils - INFO - Sequence 16/40: 1.221 seconds
+2024-08-13 14:08:24,692 - utils.utils - INFO - Sequence 17/40: 1.352 seconds
+2024-08-13 14:08:26,135 - utils.utils - INFO - Sequence 18/40: 1.442 seconds
+2024-08-13 14:08:27,669 - utils.utils - INFO - Sequence 19/40: 1.533 seconds
+2024-08-13 14:08:29,217 - utils.utils - INFO - Sequence 20/40: 1.548 seconds
+2024-08-13 14:08:30,829 - utils.utils - INFO - Sequence 21/40: 1.611 seconds
+2024-08-13 14:08:32,531 - utils.utils - INFO - Sequence 22/40: 1.702 seconds
+2024-08-13 14:08:34,346 - utils.utils - INFO - Sequence 23/40: 1.815 seconds
+2024-08-13 14:08:36,099 - utils.utils - INFO - Sequence 24/40: 1.752 seconds
+2024-08-13 14:08:38,055 - utils.utils - INFO - Sequence 25/40: 1.955 seconds
+2024-08-13 14:08:40,072 - utils.utils - INFO - Sequence 26/40: 2.016 seconds
+2024-08-13 14:08:42,181 - utils.utils - INFO - Sequence 27/40: 2.109 seconds
+2024-08-13 14:08:44,361 - utils.utils - INFO - Sequence 28/40: 2.179 seconds
+2024-08-13 14:08:50,085 - utils.utils - INFO - Sequence 29/40: 5.723 seconds
+2024-08-13 14:08:52,468 - utils.utils - INFO - Sequence 30/40: 2.383 seconds
+2024-08-13 14:08:55,014 - utils.utils - INFO - Sequence 31/40: 2.546 seconds
+2024-08-13 14:08:57,638 - utils.utils - INFO - Sequence 32/40: 2.623 seconds
+2024-08-13 14:09:00,377 - utils.utils - INFO - Sequence 33/40: 2.739 seconds
+2024-08-13 14:09:03,143 - utils.utils - INFO - Sequence 34/40: 2.765 seconds
+2024-08-13 14:09:05,998 - utils.utils - INFO - Sequence 35/40: 2.855 seconds
+2024-08-13 14:09:09,019 - utils.utils - INFO - Sequence 36/40: 3.02 seconds
+2024-08-13 14:09:15,287 - utils.utils - INFO - Sequence 38/40: 3.151 seconds
+2024-08-13 14:09:18,585 - utils.utils - INFO - Sequence 39/40: 3.297 seconds
+2024-08-13 14:09:18,586 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.6388307752467856e-12.
+2024-08-13 14:09:18,589 - __main__ - INFO - Now starting experiment for fold 4
+2024-08-13 14:09:18,599 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 14:09:19,494 - utils.utils - INFO - Sequence 1/40: 0.885 seconds
+2024-08-13 14:09:19,605 - utils.utils - INFO - Sequence 2/40: 0.111 seconds
+2024-08-13 14:09:19,783 - utils.utils - INFO - Sequence 3/40: 0.177 seconds
+2024-08-13 14:09:20,044 - utils.utils - INFO - Sequence 4/40: 0.261 seconds
+2024-08-13 14:09:23,287 - utils.utils - INFO - Sequence 5/40: 3.242 seconds
+2024-08-13 14:09:23,736 - utils.utils - INFO - Sequence 6/40: 0.449 seconds
+2024-08-13 14:09:24,269 - utils.utils - INFO - Sequence 7/40: 0.532 seconds
+2024-08-13 14:09:24,883 - utils.utils - INFO - Sequence 8/40: 0.613 seconds
+2024-08-13 14:09:25,580 - utils.utils - INFO - Sequence 9/40: 0.697 seconds
+2024-08-13 14:09:26,333 - utils.utils - INFO - Sequence 10/40: 0.752 seconds
+2024-08-13 14:09:27,176 - utils.utils - INFO - Sequence 11/40: 0.843 seconds
+2024-08-13 14:09:28,080 - utils.utils - INFO - Sequence 12/40: 0.903 seconds
+2024-08-13 14:09:29,099 - utils.utils - INFO - Sequence 13/40: 1.018 seconds
+2024-08-13 14:09:30,237 - utils.utils - INFO - Sequence 14/40: 1.138 seconds
+2024-08-13 14:09:31,425 - utils.utils - INFO - Sequence 15/40: 1.187 seconds
+2024-08-13 14:09:32,719 - utils.utils - INFO - Sequence 16/40: 1.293 seconds
+2024-08-13 14:09:34,058 - utils.utils - INFO - Sequence 17/40: 1.338 seconds
+2024-08-13 14:09:35,491 - utils.utils - INFO - Sequence 18/40: 1.433 seconds

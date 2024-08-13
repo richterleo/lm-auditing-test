@@ -1,5 +1,6 @@
 import importlib
 import json
+import logging
 import os
 import random
 import time
@@ -18,12 +19,17 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 # Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
+submodule_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
+)
 models_path = os.path.join(submodule_path, "models")
 
 for path in [submodule_path, models_path]:
     if path not in sys.path:
         sys.path.append(path)
+
+# setup_logging()
+logger = logging.getLogger(__name__)
 
 
 terminator = {"llama3": "<|eot_id|>", "mistral": "</s>", "gemma": "<end_of_turn>"}
@@ -120,7 +126,7 @@ def time_block(label):
         yield
     finally:
         end = time.time()
-        print(f"{label}: {end - start} seconds")
+        logger.info(f"{label}: {round(end - start, 3)} seconds")
 
 
 def load_config(config_path):
@@ -130,10 +136,12 @@ def load_config(config_path):
 
 
 def initialize_from_config(net_cfg, net_type="MMDEMLP"):
-    '''  '''
-    
+    """ """
+
     if net_type == "MMDEMLPT":
-        models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
+        models = importlib.import_module(
+            "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
+        )
         MMDEMLP = getattr(models, "MMDEMLP")
 
         return MMDEMLP(
@@ -283,7 +291,7 @@ def download_file_from_wandb(
             if return_file_path:
                 return folder_path / file_name
         except Exception as e:
-            print(f"Error downloading file {file_name}: {e}")
+            logger.error(f"Error downloading file {file_name}: {e}")
             return None
 
     if not file_name:
@@ -306,7 +314,7 @@ def download_file_from_wandb(
             return folder_path / file.name
 
         except Exception as e:
-            print(f"No file found that matches pattern: {pattern}: {e}")
+            logger.error(f"No file found that matches pattern: {pattern}: {e}")
             return None
 
 

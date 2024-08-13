@@ -18,3 +18,5 @@ test_outputs
 .vscode
 closeness_testing
 __MACOSX
+artifacts
+__pycache__

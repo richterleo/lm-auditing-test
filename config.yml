@@ -52,6 +52,6 @@ tau2:
 
 net:
   input_size: 1
-  hidden_layer_size: [32, 64, 128, 64, 32] #[30, 30]
+  hidden_layer_size: [32, 32] #[30, 30]
   layer_norm: true
   bias: true

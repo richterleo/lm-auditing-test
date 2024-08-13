@@ -123,5 +123,5 @@ class TrainCfg:
     # Include the early_stopping configuration as a nested attribute
     earlystopping: EarlyStopping = field(default_factory=EarlyStopping)
     net_batch_size: int = field(
-        default=64, metadata={"help": "Batch size of regression network."}
+        default=100, metadata={"help": "Batch size of regression network."}
     )

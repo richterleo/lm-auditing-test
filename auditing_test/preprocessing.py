@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import glob
 import evaluate
@@ -24,6 +25,10 @@ from utils.utils import download_file_from_wandb, time_block, create_run_string
 from utils.generate_and_evaluate import eval_on_metric
 
 
+# setup_logging()
+logger = logging.getLogger(__name__)
+
+
 # error handling
 def load_json(filepath):
     try:
@@ -31,14 +36,14 @@ def load_json(filepath):
             data = json.load(file)
         return data
     except json.JSONDecodeError as e:
-        print(f"JSONDecodeError: {e}")
+        logger.error(f"JSONDecodeError: {e}")
         line, column = e.lineno, e.colno
-        print(f"Error at line {line}, column {column}")
+        logger.error(f"Error at line {line}, column {column}")
         # Optionally, you can print the problematic line
         with open(filepath, "r") as file:
             lines = file.readlines()
             problematic_line = lines[line - 1]
-            print(f"Problematic line: {problematic_line.strip()}")
+            logger.debug(f"Problematic line: {problematic_line.strip()}")
         # Handle the error or re-raise it
         raise
 
@@ -49,16 +54,16 @@ def load_entire_json(filepath):
             data = json.load(file)
         return data
     except json.JSONDecodeError as e:
-        print(f"JSONDecodeError: {e}")
+        logger.error(f"JSONDecodeError: {e}")
         line, column = e.lineno, e.colno
-        print(f"Error at line {line}, column {column}")
+        logger.error(f"Error at line {line}, column {column}")
         # Print a few lines around the error to help debug
         with open(filepath, "r") as file:
             lines = file.readlines()
             start = max(0, line - 3)
             end = min(len(lines), line + 2)
             for i in range(start, end):
-                print(f"{i + 1}: {lines[i].strip()}")
+                logger.debug(f"{i + 1}: {lines[i].strip()}")
         # Re-raise the error to avoid further processing
         raise
 
@@ -73,8 +78,8 @@ def load_json_skipping_errors(filepath):
                 data = json.loads(line)
                 valid_data.append(data)
             except json.JSONDecodeError as e:
-                print(f"Skipping line {i + 1} due to JSONDecodeError: {e}")
-                print(f"Problematic line: {line.strip()}")
+                logger.warning(f"Skipping line {i + 1} due to JSONDecodeError: {e}")
+                logger.debug(f"Problematic line: {line.strip()}")
                 num_errors += 1
     return valid_data, num_errors
 
@@ -135,7 +140,7 @@ def evaluate_single_model(
             entity=entity,
             name=create_run_string(),
             config={"model_name": model_name, "seed": seed},
-            tags=["evaluate_single_model"],
+            tags=["evaluate_model"],
         )
 
     gen_dir = f"{gen_dir}/{model_name}_{seed}"
@@ -194,13 +199,13 @@ def evaluate_single_model(
 
                     end = time.time()
                     if verbose:
-                        print(
-                            f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {end-start} seconds"
+                        logger.info(
+                            f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {round(end-start, 3)} seconds"
                         )
 
             else:
                 if verbose:
-                    print(
+                    logger.warning(
                         f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
                     )
                 scores = eval_on_metric(
@@ -219,7 +224,7 @@ def evaluate_single_model(
             json.dump(data, file, indent=4)
 
         if verbose:
-            print(f"Evaluation should be completed. File stored in {score_path} ")
+            logger.info(f"Evaluation should be completed. File stored in {score_path} ")
 
         if remove_intermediate_files:
             cleanup_files(score_dir, f"{metric}_scores_*.json")
@@ -262,10 +267,12 @@ def evaluate_all_models(
                 verbose=False,
             )
             end = time.time()
-            print(f"Model {model_dir} took {end-start} seconds to evaluate.")
+            logger.info(
+                f"Model {model_dir} took {round(end-start, 3)} seconds to evaluate."
+            )
 
         except IndexError:
-            print(f"{model_dir} does not contain the correct files. Skipping...")
+            logger.error(f"{model_dir} does not contain the correct files. Skipping...")
             continue
 
 
@@ -382,9 +389,9 @@ def cleanup_files(directory, pattern, verbose=True):
         try:
             os.remove(file_path)
             if verbose:
-                print(f"Deleted file: {file_path}")
+                logger.info(f"Deleted file: {file_path}")
         except OSError as e:
-            print(f"Error deleting file {file_path}: {e.strerror}")
+            logger.error(f"Error deleting file {file_path}: {e.strerror}")
 
 
 def create_folds(
@@ -425,6 +432,9 @@ def create_folds(
 
         # The last batch might contain fewer samples
         if len(index_batches[-1]) < fold_size:
+            logger.warning(
+                f"Last fold contains fewer samples and is discarded, resulting in {len(index_batches[-1])} samples being discarded."
+            )
             index_batches = index_batches[:-1]
 
         for i, batch in tqdm(
@@ -446,7 +456,7 @@ def create_folds(
                     json.dump(fold_data, file, indent=4)
 
     except FileNotFoundError as e:
-        print(f"File not found: {e}")
+        logger.error(f"File not found: {e}")
         return None
 
 
@@ -495,7 +505,7 @@ def create_folds_from_evaluations(
     )
 
     end = time.time()
-    print(f"Creating the common json takes {end-start} seconds")
+    logger.info(f"Creating the common json takes {round(end-start, 3)} seconds")
     start = time.time()
     create_folds(
         model_name1,
@@ -507,11 +517,16 @@ def create_folds_from_evaluations(
         overwrite=overwrite,
     )
     end = time.time()
-    print(f"Creating the folds takes {end-start} seconds.")
+    logger.info(f"Creating the folds takes {round(end-start, 3)} seconds.")
 
 
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    #evaluate_all_models(metric="perspective", overwrite=False)
-    evaluate_single_model(model_name="Llama-3-8B-ckpt3", seed="seed1000", metric="perspective", overwrite=False)
+    # evaluate_all_models(metric="perspective", overwrite=False)
+    evaluate_single_model(
+        model_name="Llama-3-8B-ckpt3",
+        seed="seed1000",
+        metric="perspective",
+        overwrite=False,
+    )

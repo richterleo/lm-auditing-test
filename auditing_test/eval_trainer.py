@@ -23,8 +23,11 @@ from tqdm import tqdm
 # Add the parent directory of utils to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# logging
+from logging_config import setup_logging
+
 # own utilities
-from dah_testing.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
+from auditing_test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
 
 # from arguments import Cfg
 from utils.generate_and_evaluate import eval_on_metric
@@ -33,6 +36,9 @@ from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, te
 deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 train = importlib.import_module("deep-anytime-testing.trainer.trainer")
 Trainer = getattr(train, "Trainer")
+
+# setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class OfflineTrainer(Trainer):
@@ -48,8 +54,8 @@ class OfflineTrainer(Trainer):
         use_wandb=True,
         fold_num=None,
         verbose=False,
-        net_bs=64,
         epsilon=1,
+        consistent_bs=True,
     ):
         super().__init__(
             train_cfg,
@@ -64,20 +70,36 @@ class OfflineTrainer(Trainer):
         # remove unnecessary attributes
         del self.datagen
 
+        # this is all just for one fold of the distribution data
         self.fold_num = fold_num
         self.metric = metric
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if not (self.device == "cuda"):
+            logger.warning("CUDA is not available. Using CPU.")
         self.net.to(self.device)
 
         self.dataset = load_into_scores_ds(
             model_name1, seed1, model_name2, seed2, metric, fold_num=fold_num
         )
 
-        self.net_bs = train_cfg.net_batch_size
-        self.num_batches = (len(self.dataset) + self.bs - 1) // self.bs
-        self.batches = self.get_kfold_batches()
+        # This is the batch size for the network. Should probably ideally be the same as the overall batch size
+        self.net_bs = train_cfg.net_batch_size if not consistent_bs else self.bs
+        if not (self.net_bs == self.bs):
+            logger.warning(
+                f"Using different batch size within betting score network (self.net_bs = {self.net_bs}) than for sequences (self.bs = {self.bs}). Might lead to unexpected behavior."
+            )
 
+        self.num_batches = (len(self.dataset) + self.bs - 1) // self.bs
+        if self.num_batches * self.bs < len(self.dataset):
+            logger.warning(
+                f"{len(self.dataset) - self.num_batches * self.bs} samples will be discarded as they don't fit into a full batch."
+            )
+
+        self.batches = self.get_kfold_sequence_batches()
+        logger.info(f"Number of sequence batches created: {len(self.batches)}")
+
+        # Epsilon for tolerance test
         self.epsilon = epsilon
 
         self.use_wandb = use_wandb
@@ -92,12 +114,16 @@ class OfflineTrainer(Trainer):
             "train_loss",
             "val_loss",
             "test_loss",
-            "davt",
-            "aggregated_davt",
+            "betting_score",
+            "wealth",
             "epochs_until_end_of_sequence",
             "sequences_until_end_of_experiment",
+            "test_positive",
         ]
         self.data = pd.DataFrame(columns=self.columns)
+
+        # for fast analysis
+        self.test_positive = False
 
     def add_epoch_data(self, sequence, epoch, train_loss, val_loss):
         row = {
@@ -107,10 +133,11 @@ class OfflineTrainer(Trainer):
             "train_loss": train_loss,
             "val_loss": val_loss,
             "test_loss": np.nan,
-            "davt": np.nan,
-            "aggregated_davt": np.nan,
+            "betting_score": np.nan,
+            "wealth": np.nan,
             "epochs_until_end_of_sequence": np.nan,
             "sequences_until_end_of_experiment": np.nan,
+            "test_positive": 0,
         }
         new_data = pd.DataFrame([row])
         self.data = (
@@ -119,17 +146,19 @@ class OfflineTrainer(Trainer):
             else pd.concat([self.data, new_data], ignore_index=True)
         )
 
-    def add_sequence_data(self, sequence, test_loss, davt, aggregated_davt):
-        # Update test_loss and Davt for the given sequence and epoch
+    def add_sequence_data(self, sequence, test_loss, betting_score, wealth):
+        """Update test_loss and betting score/wealth for the given sequence and epoch"""
         self.data.loc[
             (self.data["sequence"] == sequence),
             "test_loss",
         ] = test_loss
-        self.data.loc[(self.data["sequence"] == sequence), "davt"] = davt
+        self.data.loc[(self.data["sequence"] == sequence), "betting_score"] = (
+            betting_score
+        )
         self.data.loc[
             (self.data["sequence"] == sequence),
-            "aggregated_davt",
-        ] = aggregated_davt
+            "wealth",
+        ] = wealth
 
     def update_epochs_until_end_of_sequence(self, sequence):
         max_epoch = self.data[(self.data["sequence"] == sequence)]["epoch"].max()
@@ -139,8 +168,12 @@ class OfflineTrainer(Trainer):
         ] = max_epoch
 
     def update_sequences_until_end_of_experiment(self):
+        """
+        In case of positive test result, update the number of sequences until the end of the experiment
+        """
         max_sequence = self.data["sequence"].max()
         self.data["sequences_until_end_of_experiment"] = max_sequence
+        self.data["test_positive"] = 1
 
     def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
         """
@@ -175,23 +208,32 @@ class OfflineTrainer(Trainer):
                     )
 
             if self.fold_num and self.verbose:
-                print(
+                logger.info(
                     f"Fold_num: {self.fold_num}, Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
                 )
 
-    def get_kfold_batches(self):
+    def get_kfold_sequence_batches(self):
+        """
+        Responsible for dividing the samples in the current fold into sequences
+        """
         kf = KFold(n_splits=self.num_batches, shuffle=True, random_state=self.seed)
 
+        valid_size = self.num_batches * self.bs
+        if valid_size < len(self.dataset):
+            rng = np.random.RandomState(self.seed)
+            self.dataset = rng.permutation(self.dataset)[:valid_size]
+
         batches = []
-        for i, (_, batch_indices) in enumerate(kf.split(self.dataset)):
+        for _, batch_indices in kf.split(self.dataset):
             batches.append(Subset(self.dataset, batch_indices))
 
         return batches
 
     def train(self):
+        """ """
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
-        davts = []
+        betting_scores = []
 
         self.current_seq = 0
         self.current_epoch = 0
@@ -202,10 +244,10 @@ class OfflineTrainer(Trainer):
         test_loader = DataLoader(
             test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
         )
-        test_loss, davt = self.train_evaluate_epoch(test_loader, mode="test")
-        davts.append(davt.item())
+        test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
+        betting_scores.append(betting_score.item())
         self.log(
-            {"aggregated_test_e-value": davt},
+            {"aggregated_test_e-value": betting_score},
             self.current_seq,
             self.current_epoch,
             self.current_total_epoch,
@@ -218,8 +260,8 @@ class OfflineTrainer(Trainer):
             "train_loss": np.nan,
             "val_loss": np.nan,
             "test_loss": test_loss.detach().cpu().item(),
-            "davt": davt.cpu().item(),
-            "aggregated_davt": davt.cpu().item(),
+            "betting_score": betting_score.cpu().item(),
+            "wealth": betting_score.cpu().item(),  # wealth is the same as betting score in the first sequence
             "epochs_until_end_of_sequence": np.nan,
             "sequences_until_end_of_experiment": np.nan,
         }
@@ -230,11 +272,13 @@ class OfflineTrainer(Trainer):
             else pd.concat([self.data, new_data], ignore_index=True)
         )
 
-        # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
-        if davt > (1.0 / self.alpha):
-            logging.info("Reject null at %f", davt)
+        # Log information if wealth exceeds the threshold TODO: not sure we need this for first batch??
+        if betting_score > (1.0 / self.alpha):
+            logger.info("Reject null at %f", betting_score)
+            self.test_positive = True
+
             self.log(
-                {"aggregated_test_e-value": davt},
+                {"aggregated_test_e-value": betting_score},
                 self.current_seq,
                 self.current_epoch,
                 self.current_total_epoch,
@@ -253,11 +297,12 @@ class OfflineTrainer(Trainer):
                 val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
             )
 
+            # Iterate over sequences
             for k in tqdm(range(1, min(self.seqs, self.num_batches))):
                 self.current_seq = k
                 self.current_epoch = 0
 
-                with time_block(f"Sequence {k}"):
+                with time_block(f"Sequence {k}/{self.num_batches}"):
                     for i in range(self.epochs):
                         self.current_epoch = i
                         self.current_total_epoch += 1
@@ -288,15 +333,17 @@ class OfflineTrainer(Trainer):
                             )
 
                             # Get S_t value on current batch
-                            test_loss, conditional_davt = self.train_evaluate_epoch(
+                            test_loss, betting_score = self.train_evaluate_epoch(
                                 test_loader, mode="test"
                             )
-                            davts.append(conditional_davt.item())
-                            davt = (
-                                np.prod(np.array(davts[self.T :])) if k >= self.T else 1
+                            betting_scores.append(betting_score.item())
+                            wealth = (
+                                np.prod(np.array(betting_scores[self.T :]))
+                                if k >= self.T
+                                else 1
                             )
                             self.log(
-                                {"aggregated_test_e-value": davt},
+                                {"wealth": wealth},
                                 self.current_seq,
                                 self.current_epoch,
                                 self.current_total_epoch,
@@ -306,8 +353,8 @@ class OfflineTrainer(Trainer):
                             self.add_sequence_data(
                                 self.current_seq,
                                 test_loss.detach().cpu().item(),
-                                davts[-1],
-                                davt,
+                                betting_scores[-1],
+                                wealth,
                             )
 
                             # former train_ds and val_ds become the new train set
@@ -328,9 +375,10 @@ class OfflineTrainer(Trainer):
                 # Reset the early stopper for the next sequence
                 self.early_stopper.reset()
 
-                # Log information if davt exceeds the threshold
-                if davt > (1.0 / self.alpha):
-                    print("Reject null at %f", davt)
+                # Log information if wealth exceeds the threshold
+                if wealth > (1.0 / self.alpha):
+                    logger.info("Reject null at %f", wealth)
+                    self.test_positive = True
 
                     self.update_sequences_until_end_of_experiment()
                     self.log(
@@ -343,14 +391,17 @@ class OfflineTrainer(Trainer):
 
                     break
 
+        if not self.test_positive:
+            logger.info(f"Null hypothesis not rejected. Final wealth at {wealth}.")
+
         self.data["fold_number"] = self.fold_num
-        return self.data
+        return self.data, self.test_positive
 
     def train_evaluate_epoch(self, data_loader, mode="train"):
         """ """
 
         aggregated_loss = 0
-        davt = 1  # This does not mean we are calculating wealth from scratch, just functions as blank slate for current betting score
+        betting_score = 1  # This does not mean we are calculating wealth from scratch, just functions as blank slate for current betting score
         num_samples = len(data_loader.dataset)
 
         self.log(
@@ -378,7 +429,7 @@ class OfflineTrainer(Trainer):
 
             # need epsilon here for calculating the tolerant betting score
             num_batch_samples = out.shape[0]
-            davt *= torch.exp(-self.epsilon * num_batch_samples + out.sum())
+            betting_score *= torch.exp(-self.epsilon * num_batch_samples + out.sum())
 
             if mode == "train":
                 self.optimizer.zero_grad()
@@ -387,7 +438,7 @@ class OfflineTrainer(Trainer):
 
         self.log(
             {
-                f"{mode}_e-value": davt.item(),
+                f"{mode}_betting_score": betting_score.item(),
                 f"{mode}_loss": aggregated_loss.item() / num_samples,
             },
             self.current_seq,
@@ -395,7 +446,7 @@ class OfflineTrainer(Trainer):
             self.current_total_epoch,
             int(self.current_epoch == 0),
         )
-        return aggregated_loss / num_samples, davt
+        return aggregated_loss / num_samples, betting_score
 
 
 class OnlineTrainer(Trainer):

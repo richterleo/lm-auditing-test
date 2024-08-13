@@ -17,8 +17,8 @@ from typing import List
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from arguments import TrainCfg
 from utils.utils import initialize_from_config, time_block, load_config
-from dah_testing.dataloader import ScoresDataset, collate_fn
-from behavior_evaluation.nn_for_nn_distance import CMLP
+from auditing_test.dataloader import ScoresDataset, collate_fn
+from evaluation.nn_for_nn_distance import CMLP
 
 
 # Add the submodule and models to the path for eval_trainer
