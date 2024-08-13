@@ -27,11 +27,7 @@ from utils.utils import load_config
 from arguments import TrainCfg
 
 
-pd.set_option("display.max_rows", 1000)
-pd.set_option("display.max_columns", 1000)
-pd.set_option("display.width", 1000)
-
-from analyze import (
+from evaluation.analyze import (
     extract_data_for_models,
     get_power_over_sequences_from_whole_ds,
     get_power_over_sequences_for_models_or_checkpoints,
@@ -43,6 +39,10 @@ from analyze import (
     extract_power_from_sequence_df,
     get_alpha_wrapper,
 )
+
+pd.set_option("display.max_rows", 1000)
+pd.set_option("display.max_columns", 1000)
+pd.set_option("display.width", 1000)
 
 
 def distance_box_plot(

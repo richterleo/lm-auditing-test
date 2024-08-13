@@ -79,17 +79,18 @@ def extract_data_for_models(
     return data
 
 
-def get_power_over_sequences_from_whole_ds(
-    data: pd.DataFrame, fold_size: int = 4000, bs: int = 96
-):
+def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 4000):
     """ """
+    bs = data.loc[0, "samples"]
+
     max_sequences = (fold_size + bs - 1) // bs
     selected_columns = data[
         [
             "fold_number",
             "sequence",
             "aggregated_davt",
-            "sequences_until_end_of_experiment",
+            "sequences_until_end_of_experiment",  # TODO: can remove this later, just a sanity check!
+            "test_positive",
         ]
     ]
 
@@ -104,10 +105,6 @@ def get_power_over_sequences_from_whole_ds(
     # Initialize a dictionary to store the counts
     sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
 
-    pd.set_option("display.max_rows", 1000)
-    pd.set_option("display.max_columns", 1000)
-    pd.set_option("display.width", 1000)
-
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
@@ -117,6 +114,12 @@ def get_power_over_sequences_from_whole_ds(
                 and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
                 == sequence
             ):
+                try:
+                    assert (
+                        fold_data.loc[sequence, "test_positive"] == 1
+                    ), f"Current sequence {sequence} == sequence until end of experiment, but test is not positive"
+                except AssertionError as e:
+                    logger.error(e)
                 sequence_counts[sequence] += 1
             elif sequence not in fold_data.index:
                 sequence_counts[sequence] += 1

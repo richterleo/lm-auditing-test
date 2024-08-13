@@ -1078,3 +1078,28 @@
 2024-08-13 14:31:28,754 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt3_seed1000/perspective_scores_fold_21.json
 2024-08-13 14:31:28,754 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt3_seed1000/perspective_scores_fold_23.json
 2024-08-13 14:31:28,754 - __main__ - INFO - Positive tests: 0/24
+2024-08-13 15:50:58,251 - __main__ - INFO - Testing Meta-Llama-3-8B-Instruct with seed seed1000 against Llama-3-8B-ckpt3 with seed seed1000. Fold size: 4000
+2024-08-13 15:50:58,251 - auditing_test.preprocessing - INFO - Creating the common json takes 0.0 seconds
+2024-08-13 15:50:58,531 - auditing_test.preprocessing - WARNING - Last fold contains fewer samples and is discarded, resulting in 3442 samples being discarded.
+2024-08-13 15:50:59,355 - auditing_test.preprocessing - INFO - Creating the folds takes 1.104 seconds.
+2024-08-13 15:50:59,355 - __main__ - INFO - We have 24 folds. The whole initialization took 1.106 seconds.
+2024-08-13 15:50:59,357 - __main__ - INFO - Now starting experiment for fold 0
+2024-08-13 15:50:59,515 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-13 15:50:59,823 - utils.utils - INFO - Sequence 1/40: 0.177 seconds
+2024-08-13 15:51:00,389 - utils.utils - INFO - Sequence 2/40: 0.565 seconds
+2024-08-13 15:51:00,636 - utils.utils - INFO - Sequence 3/40: 0.247 seconds
+2024-08-13 15:51:01,110 - utils.utils - INFO - Sequence 4/40: 0.474 seconds
+2024-08-13 15:51:01,457 - utils.utils - INFO - Sequence 5/40: 0.346 seconds
+2024-08-13 15:51:01,885 - utils.utils - INFO - Sequence 6/40: 0.427 seconds
+2024-08-13 15:51:02,387 - utils.utils - INFO - Sequence 7/40: 0.501 seconds
+2024-08-13 15:51:02,967 - utils.utils - INFO - Sequence 8/40: 0.58 seconds
+2024-08-13 15:51:03,625 - utils.utils - INFO - Sequence 9/40: 0.658 seconds
+2024-08-13 15:51:04,367 - utils.utils - INFO - Sequence 10/40: 0.741 seconds
+2024-08-13 15:51:05,160 - utils.utils - INFO - Sequence 11/40: 0.793 seconds
+2024-08-13 15:51:06,043 - utils.utils - INFO - Sequence 12/40: 0.882 seconds
+2024-08-13 15:51:06,997 - utils.utils - INFO - Sequence 13/40: 0.953 seconds
+2024-08-13 15:51:08,024 - utils.utils - INFO - Sequence 14/40: 1.027 seconds
+2024-08-13 15:51:09,140 - utils.utils - INFO - Sequence 15/40: 1.115 seconds
+2024-08-13 15:51:10,335 - utils.utils - INFO - Sequence 16/40: 1.194 seconds
+2024-08-13 15:51:11,615 - utils.utils - INFO - Sequence 17/40: 1.28 seconds
+2024-08-13 15:51:11,804 - utils.utils - INFO - Sequence 18/40: 0.188 seconds

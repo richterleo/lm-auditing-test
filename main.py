@@ -37,8 +37,8 @@ from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
 from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
 
 from evaluation.nn_for_nn_distance import CMLP
-from evaluation.plot import distance_box_plot
 from evaluation.analyze import get_distance_scores
+from evaluation.plot import distance_box_plot
 
 
 def davtt(
@@ -170,7 +170,15 @@ def kfold_test(
     model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
     seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
 
-    setup_logging(model_name1, seed1, model_name2, seed2, fold_size, config["epsilon"])
+    setup_logging(
+        model_name1,
+        seed1,
+        model_name2=model_name2,
+        seed2=seed2,
+        fold_size=fold_size,
+        epsilon=config["epsilon"],
+        tag="test_results",
+    )
     logger = logging.getLogger(__name__)
 
     # for fast analysis
@@ -398,7 +406,7 @@ if __name__ == "__main__":
     config = load_config("config.yml")
     train_cfg = TrainCfg()
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt3"
+    model_name2 = "Llama-3-8B-ckpt4"
     seed1 = "seed1000"
     seed2 = "seed1000"
 

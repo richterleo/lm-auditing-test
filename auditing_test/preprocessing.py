@@ -23,7 +23,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from utils.utils import download_file_from_wandb, time_block, create_run_string
 from utils.generate_and_evaluate import eval_on_metric
-
+from logging_config import setup_logging
 
 # setup_logging()
 logger = logging.getLogger(__name__)
@@ -523,10 +523,22 @@ def create_folds_from_evaluations(
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
+    model_name = "Llama-3-8B-ckpt4"
+    seed = "seed1000"
+    metric = "perspective"
+
+    setup_logging(
+        model_name,
+        seed,
+        metric=metric,
+        tag="evaluation",
+    )
+
     # evaluate_all_models(metric="perspective", overwrite=False)
     evaluate_single_model(
-        model_name="Llama-3-8B-ckpt3",
-        seed="seed1000",
-        metric="perspective",
+        model_name=model_name,
+        seed=seed,
+        metric=metric,
         overwrite=False,
+        use_wandb=False,
     )
