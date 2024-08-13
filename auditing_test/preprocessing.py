@@ -200,7 +200,7 @@ def evaluate_single_model(
                     end = time.time()
                     if verbose:
                         logger.info(
-                            f"Processing batch {i} to {i+ds_batch_size}. {i}th batch took {round(end-start, 3)} seconds"
+                            f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds"
                         )
 
             else:
