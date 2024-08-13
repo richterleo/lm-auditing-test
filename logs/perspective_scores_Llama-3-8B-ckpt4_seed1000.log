@@ -77,3 +77,34 @@
 2024-08-13 17:05:10,432 - __main__ - INFO - Processing batch 76000 to 77000. 76000th batch took 4.627 seconds
 2024-08-13 17:05:15,177 - __main__ - INFO - Processing batch 77000 to 78000. 77000th batch took 4.743 seconds
 2024-08-13 17:05:19,777 - __main__ - INFO - Processing batch 78000 to 79000. 78000th batch took 4.6 seconds
+2024-08-13 17:05:24,577 - __main__ - INFO - Processing batch 79000 to 80000. 79000th batch took 4.799 seconds
+2024-08-13 17:05:29,727 - __main__ - INFO - Processing batch 80000 to 81000. 80000th batch took 5.15 seconds
+2024-08-13 17:05:34,764 - __main__ - INFO - Processing batch 81000 to 82000. 81000th batch took 5.036 seconds
+2024-08-13 17:05:39,484 - __main__ - INFO - Processing batch 82000 to 83000. 82000th batch took 4.719 seconds
+2024-08-13 17:05:44,347 - __main__ - INFO - Processing batch 83000 to 84000. 83000th batch took 4.862 seconds
+2024-08-13 17:05:48,960 - __main__ - INFO - Processing batch 84000 to 85000. 84000th batch took 4.613 seconds
+2024-08-13 17:05:53,867 - __main__ - INFO - Processing batch 85000 to 86000. 85000th batch took 4.906 seconds
+2024-08-13 17:05:58,490 - __main__ - INFO - Processing batch 86000 to 87000. 86000th batch took 4.623 seconds
+2024-08-13 17:06:03,407 - __main__ - INFO - Processing batch 87000 to 88000. 87000th batch took 4.916 seconds
+2024-08-13 17:06:07,949 - __main__ - INFO - Processing batch 88000 to 89000. 88000th batch took 4.542 seconds
+2024-08-13 17:06:12,779 - __main__ - INFO - Processing batch 89000 to 90000. 89000th batch took 4.83 seconds
+2024-08-13 17:06:18,092 - __main__ - INFO - Processing batch 90000 to 91000. 90000th batch took 5.313 seconds
+2024-08-13 17:06:22,847 - __main__ - INFO - Processing batch 91000 to 92000. 91000th batch took 4.754 seconds
+2024-08-13 17:06:27,376 - __main__ - INFO - Processing batch 92000 to 93000. 92000th batch took 4.529 seconds
+2024-08-13 17:06:32,167 - __main__ - INFO - Processing batch 93000 to 94000. 93000th batch took 4.79 seconds
+2024-08-13 17:06:36,762 - __main__ - INFO - Processing batch 94000 to 95000. 94000th batch took 4.595 seconds
+2024-08-13 17:06:41,622 - __main__ - INFO - Processing batch 95000 to 96000. 95000th batch took 4.859 seconds
+2024-08-13 17:06:46,274 - __main__ - INFO - Processing batch 96000 to 97000. 96000th batch took 4.651 seconds
+2024-08-13 17:06:51,039 - __main__ - INFO - Processing batch 97000 to 98000. 97000th batch took 4.765 seconds
+2024-08-13 17:06:55,698 - __main__ - INFO - Processing batch 98000 to 99000. 98000th batch took 4.659 seconds
+2024-08-13 17:06:58,264 - __main__ - INFO - Processing batch 99000 to 100000. 99000th batch took 2.565 seconds
+2024-08-13 17:06:58,695 - __main__ - INFO - Evaluation should be completed. File stored in model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores.json 
+2024-08-13 17:06:58,698 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_10000.json
+2024-08-13 17:06:58,700 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_20000.json
+2024-08-13 17:06:58,703 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_30000.json
+2024-08-13 17:06:58,706 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_40000.json
+2024-08-13 17:06:58,708 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_50000.json
+2024-08-13 17:06:58,710 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_60000.json
+2024-08-13 17:06:58,713 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_70000.json
+2024-08-13 17:06:58,715 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_80000.json
+2024-08-13 17:06:58,718 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed1000/perspective_scores_90000.json

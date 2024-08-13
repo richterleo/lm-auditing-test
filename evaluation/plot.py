@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import logging
 import numpy as np
 import sys
 import os
@@ -44,6 +45,9 @@ pd.set_option("display.max_rows", 1000)
 pd.set_option("display.max_columns", 1000)
 pd.set_option("display.width", 1000)
 
+# setup_logging()
+logger = logging.getLogger(__name__)
+
 
 def distance_box_plot(
     df,
@@ -55,27 +59,32 @@ def distance_box_plot(
     pre_shuffled=False,
     metric="perspective",
     plot_dir: str = "test_outputs",
+    overwrite: bool = False,
 ):
     """ """
 
-    # Create a box plot
-    plt.figure(figsize=(10, 6))
-    df.boxplot()
-    plt.title("Box Plot of Different Methods to calculate Distance")
-    plt.ylabel("Distance")
-    plt.xticks(rotation=45)
-    plt.grid(True)
-
     if pre_shuffled:
-        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}_preshuffled.pdf"
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}_unpaired.pdf"
     else:
         file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}.pdf"
 
-    plt.savefig(
-        file_path,
-        bbox_inches="tight",
-        format="pdf",
-    )
+    if not overwrite and Path(file_path).exists():
+        logger.info(f"File already exists at {file_path}. Skipping...")
+
+    else:
+        # Create a box plot
+        plt.figure(figsize=(10, 6))
+        df.boxplot()
+        plt.title("Box Plot of Different Methods to calculate Distance")
+        plt.ylabel("Distance")
+        plt.xticks(rotation=45)
+        plt.grid(True)
+
+        plt.savefig(
+            file_path,
+            bbox_inches="tight",
+            format="pdf",
+        )
 
 
 def plot_power_over_number_of_sequences(
@@ -1126,7 +1135,7 @@ if __name__ == "__main__":
     seed2 = "seed1000"
     metric = "perspective"
 
-    net_cfg = load_config("config.yml")
+    net_cfg = load_config("config.yml")["net"]
     train_cfg = TrainCfg()
 
     num_samples = 10000

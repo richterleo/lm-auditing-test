@@ -201,82 +201,105 @@ def kfold_test(
 
     # Check all folds available for the two runs
     directory = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
-    folds = []
-
-    create_folds_from_evaluations(
-        model_name1,
-        seed1,
-        model_name2,
-        seed2,
-        config["metric"]["metric"],
-        overwrite=overwrite,
-        fold_size=fold_size,
-    )
-
-    for file_name in os.listdir(directory):
-        match = re.search(pattern, file_name)
-        if match:
-            fold_number = int(match.group(1))
-            folds.append(fold_number)
-
-    folds.sort()
-
-    end = time.time()
-    logger.info(
-        f"We have {len(folds)} folds. The whole initialization took {round(end-start, 3)} seconds."
-    )
-
-    if use_wandb:
-        wandb.config.update({"total_num_folds": folds})
-
-    # Iterate over the folds and call test_daht
-    all_folds_data = pd.DataFrame()
-
-    for fold_num in folds:
-        logger.info(f"Now starting experiment for fold {fold_num}")
-        data, test_positive = davtt(
-            config,
-            train_cfg,
-            fold_num=fold_num,
-            model_name1=model_name1,
-            seed1=seed1,
-            model_name2=model_name2,
-            seed2=seed2,
-            use_wandb=use_wandb,
-        )
-        all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
-        if test_positive:
-            sum_positive += 1
 
     file_path = (
         Path(directory)
         / f"kfold_test_results_{fold_size}_epsilon_{config['epsilon']}.csv"
     )
-    all_folds_data.to_csv(file_path, index=False)
+
+    if Path(file_path).exists() and not overwrite:
+        logger.info(f"Skipping test as {file_path} already exists.")
+
+    else:
+        folds = []
+
+        create_folds_from_evaluations(
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
+            metric=config["metric"]["metric"],
+            fold_size=fold_size,
+            overwrite=overwrite,
+        )
+
+        for file_name in os.listdir(directory):
+            match = re.search(pattern, file_name)
+            if match:
+                fold_number = int(match.group(1))
+                folds.append(fold_number)
+
+        folds.sort()
+
+        end = time.time()
+        logger.info(
+            f"We have {len(folds)} folds. The whole initialization took {round(end-start, 3)} seconds."
+        )
+
+        if use_wandb:
+            wandb.config.update({"total_num_folds": folds})
+
+        # Iterate over the folds and call test_daht
+        all_folds_data = pd.DataFrame()
+
+        for fold_num in folds:
+            logger.info(f"Now starting experiment for fold {fold_num}")
+            data, test_positive = davtt(
+                config,
+                train_cfg,
+                fold_num=fold_num,
+                model_name1=model_name1,
+                seed1=seed1,
+                model_name2=model_name2,
+                seed2=seed2,
+                use_wandb=use_wandb,
+            )
+            all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
+            if test_positive:
+                sum_positive += 1
+
+        all_folds_data.to_csv(file_path, index=False)
+        logger.info(f"Positive tests: {sum_positive}/{len(folds)}")
 
     cleanup_files(directory, f"{metric}_scores_fold_*.json")
-
-    logger.info(f"Positive tests: {sum_positive}/{len(folds)}")
 
     if config["analysis"]["calculate_distance"]:
         logger.info(
             f"Calculating actual distance over {config['analysis']['num_runs']} runs."
         )
-        dist_df = analyze_and_plot_distance(
-            config, model_name1, seed1, model_name2, seed2
-        )
-        dist_df.to_csv(Path(directory) / "distance_scores.csv", index=False)
+
+        dist_path = Path(directory) / "distance_scores.csv"
+        if dist_path.exists():
+            logger.info(
+                f"Distance data already exists. Loading distance scores from {dist_path}."
+            )
+            dist_df = pd.read_csv(dist_path)
+            distance_box_plot(
+                dist_df,
+                model_name1,
+                seed1,
+                seed2,
+                model_name2,
+                metric=config["metric"]["metric"],
+            )
+        else:
+            dist_df = analyze_and_plot_distance(
+                config, model_name1, seed1, model_name2, seed2
+            )
+            dist_df.to_csv(Path(directory) / "distance_scores.csv", index=False)
         logger.info(
-            f"Average nn distance: {dist_df['distance'].mean()}, std: {dist_df['distance'].std()}"
+            f"Average nn distance: {dist_df['NeuralNet'].mean()}, std: {dist_df['NeuralNet'].std()}"
         )
-        logger.info(f"Wasserstein distance: {dist_df['wasserstein'].mean()}")
-        wandb.log(
-            {
-                "average_nn_distance": dist_df["distance"].mean(),
-                "std_nn_distance": dist_df["distance"].std(),
-                "wasserstein_distance": dist_df["wasserstein"].mean(),
-            }
-        )
+        logger.info(f"Wasserstein distance: {dist_df['Wasserstein'].mean()}")
+
+        if use_wandb:
+            wandb.log(
+                {
+                    "average_nn_distance": dist_df["NeuralNet"].mean(),
+                    "std_nn_distance": dist_df["NeuralNet"].std(),
+                    "wasserstein_distance": dist_df["Wasserstein"].mean(),
+                }
+            )
 
     if use_wandb:
         wandb.finish()
@@ -293,6 +316,8 @@ def analyze_and_plot_distance(config, model_name1, seed1, model_name2, seed2):
         model_name2=model_name2,
         metric=config["metric"]["metric"],
         num_runs=config["analysis"]["num_runs"],
+        net_cfg=config["net"],
+        train_cfg=train_cfg,
     )
 
     # Plot the results
@@ -302,7 +327,7 @@ def analyze_and_plot_distance(config, model_name1, seed1, model_name2, seed2):
         seed1,
         seed2,
         model_name2,
-        config["metric"]["metric"],
+        metric=config["metric"]["metric"],
     )
 
     return distance_df
@@ -406,7 +431,7 @@ if __name__ == "__main__":
     config = load_config("config.yml")
     train_cfg = TrainCfg()
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt4"
+    model_name2 = "Llama-3-8B-ckpt5"
     seed1 = "seed1000"
     seed2 = "seed1000"
 

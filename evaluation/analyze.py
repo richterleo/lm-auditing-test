@@ -252,6 +252,7 @@ def get_distance_scores(
     test_split: float = 0.3,
     compare_distance_metrics: bool = True,
     num_runs: int = 1,
+    scipy_only: bool = True,
 ) -> pd.DataFrame:
     """ """
     random.seed(random_seed)
@@ -316,19 +317,29 @@ def get_distance_scores(
             dist_dict = {}
             if "Wasserstein" in distance_measures:
                 if compare_distance_metrics:
-                    dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
-                        test_scores1, test_scores2
-                    )
-                    dist_dict["Wasserstein_scipy"] = wasserstein_distance(
-                        test_scores1, test_scores2
-                    )
+                    if scipy_only:
+                        dist_dict["Wasserstein"] = wasserstein_distance(
+                            test_scores1, test_scores2
+                        )
+                    else:
+                        dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
+                            test_scores1, test_scores2
+                        )
+                        dist_dict["Wasserstein_scipy"] = wasserstein_distance(
+                            test_scores1, test_scores2
+                        )
                 else:
-                    dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
-                        train_scores1 + test_scores1, train_scores2 + test_scores2
-                    )
-                    dist_dict["Wasserstein_scipy"] = wasserstein_distance(
-                        train_scores1 + test_scores1, train_scores1 + test_scores2
-                    )
+                    if scipy_only:
+                        dist_dict["Wasserstein"] = wasserstein_distance(
+                            train_scores1 + test_scores1, train_scores2 + test_scores2
+                        )
+                    else:
+                        dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
+                            train_scores1 + test_scores1, train_scores2 + test_scores2
+                        )
+                        dist_dict["Wasserstein_scipy"] = wasserstein_distance(
+                            train_scores1 + test_scores1, train_scores1 + test_scores2
+                        )
             # TODO: update this
             if "Kolmogorov" in distance_measures:
                 dist_dict["Kolmogorov"] = kolmogorov_variation(scores1, scores2)

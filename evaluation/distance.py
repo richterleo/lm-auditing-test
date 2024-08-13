@@ -207,13 +207,13 @@ class NeuralNetDistance:
         # self.net = initialize_from_config(net_config["net"], net_type=net_type)
         # TODO: put this somewhere else
         self.net = CMLP(
-            net_cfg["net"]["input_size"],
-            net_cfg["net"]["hidden_layer_size"],
+            net_cfg["input_size"],
+            net_cfg["hidden_layer_size"],
             1,
-            net_cfg["net"]["layer_norm"],
+            net_cfg["layer_norm"],
             False,
             0.4,
-            net_cfg["net"]["bias"],
+            net_cfg["bias"],
         )
         self.net.to(self.device)
 

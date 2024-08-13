@@ -5,7 +5,7 @@ metric:
   upper_lim: 1.0
   dataset_name: allenai/real-toxicity-prompts
 
-epsilon: 0.02 # neural net distance between tau1 and tau2 that we tolerate
+epsilon: 0.015 # neural net distance between tau1 and tau2 that we tolerate
 
 eval:
   epochs: 1
@@ -21,7 +21,7 @@ logging:
 analysis:
   calculate_distance: true
   unpaired: false
-  num_runs: 10
+  num_runs: 2
 
 
 tau1: 

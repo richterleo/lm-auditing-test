@@ -468,6 +468,7 @@ def create_folds_from_generations(
     metric="toxicity",
     fold_size=4000,
     overwrite=True,
+    random_seed=0,
 ):
     evaluate_single_model(
         model_name=model_name1, seed=seed1, metric=metric, overwrite=overwrite
@@ -498,15 +499,36 @@ def create_folds_from_evaluations(
     metric="toxicity",
     fold_size=4000,
     overwrite=True,
+    random_seed=0,
+    use_wandb=False,
 ):
-    start = time.time()
-    create_common_json(
-        model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
-    )
+    try:
+        create_common_json(
+            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
+        )
+    except FileNotFoundError as e:
+        logger.info(
+            f"File not found: {e}. Trying to create the folds from generations."
+        )
+        evaluate_single_model(
+            model_name=model_name1,
+            seed=seed1,
+            metric=metric,
+            overwrite=False,
+            use_wandb=use_wandb,
+        )
+        evaluate_single_model(
+            model_name=model_name2,
+            seed=seed2,
+            metric=metric,
+            overwrite=False,
+            use_wandb=use_wandb,
+        )
 
-    end = time.time()
-    logger.info(f"Creating the common json takes {round(end-start, 3)} seconds")
-    start = time.time()
+        create_common_json(
+            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
+        )
+
     create_folds(
         model_name1,
         seed1,
@@ -516,14 +538,12 @@ def create_folds_from_evaluations(
         fold_size=fold_size,
         overwrite=overwrite,
     )
-    end = time.time()
-    logger.info(f"Creating the folds takes {round(end-start, 3)} seconds.")
 
 
 if __name__ == "__main__":
     # Put json file with generations in folder model_outputs/{model_name}_{seed}
 
-    model_name = "Llama-3-8B-ckpt4"
+    model_name = "Meta-Llama-3-8B-Instruct"
     seed = "seed1000"
     metric = "perspective"
 
