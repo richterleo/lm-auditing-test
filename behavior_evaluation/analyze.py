@@ -110,8 +110,6 @@ def get_power_over_sequences_from_whole_ds(
     pd.set_option("display.max_columns", 1000)
     pd.set_option("display.width", 1000)
 
-    print(f"This is the indexed df: {indexed_df}")
-
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]

@@ -194,6 +194,8 @@ def kfold_train(
 
     start = time.time()
 
+    print("hello")
+
     model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
     seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
     model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
@@ -389,4 +391,22 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    config = load_config("config.yml")
+    train_cfg = TrainCfg()
+    model_name1 = "Meta-Llama-3-8B-Instruct"
+    model_name2 = "Llama-3-8B-ckpt3"
+    seed1 = "seed1000"
+    seed2 = "seed1000"
+
+    kfold_train(
+        config,
+        train_cfg,
+        model_name1=model_name1,
+        seed1=seed1,
+        model_name2=model_name2,
+        seed2=seed2,
+        use_wandb=False,
+        fold_size=4000,
+    )
+
+    # main()
