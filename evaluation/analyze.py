@@ -206,7 +206,7 @@ def get_power_over_sequences_for_checkpoints(
     result_dfs = []
 
     for checkpoint, seed in zip(checkpoints, seeds):
-        print(
+        logger.info(
             f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
         )
         try:
@@ -221,7 +221,7 @@ def get_power_over_sequences_for_checkpoints(
             result_dfs.append(result_df)
 
         except FileNotFoundError:
-            print(
+            logger.error(
                 f"File for checkpoint {checkpoint} and seed {seed} does not exist yet"
             )
 
@@ -238,8 +238,6 @@ def get_distance_scores(
     checkpoint_base_name: Optional[str] = None,
     model_name2: Optional[str] = None,
     metric: str = "toxicity",
-    epoch1: int = 0,
-    epoch2: int = 0,
     distance_measures: list = ["NeuralNet", "Wasserstein"],
     net_cfg: Optional[dict] = None,
     train_cfg: Optional[DictConfig] = None,
@@ -249,8 +247,9 @@ def get_distance_scores(
     test_random_seed: int = 0,
     num_samples: int = 100000,
     test_split: float = 0.3,
-    compare_metrics: bool = True,
-) -> dict:
+    compare_distance_metrics: bool = True,
+    num_runs: int = 1,
+) -> pd.DataFrame:
     """ """
     random.seed(random_seed)
     np.random.seed(random_seed)
@@ -276,9 +275,9 @@ def get_distance_scores(
 
     try:
         with open(score_path1, "r") as f:
-            scores1 = json.load(f)[str(epoch1)][f"{metric}_scores"]
+            scores1 = json.load(f)["0"][f"{metric}_scores"]
         with open(score_path2, "r") as f:
-            scores2 = json.load(f)[str(epoch2)][f"{metric}_scores"]
+            scores2 = json.load(f)["0"][f"{metric}_scores"]
 
         # test_samples is always a fixed percentage of whole ds
         num_test_samples = int(test_split * len(scores1))
@@ -296,73 +295,82 @@ def get_distance_scores(
             scores2[i] for i in range(len(scores2)) if i not in random_test_indices
         ]
 
-        np.random.seed(random_seed)
-        # TODO: Think if this is the best way to do this
-        if num_samples < len(scores1) - num_test_samples:
-            # num_samples -= num_test_samples
-            random_train_indices = np.random.randint(0, len(train_scores1), num_samples)
+        dist_data = []
 
-            # Grab random subset of train scores
-            train_scores1 = [train_scores1[i] for i in random_train_indices]
-            train_scores2 = [train_scores2[i] for i in random_train_indices]
+        for run in range(num_runs):
+            np.random.seed(random_seed + run)
+            # TODO: Think if this is the best way to do this
+            if num_samples < len(scores1) - num_test_samples:
+                # num_samples -= num_test_samples
+                random_train_indices = np.random.randint(
+                    0, len(train_scores1), num_samples
+                )
 
-        dist_dict = {}
-        if "Wasserstein" in distance_measures:
-            if compare_metrics:
-                dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
-                    test_scores1, test_scores2
-                )
-                dist_dict["Wasserstein_scipy"] = wasserstein_distance(
-                    test_scores1, test_scores2
-                )
-            else:
-                dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
-                    train_scores1 + test_scores1, train_scores2 + test_scores2
-                )
-                dist_dict["Wasserstein_scipy"] = wasserstein_distance(
-                    train_scores1 + test_scores1, train_scores1 + test_scores2
-                )
-        # TODO: update this
-        if "Kolmogorov" in distance_measures:
-            dist_dict["Kolmogorov"] = kolmogorov_variation(scores1, scores2)
+                # Grab random subset of train scores
+                train_scores1 = [train_scores1[i] for i in random_train_indices]
+                train_scores2 = [train_scores2[i] for i in random_train_indices]
 
-        if "NeuralNet" in distance_measures:
-            assert net_cfg, "net_dict must be provided for neuralnet distance"
-            assert train_cfg, "train_cfg must be provided for neuralnet distance"
+            dist_dict = {}
+            if "Wasserstein" in distance_measures:
+                if compare_distance_metrics:
+                    dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
+                        test_scores1, test_scores2
+                    )
+                    dist_dict["Wasserstein_scipy"] = wasserstein_distance(
+                        test_scores1, test_scores2
+                    )
+                else:
+                    dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
+                        train_scores1 + test_scores1, train_scores2 + test_scores2
+                    )
+                    dist_dict["Wasserstein_scipy"] = wasserstein_distance(
+                        train_scores1 + test_scores1, train_scores1 + test_scores2
+                    )
+            # TODO: update this
+            if "Kolmogorov" in distance_measures:
+                dist_dict["Kolmogorov"] = kolmogorov_variation(scores1, scores2)
 
-            if pre_shuffle:
-                neural_net_distance_shuffled = NeuralNetDistance(
+            if "NeuralNet" in distance_measures:
+                assert net_cfg, "net_dict must be provided for neuralnet distance"
+                assert train_cfg, "train_cfg must be provided for neuralnet distance"
+
+                if pre_shuffle:
+                    neural_net_distance_shuffled = NeuralNetDistance(
+                        net_cfg,
+                        deepcopy(train_scores1),
+                        deepcopy(train_scores2),
+                        deepcopy(test_scores1),
+                        deepcopy(test_scores2),
+                        train_cfg,
+                        pre_shuffle=pre_shuffle,
+                        random_seed=random_seed,
+                    )
+                    dist_dict["NeuralNet_unpaired"] = (
+                        neural_net_distance_shuffled.train().item()
+                    )
+                neural_net_distance = NeuralNetDistance(
                     net_cfg,
-                    deepcopy(train_scores1),
-                    deepcopy(train_scores2),
-                    deepcopy(test_scores1),
-                    deepcopy(test_scores2),
+                    train_scores1,
+                    train_scores2,
+                    test_scores1,
+                    test_scores2,
                     train_cfg,
-                    pre_shuffle=pre_shuffle,
+                    pre_shuffle=False,
                     random_seed=random_seed,
                 )
-                dist_dict["NeuralNet_shuffled"] = (
-                    neural_net_distance_shuffled.train().item()
-                )
-            neural_net_distance = NeuralNetDistance(
-                net_cfg,
-                train_scores1,
-                train_scores2,
-                test_scores1,
-                test_scores2,
-                train_cfg,
-                pre_shuffle=False,
-                random_seed=random_seed,
-            )
-            dist_dict["NeuralNet"] = neural_net_distance.train().item()
+                dist_dict["NeuralNet"] = neural_net_distance.train().item()
 
-        return dist_dict
+            dist_data.append(dist_dict)
+
+        dist_df = pd.DataFrame(dist_data)
+
+        return dist_df
 
     except FileNotFoundError:
         if checkpoint:
-            print(f"File for checkpoint {checkpoint} does not exist yet")
+            logger.error(f"File for checkpoint {checkpoint} does not exist yet")
         else:
-            print(f"File for model {model_name2} does not exist yet")
+            logger.error(f"File for model {model_name2} does not exist yet")
 
 
 def get_power_over_sequences_for_ranked_checkpoints(
@@ -371,11 +379,10 @@ def get_power_over_sequences_for_ranked_checkpoints(
     checkpoints,
     seeds,
     checkpoint_base_name="LLama-3-8B-ckpt",
-    epoch1=0,
-    epoch2=0,
     metric="toxicity",
     distance_measure="Wasserstein",
     fold_size=4000,
+    num_runs_distance=1,
 ):
     if not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
@@ -385,21 +392,22 @@ def get_power_over_sequences_for_ranked_checkpoints(
     result_dfs = []
 
     for checkpoint, seed in zip(checkpoints, seeds):
-        print(
+        logger.info(
             f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
         )
 
-        dist = get_distance_scores(
+        dist_df = get_distance_scores(
             base_model_name,
             base_model_seed,
             seed,
             checkpoint=checkpoint,
             checkpoint_base_name=checkpoint_base_name,
             metric=metric,
-            distance_measure=distance_measure,
-            epoch1=epoch1,
-            epoch2=epoch2,
+            distance_measure=[distance_measure],
+            num_runs=num_runs_distance,
+            compare_distance_metrics=False,
         )
+        dist = dist_df[distance_measure].mean()
 
         result_df = get_power_over_sequences_for_models_or_checkpoints(
             base_model_name,
@@ -430,8 +438,6 @@ def get_power_over_sequences_for_ranked_checkpoints_wrapper(
     seeds,
     checkpoint_base_name="LLama-3-8B-ckpt",
     fold_sizes: List[int] = [1000, 2000, 3000, 4000],
-    epoch1=0,
-    epoch2=0,
     metric="toxicity",
     distance_measure="Wasserstein",
 ):
@@ -448,8 +454,6 @@ def get_power_over_sequences_for_ranked_checkpoints_wrapper(
                 checkpoints,
                 seeds,
                 checkpoint_base_name=checkpoint_base_name,
-                epoch1=epoch1,
-                epoch2=epoch2,
                 metric=metric,
                 distance_measure=distance_measure,
                 fold_size=fold_size,

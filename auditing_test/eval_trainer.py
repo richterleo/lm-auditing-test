@@ -137,7 +137,7 @@ class OfflineTrainer(Trainer):
             "wealth": np.nan,
             "epochs_until_end_of_sequence": np.nan,
             "sequences_until_end_of_experiment": np.nan,
-            "test_positive": 0,
+            "test_positive": int(0),
         }
         new_data = pd.DataFrame([row])
         self.data = (
@@ -173,7 +173,7 @@ class OfflineTrainer(Trainer):
         """
         max_sequence = self.data["sequence"].max()
         self.data["sequences_until_end_of_experiment"] = max_sequence
-        self.data["test_positive"] = 1
+        self.data["test_positive"] = int(1)
 
     def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
         """

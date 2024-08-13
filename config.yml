@@ -18,6 +18,12 @@ logging:
   api_key: # put your api key here
   entity: LLM_Accountability #richter-leo94 personal account
 
+analysis:
+  calculate_distance: true
+  unpaired: false
+  num_runs: 10
+
+
 tau1: 
   model_id: Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2

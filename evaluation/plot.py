@@ -51,7 +51,7 @@ def distance_box_plot(
     seed1,
     seed2,
     model_name2,
-    num_samples,
+    num_samples=100000,
     pre_shuffled=False,
     metric="perspective",
     plot_dir: str = "test_outputs",

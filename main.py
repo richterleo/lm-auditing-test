@@ -37,6 +37,8 @@ from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
 from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
 
 from evaluation.nn_for_nn_distance import CMLP
+from evaluation.plot import distance_box_plot
+from evaluation.analyze import get_distance_scores
 
 
 def davtt(
@@ -95,41 +97,6 @@ def davtt(
     return trainer.train()
 
 
-def run_test_with_wandb(
-    config,
-    train_cfg,
-    tau2_cfg: Optional[Dict] = None,
-    fold_num: int = 0,
-    model_name1: Optional[str] = None,
-    seed1: Optional[str] = None,
-    model_name2: Optional[str] = None,
-    seed2: Optional[str] = None,
-):
-    """Wrapper function to handle wandb logging and call the core logic."""
-
-    if config["logging"]["use_wandb"]:
-        wandb.init(
-            project=f"{config['metric']['behavior']}_test",
-            entity=config["logging"]["entity"],
-            name=create_run_string(),
-            config=config,
-        )
-
-    davtt(
-        config,
-        train_cfg,
-        tau2_cfg=tau2_cfg,
-        fold_num=fold_num,
-        model_name1=model_name1,
-        seed1=seed1,
-        model_name2=model_name2,
-        seed2=seed2,
-    )
-
-    if config["logging"]["use_wandb"]:
-        wandb.finish()
-
-
 def eval_model(
     config,
     num_samples=None,
@@ -167,7 +134,7 @@ def eval_model(
         wandb.finish()
 
 
-def kfold_train(
+def kfold_test(
     config,
     train_cfg,
     model_name1: Optional[str] = None,
@@ -283,8 +250,54 @@ def kfold_train(
 
     logger.info(f"Positive tests: {sum_positive}/{len(folds)}")
 
+    if config["analysis"]["calculate_distance"]:
+        logger.info(
+            f"Calculating actual distance over {config['analysis']['num_runs']} runs."
+        )
+        dist_df = analyze_and_plot_distance(
+            config, model_name1, seed1, model_name2, seed2
+        )
+        dist_df.to_csv(Path(directory) / "distance_scores.csv", index=False)
+        logger.info(
+            f"Average nn distance: {dist_df['distance'].mean()}, std: {dist_df['distance'].std()}"
+        )
+        logger.info(f"Wasserstein distance: {dist_df['wasserstein'].mean()}")
+        wandb.log(
+            {
+                "average_nn_distance": dist_df["distance"].mean(),
+                "std_nn_distance": dist_df["distance"].std(),
+                "wasserstein_distance": dist_df["wasserstein"].mean(),
+            }
+        )
+
     if use_wandb:
         wandb.finish()
+
+
+def analyze_and_plot_distance(config, model_name1, seed1, model_name2, seed2):
+    """ """
+    # Load the data
+
+    distance_df = get_distance_scores(
+        model_name1,
+        seed1,
+        seed2,
+        model_name2=model_name2,
+        metric=config["metric"]["metric"],
+        num_runs=config["analysis"]["num_runs"],
+    )
+
+    # Plot the results
+    distance_box_plot(
+        distance_df,
+        model_name1,
+        seed1,
+        seed2,
+        model_name2,
+        config["metric"]["metric"],
+    )
+
+    return distance_df
 
 
 def main():
@@ -294,21 +307,22 @@ def main():
     parser.add_argument(
         "--exp",
         type=str,
-        choices=["generation", "test_daht"],
+        choices=["generation", "test"],
         required=True,
-        help="Select the experiment to run: evalution or testing the dat-test",
+        help="Select the experiment to run: generating model outputs or auditing test.",
     )
 
     parser.add_argument(
         "--evaluate",
         action="store_true",
-        help="Whether to evaluate the model on the metric",
+        help="Whether to evaluate the model on the metric.",
     )
 
+    # TODO: change this when OnlineTrainer is no longer deprecated.
     parser.add_argument(
         "--online",
         action="store_true",
-        help="Whether to use the OnlineTrainer instead of the OfflineTrainer",
+        help="Whether to use the OnlineTrainer instead of the OfflineTrainer. Warning: OnlineTrainer is currently deprecated.",
     )
 
     parser.add_argument(
@@ -316,13 +330,6 @@ def main():
         type=str,
         default="config.yml",
         help="Path to config file",
-    )
-
-    parser.add_argument(
-        "--fold_num",
-        type=int,
-        default=0,
-        help="Fold number for repeated test runs. If this is given, only a single fold will be tested.",
     )
 
     parser.add_argument(
@@ -336,34 +343,34 @@ def main():
         "--model_name1",
         type=str,
         default=None,
-        help="Name of first model as it appears in the folder name",
+        help="Name of first model as it appears in the folder name.",
     )
 
     parser.add_argument(
         "--model_name2",
         type=str,
         default=None,
-        help="Name of second model as it appears in the folder name",
+        help="Name of second model as it appears in the folder name.",
     )
 
     parser.add_argument(
         "--seed1",
         type=str,
         default=None,
-        help="Generation seed of first model as it appears in the folder name",
+        help="Generation seed of first model as it appears in the folder name.",
     )
 
     parser.add_argument(
         "--seed2",
         type=str,
         default=None,
-        help="Generation seed of second model as it appears in the folder name",
+        help="Generation seed of second model as it appears in the folder name.",
     )
 
     parser.add_argument(
         "--no_wandb",
         action="store_true",
-        help="If this is set to true, then no tracking on wandb",
+        help="If this is set to true, then no tracking on wandb.",
     )
 
     args = parser.parse_args()
@@ -373,31 +380,18 @@ def main():
     if args.exp == "generation":
         eval_model(config, evaluate=args.evaluate)
 
-    elif args.exp == "davtt":
+    elif args.exp == "test":
         train_cfg = TrainCfg()
-        if not args.fold_num:
-            kfold_train(
-                config,
-                train_cfg,
-                model_name1=args.model_name1,
-                seed1=args.seed1,
-                model_name2=args.model_name2,
-                seed2=args.seed2,
-                use_wandb=not args.no_wandb,
-                fold_size=args.fold_size,
-            )
-        else:
-            run_test_with_wandb(
-                config,
-                train_cfg,
-                train_online=args.online,
-                fold_num=args.fold_num,
-                model_name1=args.model_name1,
-                seed1=args.seed1,
-                model_name2=args.model_name2,
-                seed2=args.seed2,
-                use_wandb=not args.no_wandb,
-            )
+        kfold_test(
+            config,
+            train_cfg,
+            model_name1=args.model_name1,
+            seed1=args.seed1,
+            model_name2=args.model_name2,
+            seed2=args.seed2,
+            use_wandb=not args.no_wandb,
+            fold_size=args.fold_size,
+        )
 
 
 if __name__ == "__main__":
@@ -408,7 +402,7 @@ if __name__ == "__main__":
     seed1 = "seed1000"
     seed2 = "seed1000"
 
-    kfold_train(
+    kfold_test(
         config,
         train_cfg,
         model_name1=model_name1,
