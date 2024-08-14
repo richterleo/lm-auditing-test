@@ -29,7 +29,11 @@ def setup_logging(
         log_file = Path(directory) / log_file
 
     else:
-        if tag == "test_results":
+        if (
+            tag == "test_results"
+            or tag == "test_results_and_analyze"
+            or tag == "analyze"
+        ):
             log_file = (
                 Path(directory)
                 / f"{tag}_{model_name1}_{seed1}_{model_name2}_{seed2}_{fold_size}_epsilon_{epsilon}.log"

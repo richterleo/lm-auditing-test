@@ -41,62 +41,6 @@ from evaluation.analyze import get_distance_scores
 from evaluation.plot import distance_box_plot
 
 
-def davtt(
-    config,
-    train_cfg,
-    fold_num: int = 0,
-    model_name1: Optional[str] = None,
-    seed1: Optional[str] = None,
-    model_name2: Optional[str] = None,
-    seed2: Optional[str] = None,
-    use_wandb: Optional[str] = None,
-):
-    """
-    Deep anytime-valid tolerance test
-
-    Args:
-    config: Dict
-        Configuration dictionary
-    train_cfg: TrainCfg
-        Training configuration
-    """
-    # Whether to use logging
-    use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
-
-    model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
-    seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
-    model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
-    seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
-
-    # Define network for betting score
-
-    # TODO: change this betting_net = initialize_from_config(config["net"])
-    betting_net = CMLP(
-        config["net"]["input_size"],
-        config["net"]["hidden_layer_size"],
-        1,
-        config["net"]["layer_norm"],
-        False,
-        0.4,
-        config["net"]["bias"],
-    )
-
-    trainer = OfflineTrainer(
-        train_cfg,
-        betting_net,
-        model_name1,
-        seed1,
-        model_name2,
-        seed2,
-        metric=config["metric"]["metric"],
-        use_wandb=use_wandb,
-        fold_num=fold_num,
-        epsilon=config["epsilon"],
-    )
-
-    return trainer.train()
-
-
 def eval_model(
     config,
     num_samples=None,
@@ -134,203 +78,281 @@ def eval_model(
         wandb.finish()
 
 
-def kfold_test(
-    config,
-    train_cfg,
-    model_name1: Optional[str] = None,
-    seed1: Optional[str] = None,
-    model_name2: Optional[str] = None,
-    seed2: Optional[str] = None,
-    overwrite: Optional[bool] = False,
-    use_wandb: Optional[bool] = None,
-    fold_size: int = 4000,
-    pattern: str = r"_fold_(\d+)\.json$",
-    metric: Optional[bool] = None,
-    output_dir: str = "test_outputs",
-    verbose: bool = True,
-):
-    """Do repeats on"""
-    # Initialize wandb if logging is enabled
+class Experiment:
+    """ """
 
-    use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
-    metric = metric if metric else config["metric"]["metric"]
-    if use_wandb:
+    def __init__(
+        self,
+        config: Dict,
+        train_cfg: TrainCfg,
+        overwrite: Optional[bool] = False,
+        use_wandb: Optional[bool] = None,
+        pattern: str = r"_fold_(\d+)\.json$",  # TODO: maybe class attribute?
+        metric: Optional[bool] = None,
+        output_dir: str = "test_outputs",
+    ):
+        self.config = config
+        self.train_cfg = train_cfg
+        self.overwrite = overwrite
+        self.pattern = pattern
+        self.output_dir = output_dir
+
+        self.use_wandb = (
+            use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+        )
+        self.metric = metric if metric else config["metric"]["metric"]
+
+        # initialize instance parameters to None
+        self.model_name1 = None
+        self.seed1 = None
+        self.model_name2 = None
+        self.seed2 = None
+        self.fold_size = None
+        self.directory = None
+
+        # logger setup
+        self.logger = None
+
+    def initialize_wandb(self, tags: List[str] = ["kfold"]):
+        """ """
         wandb.init(
-            project=f"{config['metric']['behavior']}_test",
-            entity=config["logging"]["entity"],
+            project=f"{self.config['metric']['behavior']}_test",
+            entity=self.config["logging"]["entity"],
             name=create_run_string(),
-            config=config,
-            tags=["kfold"],
+            config=self.config,
+            tags=tags,
         )
 
-    start = time.time()
-
-    model_name1 = model_name1 if model_name1 else config["tau1"]["model_id"]
-    seed1 = seed1 if seed1 else config["tau1"]["gen_seed"]
-    model_name2 = model_name2 if model_name2 else config["tau2"]["model_id"]
-    seed2 = seed2 if seed2 else config["tau2"]["gen_seed"]
-
-    setup_logging(
-        model_name1,
-        seed1,
-        model_name2=model_name2,
-        seed2=seed2,
-        fold_size=fold_size,
-        epsilon=config["epsilon"],
-        tag="test_results",
-    )
-    logger = logging.getLogger(__name__)
-
-    # for fast analysis
-    sum_positive = 0
-
-    if use_wandb:
+    def update_wandb(self):
+        """ """
         wandb.config.update(
             {
-                "model_name1": model_name1,
-                "seed1": seed1,
-                "model_name2": model_name2,
-                "seed2": seed2,
-                "fold_size": fold_size,
+                "model_name1": self.model_name1,
+                "seed1": self.seed1,
+                "model_name2": self.model_name2,
+                "seed2": self.seed2,
+                "fold_size": self.fold_size,
             }
         )
-    else:
-        logger.info(
-            f"Testing {model_name1} with seed {seed1} against {model_name2} with seed {seed2}. Fold size: {fold_size}"
+
+    def setup_logger(self, tag: str = "test_results"):
+        """ """
+        setup_logging(
+            self.model_name1,
+            self.seed1,
+            model_name2=self.model_name2,
+            seed2=self.seed2,
+            fold_size=self.fold_size,
+            epsilon=self.config["epsilon"],
+            tag=tag,
+        )
+        self.logger = logging.getLogger(__name__)
+
+    def kfold_test(self):
+        """ """
+
+        file_path = (
+            Path(self.directory)
+            / f"kfold_test_results_{self.fold_size}_epsilon_{config['epsilon']}.csv"
         )
 
-    # Check all folds available for the two runs
-    directory = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
-
-    file_path = (
-        Path(directory)
-        / f"kfold_test_results_{fold_size}_epsilon_{config['epsilon']}.csv"
-    )
-
-    if Path(file_path).exists() and not overwrite:
-        logger.info(f"Skipping test as {file_path} already exists.")
-
-    else:
-        folds = []
-
-        create_folds_from_evaluations(
-            model_name1,
-            seed1,
-            model_name2,
-            seed2,
-            metric=config["metric"]["metric"],
-            fold_size=fold_size,
-            overwrite=overwrite,
-        )
-
-        for file_name in os.listdir(directory):
-            match = re.search(pattern, file_name)
-            if match:
-                fold_number = int(match.group(1))
-                folds.append(fold_number)
-
-        folds.sort()
-
-        end = time.time()
-        logger.info(
-            f"We have {len(folds)} folds. The whole initialization took {round(end-start, 3)} seconds."
-        )
-
-        if use_wandb:
-            wandb.config.update({"total_num_folds": folds})
-
-        # Iterate over the folds and call test_daht
-        all_folds_data = pd.DataFrame()
-
-        for fold_num in folds:
-            logger.info(f"Now starting experiment for fold {fold_num}")
-            data, test_positive = davtt(
-                config,
-                train_cfg,
-                fold_num=fold_num,
-                model_name1=model_name1,
-                seed1=seed1,
-                model_name2=model_name2,
-                seed2=seed2,
-                use_wandb=use_wandb,
+        if Path(file_path).exists() and not self.overwrite:
+            self.logger.info(
+                f"Skipping test as results file {file_path} already exists."
             )
-            all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
-            if test_positive:
-                sum_positive += 1
 
-        all_folds_data.to_csv(file_path, index=False)
-        logger.info(f"Positive tests: {sum_positive}/{len(folds)}")
-
-    cleanup_files(directory, f"{metric}_scores_fold_*.json")
-
-    if config["analysis"]["calculate_distance"]:
-        logger.info(
-            f"Calculating actual distance over {config['analysis']['num_runs']} runs."
-        )
-
-        dist_path = Path(directory) / "distance_scores.csv"
-        if dist_path.exists():
-            logger.info(
-                f"Distance data already exists. Loading distance scores from {dist_path}."
-            )
-            dist_df = pd.read_csv(dist_path)
-            distance_box_plot(
-                dist_df,
-                model_name1,
-                seed1,
-                seed2,
-                model_name2,
-                metric=config["metric"]["metric"],
-            )
         else:
-            dist_df = analyze_and_plot_distance(
-                config, model_name1, seed1, model_name2, seed2
+            self.logger.info(
+                f"Running test for {self.model_name1}_{self.seed1} and {self.model_name2}_{self.seed2}."
             )
-            dist_df.to_csv(Path(directory) / "distance_scores.csv", index=False)
-        logger.info(
-            f"Average nn distance: {dist_df['NeuralNet'].mean()}, std: {dist_df['NeuralNet'].std()}"
-        )
-        logger.info(f"Wasserstein distance: {dist_df['Wasserstein'].mean()}")
+            self.logger.info(f"Saving results in folder: {self.directory}.")
 
-        if use_wandb:
+            # for fast analysis
+            sum_positive = 0
+            start = time.time()
+            folds = []
+
+            create_folds_from_evaluations(
+                self.model_name1,
+                self.seed1,
+                self.model_name2,
+                self.seed2,
+                metric=config["metric"]["metric"],
+                fold_size=self.fold_size,
+                overwrite=self.overwrite,
+            )
+
+            for file_name in os.listdir(self.directory):
+                match = re.search(self.pattern, file_name)
+                if match:
+                    fold_number = int(match.group(1))
+                    folds.append(fold_number)
+
+            folds.sort()
+
+            end = time.time()
+            self.logger.info(
+                f"We have {len(folds)} folds. The whole initialization took {round(end-start, 3)} seconds."
+            )
+
+            if self.use_wandb:
+                wandb.config.update({"total_num_folds": folds})
+
+            # Iterate over the folds and call test
+            all_folds_data = pd.DataFrame()
+
+            for fold_num in folds:
+                self.logger.info(f"Now starting experiment for fold {fold_num}.")
+                data, test_positive = self.davtt(fold_num)
+                all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
+                if test_positive:
+                    sum_positive += 1
+
+            all_folds_data.to_csv(file_path, index=False)
+            self.logger.info(
+                f"Positive tests: {sum_positive}/{len(folds)}, {round(sum_positive/len(folds)*100, 2)}%."
+            )
+
+        cleanup_files(self.directory, f"{self.metric}_scores_fold_*.json")
+
+    def davtt(self, fold_num: int):
+        """
+        Deep anytime-valid tolerance test
+
+        Args:
+            fold_num: int
+                The fold number to run the test on.
+        """
+
+        # Define network for betting score
+        # TODO: change this betting_net = initialize_from_config(config["net"])
+        betting_net = CMLP(
+            self.config["net"]["input_size"],
+            self.config["net"]["hidden_layer_size"],
+            1,
+            self.config["net"]["layer_norm"],
+            False,
+            0.4,
+            self.config["net"]["bias"],
+        )
+
+        trainer = OfflineTrainer(
+            self.train_cfg,
+            betting_net,
+            self.model_name1,
+            self.seed1,
+            self.model_name2,
+            self.seed2,
+            metric=self.config["metric"]["metric"],
+            use_wandb=self.use_wandb,
+            fold_num=fold_num,
+            epsilon=self.config["epsilon"],
+        )
+
+        return trainer.train()
+
+    def analyze_and_plot_distance(self):
+        """ """
+
+        if config["analysis"]["num_samples"] == 0:
+            train_num_samples = (
+                self.fold_size // self.train_cfg.batch_size
+            ) * self.train_cfg.batch_size - self.train_cfg.batch_size
+
+        else:
+            train_num_samples = config["analysis"]["num_samples"]
+
+        num_runs = self.config["analysis"]["num_runs"]
+
+        dist_path = (
+            Path(self.directory) / f"distance_scores_{train_num_samples}_{num_runs}.csv"
+        )
+        if dist_path.exists():
+            self.logger.info(
+                f"Skipping distance analysis as results file {dist_path} already exists."
+            )
+            distance_df = pd.read_csv(dist_path)
+        else:
+            self.logger.info(
+                f"Training neural net distance on {train_num_samples} samples for {num_runs} runs."
+            )
+            distance_df = get_distance_scores(
+                self.model_name1,
+                self.seed1,
+                self.seed2,
+                model_name2=self.model_name2,
+                metric=self.metric,
+                num_runs=num_runs,
+                net_cfg=self.config["net"],
+                train_cfg=self.train_cfg,
+                num_samples=train_num_samples,
+            )
+
+            distance_df.to_csv(dist_path, index=False)
+            self.logger.info(f"Distance analysis results saved to {dist_path}.")
+
+        self.logger.info(
+            f"Average nn distance: {distance_df['NeuralNet'].mean()}, std: {distance_df['NeuralNet'].std()}"
+        )
+        self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein'].mean()}")
+
+        if self.use_wandb:
             wandb.log(
                 {
-                    "average_nn_distance": dist_df["NeuralNet"].mean(),
-                    "std_nn_distance": dist_df["NeuralNet"].std(),
-                    "wasserstein_distance": dist_df["Wasserstein"].mean(),
+                    "average_nn_distance": distance_df["NeuralNet"].mean(),
+                    "std_nn_distance": distance_df["NeuralNet"].std(),
+                    "wasserstein_distance": distance_df["Wasserstein"].mean(),
                 }
             )
 
-    if use_wandb:
-        wandb.finish()
+        # Plot the results
+        distance_box_plot(
+            distance_df,
+            self.model_name1,
+            self.seed1,
+            self.seed2,
+            self.model_name2,
+            metric=self.metric,
+            num_samples=train_num_samples,
+        )
 
+    def run(
+        self,
+        model_name1=None,
+        seed1=None,
+        model_name2=None,
+        seed2=None,
+        fold_size=4000,
+        analyze_distance=True,
+    ):
+        """ """
+        self.model_name1 = (
+            model_name1 if model_name1 else self.config["tau1"]["model_id"]
+        )
+        self.seed1 = seed1 if seed1 else self.config["tau1"]["gen_seed"]
+        self.model_name2 = (
+            model_name2 if model_name2 else self.config["tau2"]["model_id"]
+        )
+        self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
+        self.fold_size = fold_size
 
-def analyze_and_plot_distance(config, model_name1, seed1, model_name2, seed2):
-    """ """
-    # Load the data
+        if self.use_wandb:
+            self.initialize_wandb()
+            self.update_wandb()
 
-    distance_df = get_distance_scores(
-        model_name1,
-        seed1,
-        seed2,
-        model_name2=model_name2,
-        metric=config["metric"]["metric"],
-        num_runs=config["analysis"]["num_runs"],
-        net_cfg=config["net"],
-        train_cfg=train_cfg,
-    )
+        self.setup_logger(
+            tag="test_results_and_analyze" if analyze_distance else "test_results"
+        )
 
-    # Plot the results
-    distance_box_plot(
-        distance_df,
-        model_name1,
-        seed1,
-        seed2,
-        model_name2,
-        metric=config["metric"]["metric"],
-    )
+        self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
 
-    return distance_df
+        self.kfold_test()
+
+        if analyze_distance:
+            self.analyze_and_plot_distance()
+
+        if self.use_wandb:
+            wandb.finish()
 
 
 def main():
@@ -406,6 +428,12 @@ def main():
         help="If this is set to true, then no tracking on wandb.",
     )
 
+    parser.add_argument(
+        "--no_analysis",
+        action="store_true",
+        help="If this is set to true, then no analysis after runnning the test.",
+    )
+
     args = parser.parse_args()
     config = load_config(args.config_path)
 
@@ -415,15 +443,18 @@ def main():
 
     elif args.exp == "test":
         train_cfg = TrainCfg()
-        kfold_test(
+        exp = Experiment(
             config,
             train_cfg,
+            use_wandb=not args.no_wandb,
+        )
+        exp.run(
             model_name1=args.model_name1,
             seed1=args.seed1,
             model_name2=args.model_name2,
             seed2=args.seed2,
-            use_wandb=not args.no_wandb,
             fold_size=args.fold_size,
+            analyze_distance=not args.no_analysis,
         )
 
 
@@ -435,15 +466,18 @@ if __name__ == "__main__":
     seed1 = "seed1000"
     seed2 = "seed1000"
 
-    kfold_test(
+    exp = Experiment(
         config,
         train_cfg,
+        use_wandb=False,
+    )
+    exp.run(
         model_name1=model_name1,
         seed1=seed1,
         model_name2=model_name2,
         seed2=seed2,
-        use_wandb=False,
         fold_size=4000,
+        analyze_distance=True,
     )
 
     # main()

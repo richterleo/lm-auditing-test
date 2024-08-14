@@ -1,0 +1,20 @@
+2024-08-14 21:39:53,334 - __main__ - INFO - Running test for Meta-Llama-3-8B-Instruct_seed1000 and Llama-3-8B-ckpt5_seed1000.
+2024-08-14 21:39:53,334 - __main__ - INFO - Saving results in test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000.
+2024-08-14 21:39:53,334 - __main__ - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.02.csv already exists.
+2024-08-14 21:45:00,762 - __main__ - INFO - Running test for Meta-Llama-3-8B-Instruct_seed1000 and Llama-3-8B-ckpt5_seed1000.
+2024-08-14 21:45:00,763 - __main__ - INFO - Saving results in test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000.
+2024-08-14 21:45:00,763 - __main__ - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.02.csv already exists.
+2024-08-14 21:45:00,763 - __main__ - INFO - Training neural net distance on 3900 samples.
+2024-08-14 21:47:26,831 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_100000.pdf. Skipping...
+2024-08-14 22:13:29,147 - __main__ - INFO - Running test for Meta-Llama-3-8B-Instruct_seed1000 and Llama-3-8B-ckpt5_seed1000.
+2024-08-14 22:13:29,147 - __main__ - INFO - Saving results in test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000.
+2024-08-14 22:13:29,147 - __main__ - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.02.csv already exists.
+2024-08-14 22:13:29,147 - __main__ - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-14 22:15:13,909 - __main__ - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-14 22:15:13,909 - __main__ - INFO - Average nn distance: 0.02243625223636627, std: 0.001460543533480041
+2024-08-14 22:15:13,909 - __main__ - INFO - Wasserstein distance: 0.01651439366747982
+2024-08-14 22:17:00,250 - __main__ - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.02.csv already exists.
+2024-08-14 22:17:00,250 - __main__ - INFO - Skipping distance analysis as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv already exists.
+2024-08-14 22:17:00,253 - __main__ - INFO - Average nn distance: 0.022436252236366243, std: 0.0014605435334800216
+2024-08-14 22:17:00,253 - __main__ - INFO - Wasserstein distance: 0.016514393667479803
+2024-08-14 22:17:00,253 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_3900.pdf. Skipping...

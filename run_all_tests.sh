@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 
 # running all tests
 for combination in "gemma-1.1-7b-it gemma-1.1-7b-it-ckpt" "Meta-Llama-3-8B-Instruct Llama-3-8B-ckpt" "Mistral-7B-Instruct-v0.2 Mistral-7B-Instruct-ckpt"; do
