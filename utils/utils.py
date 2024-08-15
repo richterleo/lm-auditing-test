@@ -28,7 +28,6 @@ for path in [submodule_path, models_path]:
     if path not in sys.path:
         sys.path.append(path)
 
-# setup_logging()
 logger = logging.getLogger(__name__)
 
 

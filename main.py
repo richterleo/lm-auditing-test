@@ -1,10 +1,16 @@
 import argparse
+import os
+import sys
 
 # imports from other scripts
 from arguments import TrainCfg
 from utils.utils import load_config
 
-from auditing_test.test import Experiment, eval_model
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing")
+)
+
+from auditing_test.test import AuditingTest, CalibratedAuditingTest, eval_model
 
 
 def main():
@@ -86,6 +92,12 @@ def main():
         help="If this is set to true, then no analysis after runnning the test.",
     )
 
+    parser.add_argument(
+        "--calibrate",
+        action="store_true",
+        help="If this is set to true, then we run the test with calibrated epsilon",
+    )
+
     args = parser.parse_args()
     config = load_config(args.config_path)
 
@@ -95,31 +107,45 @@ def main():
 
     elif args.exp == "test":
         train_cfg = TrainCfg()
-        exp = Experiment(
-            config,
-            train_cfg,
-            use_wandb=not args.no_wandb,
-        )
-        exp.run(
-            model_name1=args.model_name1,
-            seed1=args.seed1,
-            model_name2=args.model_name2,
-            seed2=args.seed2,
-            fold_size=args.fold_size,
-            analyze_distance=not args.no_analysis,
-        )
+        if args.calibrate:
+            exp = CalibratedAuditingTest(
+                config,
+                train_cfg,
+                use_wandb=not args.no_wandb,
+            )
+            exp.run(
+                model_name1=args.model_name1,
+                seed1=args.seed1,
+                model_name2=args.model_name2,
+                seed2=args.seed2,
+                fold_size=args.fold_size,
+            )
+        else:
+            exp = AuditingTest(
+                config,
+                train_cfg,
+                use_wandb=not args.no_wandb,
+            )
+            exp.run(
+                model_name1=args.model_name1,
+                seed1=args.seed1,
+                model_name2=args.model_name2,
+                seed2=args.seed2,
+                fold_size=args.fold_size,
+                analyze_distance=not args.no_analysis,
+            )
 
 
 if __name__ == "__main__":
     config = load_config("config.yml")
     train_cfg = TrainCfg()
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt5"
+    model_name2 = "Llama-3-8B-ckpt3"
     seed1 = "seed1000"
     seed2 = "seed1000"
-    fold_size = 6000
+    fold_size = 4000
 
-    exp = Experiment(
+    exp = CalibratedAuditingTest(
         config,
         train_cfg,
         use_wandb=False,
@@ -130,7 +156,6 @@ if __name__ == "__main__":
         model_name2=model_name2,
         seed2=seed2,
         fold_size=fold_size,
-        analyze_distance=True,
     )
 
     # main()

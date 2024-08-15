@@ -142,3 +142,249 @@
 2024-08-15 12:56:11,755 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed1000/perspective_scores_90000.json
 2024-08-15 12:56:11,770 - __main__ - INFO - Model Llama-3-8B-ckpt1_seed1000 took 483.529 seconds to evaluate.
 2024-08-15 12:56:11,771 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt1_seed2000 using metric perspective.
+2024-08-15 13:04:15,932 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_10000.json
+2024-08-15 13:04:15,934 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_20000.json
+2024-08-15 13:04:15,936 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_30000.json
+2024-08-15 13:04:15,938 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_40000.json
+2024-08-15 13:04:15,941 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_50000.json
+2024-08-15 13:04:15,944 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_60000.json
+2024-08-15 13:04:15,946 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_70000.json
+2024-08-15 13:04:15,949 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_80000.json
+2024-08-15 13:04:15,951 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed2000/perspective_scores_90000.json
+2024-08-15 13:04:15,966 - __main__ - INFO - Model Llama-3-8B-ckpt1_seed2000 took 484.195 seconds to evaluate.
+2024-08-15 13:04:15,967 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt1_seed3000 using metric perspective.
+2024-08-15 13:12:14,044 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_10000.json
+2024-08-15 13:12:14,047 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_20000.json
+2024-08-15 13:12:14,049 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_30000.json
+2024-08-15 13:12:14,052 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_40000.json
+2024-08-15 13:12:14,054 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_50000.json
+2024-08-15 13:12:14,057 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_60000.json
+2024-08-15 13:12:14,059 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_70000.json
+2024-08-15 13:12:14,062 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_80000.json
+2024-08-15 13:12:14,064 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed3000/perspective_scores_90000.json
+2024-08-15 13:12:14,080 - __main__ - INFO - Model Llama-3-8B-ckpt1_seed3000 took 478.113 seconds to evaluate.
+2024-08-15 13:12:14,081 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt1_seed4000 using metric perspective.
+2024-08-15 13:20:10,400 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_10000.json
+2024-08-15 13:20:10,402 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_20000.json
+2024-08-15 13:20:10,404 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_30000.json
+2024-08-15 13:20:10,407 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_40000.json
+2024-08-15 13:20:10,409 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_50000.json
+2024-08-15 13:20:10,412 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_60000.json
+2024-08-15 13:20:10,414 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_70000.json
+2024-08-15 13:20:10,417 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_80000.json
+2024-08-15 13:20:10,420 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed4000/perspective_scores_90000.json
+2024-08-15 13:20:10,435 - __main__ - INFO - Model Llama-3-8B-ckpt1_seed4000 took 476.354 seconds to evaluate.
+2024-08-15 13:20:10,436 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt1_seed5000 using metric perspective.
+2024-08-15 13:28:04,648 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_10000.json
+2024-08-15 13:28:04,651 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_20000.json
+2024-08-15 13:28:04,653 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_30000.json
+2024-08-15 13:28:04,655 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_40000.json
+2024-08-15 13:28:04,657 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_50000.json
+2024-08-15 13:28:04,660 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_60000.json
+2024-08-15 13:28:04,662 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_70000.json
+2024-08-15 13:28:04,665 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_80000.json
+2024-08-15 13:28:04,667 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed5000/perspective_scores_90000.json
+2024-08-15 13:28:04,682 - __main__ - INFO - Model Llama-3-8B-ckpt1_seed5000 took 474.246 seconds to evaluate.
+2024-08-15 13:28:04,683 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt1_seed7000 using metric perspective.
+2024-08-15 13:35:58,570 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_10000.json
+2024-08-15 13:35:58,573 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_20000.json
+2024-08-15 13:35:58,575 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_30000.json
+2024-08-15 13:35:58,578 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_40000.json
+2024-08-15 13:35:58,580 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_50000.json
+2024-08-15 13:35:58,583 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_60000.json
+2024-08-15 13:35:58,585 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_70000.json
+2024-08-15 13:35:58,588 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_80000.json
+2024-08-15 13:35:58,590 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt1_seed7000/perspective_scores_90000.json
+2024-08-15 13:35:58,616 - __main__ - INFO - Model Llama-3-8B-ckpt1_seed7000 took 473.933 seconds to evaluate.
+2024-08-15 13:35:58,616 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed1000 using metric perspective.
+2024-08-15 13:44:08,481 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_10000.json
+2024-08-15 13:44:08,483 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_20000.json
+2024-08-15 13:44:08,486 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_30000.json
+2024-08-15 13:44:08,489 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_40000.json
+2024-08-15 13:44:08,492 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_50000.json
+2024-08-15 13:44:08,495 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_60000.json
+2024-08-15 13:44:08,497 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_70000.json
+2024-08-15 13:44:08,500 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_80000.json
+2024-08-15 13:44:08,503 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed1000/perspective_scores_90000.json
+2024-08-15 13:44:08,521 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed1000 took 489.905 seconds to evaluate.
+2024-08-15 13:44:08,522 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed2000 using metric perspective.
+2024-08-15 13:52:09,470 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_10000.json
+2024-08-15 13:52:09,473 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_20000.json
+2024-08-15 13:52:09,475 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_30000.json
+2024-08-15 13:52:09,477 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_40000.json
+2024-08-15 13:52:09,479 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_50000.json
+2024-08-15 13:52:09,482 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_60000.json
+2024-08-15 13:52:09,484 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_70000.json
+2024-08-15 13:52:09,487 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_80000.json
+2024-08-15 13:52:09,489 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed2000/perspective_scores_90000.json
+2024-08-15 13:52:09,506 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed2000 took 480.984 seconds to evaluate.
+2024-08-15 13:52:09,507 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed3000 using metric perspective.
+2024-08-15 14:00:10,111 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_10000.json
+2024-08-15 14:00:10,113 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_20000.json
+2024-08-15 14:00:10,115 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_30000.json
+2024-08-15 14:00:10,117 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_40000.json
+2024-08-15 14:00:10,119 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_50000.json
+2024-08-15 14:00:10,122 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_60000.json
+2024-08-15 14:00:10,124 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_70000.json
+2024-08-15 14:00:10,126 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_80000.json
+2024-08-15 14:00:10,128 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed3000/perspective_scores_90000.json
+2024-08-15 14:00:10,144 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed3000 took 480.637 seconds to evaluate.
+2024-08-15 14:00:10,144 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed4000 using metric perspective.
+2024-08-15 14:08:09,422 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_10000.json
+2024-08-15 14:08:09,425 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_20000.json
+2024-08-15 14:08:09,427 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_30000.json
+2024-08-15 14:08:09,430 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_40000.json
+2024-08-15 14:08:09,432 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_50000.json
+2024-08-15 14:08:09,434 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_60000.json
+2024-08-15 14:08:09,437 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_70000.json
+2024-08-15 14:08:09,439 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_80000.json
+2024-08-15 14:08:09,442 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed4000/perspective_scores_90000.json
+2024-08-15 14:08:09,457 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed4000 took 479.312 seconds to evaluate.
+2024-08-15 14:08:09,457 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed5000 using metric perspective.
+2024-08-15 14:16:06,089 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_10000.json
+2024-08-15 14:16:06,092 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_20000.json
+2024-08-15 14:16:06,094 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_30000.json
+2024-08-15 14:16:06,096 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_40000.json
+2024-08-15 14:16:06,098 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_50000.json
+2024-08-15 14:16:06,100 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_60000.json
+2024-08-15 14:16:06,102 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_70000.json
+2024-08-15 14:16:06,104 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_80000.json
+2024-08-15 14:16:06,106 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed5000/perspective_scores_90000.json
+2024-08-15 14:16:06,121 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed5000 took 476.664 seconds to evaluate.
+2024-08-15 14:16:06,122 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed6000 using metric perspective.
+2024-08-15 14:24:01,758 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_10000.json
+2024-08-15 14:24:01,761 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_20000.json
+2024-08-15 14:24:01,763 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_30000.json
+2024-08-15 14:24:01,765 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_40000.json
+2024-08-15 14:24:01,768 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_50000.json
+2024-08-15 14:24:01,770 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_60000.json
+2024-08-15 14:24:01,773 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_70000.json
+2024-08-15 14:24:01,775 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_80000.json
+2024-08-15 14:24:01,778 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed6000/perspective_scores_90000.json
+2024-08-15 14:24:01,793 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed6000 took 475.671 seconds to evaluate.
+2024-08-15 14:24:01,794 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt2_seed7000 using metric perspective.
+2024-08-15 14:31:57,845 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_10000.json
+2024-08-15 14:31:57,847 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_20000.json
+2024-08-15 14:31:57,849 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_30000.json
+2024-08-15 14:31:57,851 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_40000.json
+2024-08-15 14:31:57,854 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_50000.json
+2024-08-15 14:31:57,856 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_60000.json
+2024-08-15 14:31:57,858 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_70000.json
+2024-08-15 14:31:57,860 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_80000.json
+2024-08-15 14:31:57,863 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt2_seed7000/perspective_scores_90000.json
+2024-08-15 14:31:57,879 - __main__ - INFO - Model Llama-3-8B-ckpt2_seed7000 took 476.085 seconds to evaluate.
+2024-08-15 14:31:57,879 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed1000 using metric perspective.
+2024-08-15 14:39:52,305 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_10000.json
+2024-08-15 14:39:52,307 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_20000.json
+2024-08-15 14:39:52,309 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_30000.json
+2024-08-15 14:39:52,311 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_40000.json
+2024-08-15 14:39:52,314 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_50000.json
+2024-08-15 14:39:52,316 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_60000.json
+2024-08-15 14:39:52,318 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_70000.json
+2024-08-15 14:39:52,321 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_80000.json
+2024-08-15 14:39:52,323 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed1000/perspective_scores_90000.json
+2024-08-15 14:39:52,339 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed1000 took 474.46 seconds to evaluate.
+2024-08-15 14:39:52,340 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed2000 using metric perspective.
+2024-08-15 14:47:45,333 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_10000.json
+2024-08-15 14:47:45,335 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_20000.json
+2024-08-15 14:47:45,337 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_30000.json
+2024-08-15 14:47:45,339 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_40000.json
+2024-08-15 14:47:45,341 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_50000.json
+2024-08-15 14:47:45,343 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_60000.json
+2024-08-15 14:47:45,345 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_70000.json
+2024-08-15 14:47:45,347 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_80000.json
+2024-08-15 14:47:45,349 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed2000/perspective_scores_90000.json
+2024-08-15 14:47:45,364 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed2000 took 473.024 seconds to evaluate.
+2024-08-15 14:47:45,365 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed3000 using metric perspective.
+2024-08-15 14:55:38,509 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_10000.json
+2024-08-15 14:55:38,511 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_20000.json
+2024-08-15 14:55:38,513 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_30000.json
+2024-08-15 14:55:38,515 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_40000.json
+2024-08-15 14:55:38,517 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_50000.json
+2024-08-15 14:55:38,519 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_60000.json
+2024-08-15 14:55:38,521 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_70000.json
+2024-08-15 14:55:38,523 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_80000.json
+2024-08-15 14:55:38,526 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed3000/perspective_scores_90000.json
+2024-08-15 14:55:38,540 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed3000 took 473.175 seconds to evaluate.
+2024-08-15 14:55:38,541 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed4000 using metric perspective.
+2024-08-15 15:03:31,094 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_10000.json
+2024-08-15 15:03:31,096 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_20000.json
+2024-08-15 15:03:31,098 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_30000.json
+2024-08-15 15:03:31,100 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_40000.json
+2024-08-15 15:03:31,102 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_50000.json
+2024-08-15 15:03:31,104 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_60000.json
+2024-08-15 15:03:31,107 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_70000.json
+2024-08-15 15:03:31,109 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_80000.json
+2024-08-15 15:03:31,111 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed4000/perspective_scores_90000.json
+2024-08-15 15:03:31,126 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed4000 took 472.586 seconds to evaluate.
+2024-08-15 15:03:31,127 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed5000 using metric perspective.
+2024-08-15 15:11:24,612 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_10000.json
+2024-08-15 15:11:24,615 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_20000.json
+2024-08-15 15:11:24,618 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_30000.json
+2024-08-15 15:11:24,620 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_40000.json
+2024-08-15 15:11:24,623 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_50000.json
+2024-08-15 15:11:24,625 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_60000.json
+2024-08-15 15:11:24,628 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_70000.json
+2024-08-15 15:11:24,631 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_80000.json
+2024-08-15 15:11:24,634 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed5000/perspective_scores_90000.json
+2024-08-15 15:11:24,649 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed5000 took 473.522 seconds to evaluate.
+2024-08-15 15:11:24,650 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed6000 using metric perspective.
+2024-08-15 15:19:19,591 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_10000.json
+2024-08-15 15:19:19,593 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_20000.json
+2024-08-15 15:19:19,595 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_30000.json
+2024-08-15 15:19:19,597 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_40000.json
+2024-08-15 15:19:19,599 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_50000.json
+2024-08-15 15:19:19,601 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_60000.json
+2024-08-15 15:19:19,603 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_70000.json
+2024-08-15 15:19:19,605 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_80000.json
+2024-08-15 15:19:19,608 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed6000/perspective_scores_90000.json
+2024-08-15 15:19:19,623 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed6000 took 474.973 seconds to evaluate.
+2024-08-15 15:19:19,624 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt3_seed7000 using metric perspective.
+2024-08-15 15:27:56,064 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_10000.json
+2024-08-15 15:27:56,066 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_20000.json
+2024-08-15 15:27:56,068 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_30000.json
+2024-08-15 15:27:56,070 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_40000.json
+2024-08-15 15:27:56,072 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_50000.json
+2024-08-15 15:27:56,074 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_60000.json
+2024-08-15 15:27:56,076 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_70000.json
+2024-08-15 15:27:56,078 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_80000.json
+2024-08-15 15:27:56,080 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt3_seed7000/perspective_scores_90000.json
+2024-08-15 15:27:56,095 - __main__ - INFO - Model Llama-3-8B-ckpt3_seed7000 took 516.471 seconds to evaluate.
+2024-08-15 15:27:56,096 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt4_seed1000 using metric perspective.
+2024-08-15 15:27:56,096 - __main__ - INFO - Model Llama-3-8B-ckpt4_seed1000 took 0.0 seconds to evaluate.
+2024-08-15 15:27:56,096 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt4_seed7000 using metric perspective.
+2024-08-15 15:35:53,466 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_10000.json
+2024-08-15 15:35:53,468 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_20000.json
+2024-08-15 15:35:53,470 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_30000.json
+2024-08-15 15:35:53,472 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_40000.json
+2024-08-15 15:35:53,475 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_50000.json
+2024-08-15 15:35:53,477 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_60000.json
+2024-08-15 15:35:53,479 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_70000.json
+2024-08-15 15:35:53,481 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_80000.json
+2024-08-15 15:35:53,483 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt4_seed7000/perspective_scores_90000.json
+2024-08-15 15:35:53,498 - __main__ - INFO - Model Llama-3-8B-ckpt4_seed7000 took 477.402 seconds to evaluate.
+2024-08-15 15:35:53,499 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt5_seed1000 using metric perspective.
+2024-08-15 15:35:53,499 - __main__ - INFO - Model Llama-3-8B-ckpt5_seed1000 took 0.0 seconds to evaluate.
+2024-08-15 15:35:53,499 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt5_seed6000 using metric perspective.
+2024-08-15 15:43:45,523 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_10000.json
+2024-08-15 15:43:45,525 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_20000.json
+2024-08-15 15:43:45,527 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_30000.json
+2024-08-15 15:43:45,529 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_40000.json
+2024-08-15 15:43:45,531 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_50000.json
+2024-08-15 15:43:45,533 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_60000.json
+2024-08-15 15:43:45,535 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_70000.json
+2024-08-15 15:43:45,538 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_80000.json
+2024-08-15 15:43:45,540 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt5_seed6000/perspective_scores_90000.json
+2024-08-15 15:43:45,555 - __main__ - INFO - Model Llama-3-8B-ckpt5_seed6000 took 472.056 seconds to evaluate.
+2024-08-15 15:43:45,555 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt6_seed1000 using metric perspective.
+2024-08-15 15:51:47,827 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_10000.json
+2024-08-15 15:51:47,829 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_20000.json
+2024-08-15 15:51:47,831 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_30000.json
+2024-08-15 15:51:47,833 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_40000.json
+2024-08-15 15:51:47,835 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_50000.json
+2024-08-15 15:51:47,837 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_60000.json
+2024-08-15 15:51:47,839 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_70000.json
+2024-08-15 15:51:47,842 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_80000.json
+2024-08-15 15:51:47,844 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt6_seed1000/perspective_scores_90000.json
+2024-08-15 15:51:47,859 - __main__ - INFO - Model Llama-3-8B-ckpt6_seed1000 took 482.304 seconds to evaluate.
+2024-08-15 15:51:47,860 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt6_seed7000 using metric perspective.

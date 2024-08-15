@@ -20,12 +20,6 @@ from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 from tqdm import tqdm
 
-# Add the parent directory of utils to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# logging
-from logging_config import setup_logging
-
 # own utilities
 from auditing_test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
 
@@ -33,11 +27,15 @@ from auditing_test.dataloader import ScoresDataset, collate_fn, load_into_scores
 from utils.generate_and_evaluate import eval_on_metric
 from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
 
-deep_anytime_testing = importlib.import_module("deep-anytime-testing")
-train = importlib.import_module("deep-anytime-testing.trainer.trainer")
-Trainer = getattr(train, "Trainer")
+# deep_anytime_testing = importlib.import_module("deep-anytime-testing")
+# train = importlib.import_module("deep-anytime-testing.trainer.trainer")
+# Trainer = getattr(train, "Trainer")
 
-# setup_logging()
+orig_models = importlib.import_module(
+    "deep-anytime-testing.trainer.trainer", package="deep-anytime-testing"
+)
+Trainer = getattr(orig_models, "Trainer")
+
 logger = logging.getLogger(__name__)
 
 

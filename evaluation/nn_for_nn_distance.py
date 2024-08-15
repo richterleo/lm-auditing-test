@@ -1,23 +1,16 @@
 import importlib
-import os
 import torch
 import torch.nn as nn
-import sys
-
-# Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
-)
-models_path = os.path.join(submodule_path, "models")
-
-for path in [submodule_path, models_path]:
-    if path not in sys.path:
-        sys.path.append(path)
 
 orig_models = importlib.import_module(
     "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
 )
 MLP = getattr(orig_models, "MLP")
+
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# deep_anytime_testing = importlib.import_module("deep-anytime-testing")
+# models = importlib.import_module("deep-anytime-testing.models.mlp")
+# MLP = getattr(models, "MLP")
 
 
 class CMLP(MLP):

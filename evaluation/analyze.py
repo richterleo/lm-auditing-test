@@ -29,7 +29,6 @@ pd.set_option("display.max_rows", 1000)
 pd.set_option("display.max_columns", 1000)
 pd.set_option("display.width", 1000)
 
-# setup_logging()
 logger = logging.getLogger(__name__)
 
 

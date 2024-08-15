@@ -1,4 +1,5 @@
 import os
+import importlib
 import logging
 import re
 import time
@@ -11,25 +12,6 @@ from typing import Optional, Dict, List
 
 # imports from other scripts
 from arguments import TrainCfg
-from utils.utils import (
-    load_config,
-    create_run_string,
-    initialize_from_config,
-    time_block,
-)
-from utils.generate_and_evaluate import generate_and_evaluate
-
-# Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
-)
-models_path = os.path.join(submodule_path, "models")
-
-for path in [submodule_path, models_path]:
-    if path not in sys.path:
-        sys.path.append(path)
-
-# logging
 from logging_config import setup_logging
 
 from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
@@ -38,6 +20,16 @@ from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_f
 from evaluation.nn_for_nn_distance import CMLP
 from evaluation.analyze import get_distance_scores
 from evaluation.plot import distance_box_plot
+
+from utils.generate_and_evaluate import generate_and_evaluate
+from utils.utils import (
+    create_run_string,
+)
+
+# Add the parent directory of utils to sys.path
+deep_anytime_testing = importlib.import_module("deep-anytime-testing")
+train = importlib.import_module("deep-anytime-testing.trainer.trainer")
+Trainer = getattr(train, "Trainer")
 
 
 class Experiment:
@@ -147,10 +139,10 @@ class AuditingTest(Experiment):
         setup_logging(
             self.model_name1,
             self.seed1,
-            model_name2=self.model_name2,
-            seed2=self.seed2,
-            fold_size=self.fold_size,
-            epsilon=self.epsilon,
+            self.model_name2,
+            self.seed2,
+            self.fold_size,
+            self.epsilon,
             tag=tag,
         )
         self.logger = logging.getLogger(__name__)
@@ -258,21 +250,23 @@ class AuditingTest(Experiment):
 
         cleanup_files(self.directory, f"{self.metric}_scores_fold_*.json")
 
+        return sum_positive / len(folds)
+
     def analyze_and_plot_distance(self):
         """ """
 
         if self.config["analysis"]["num_samples"] == 0:
-            train_num_samples = (
+            num_train_samples = (
                 self.fold_size // self.train_cfg.batch_size
             ) * self.train_cfg.batch_size - self.train_cfg.batch_size
 
         else:
-            train_num_samples = self.config["analysis"]["num_samples"]
+            num_train_samples = self.config["analysis"]["num_samples"]
 
         num_runs = self.config["analysis"]["num_runs"]
 
         dist_path = (
-            Path(self.directory) / f"distance_scores_{train_num_samples}_{num_runs}.csv"
+            Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}.csv"
         )
         if dist_path.exists():
             self.logger.info(
@@ -281,7 +275,7 @@ class AuditingTest(Experiment):
             distance_df = pd.read_csv(dist_path)
         else:
             self.logger.info(
-                f"Training neural net distance on {train_num_samples} samples for {num_runs} runs."
+                f"Training neural net distance on {num_train_samples} samples for {num_runs} runs."
             )
             distance_df = get_distance_scores(
                 self.model_name1,
@@ -292,7 +286,7 @@ class AuditingTest(Experiment):
                 num_runs=num_runs,
                 net_cfg=self.config["net"],
                 train_cfg=self.train_cfg,
-                num_samples=train_num_samples,
+                num_samples=num_train_samples,
             )
 
             distance_df.to_csv(dist_path, index=False)
@@ -320,7 +314,7 @@ class AuditingTest(Experiment):
             self.seed2,
             self.model_name2,
             metric=self.metric,
-            num_samples=train_num_samples,
+            num_samples=num_train_samples,
         )
 
     def run(
@@ -347,19 +341,164 @@ class AuditingTest(Experiment):
             self.initialize_wandb()
             self.update_wandb()
 
-        self.setup_logger(
-            tag="test_results_and_analyze" if analyze_distance else "test_results"
-        )
+        if not self.logger:
+            self.setup_logger(
+                tag="test_results_and_analyze" if analyze_distance else "test_results"
+            )
+        if not self.directory:
+            self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
 
-        self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
-
-        self.kfold_davtt()
+        power = self.kfold_davtt()
 
         if analyze_distance:
             self.analyze_and_plot_distance()
 
         if self.use_wandb:
             wandb.finish()
+
+        return power
+
+
+class CalibratedAuditingTest(AuditingTest):
+    def __init__(
+        self,
+        config: Dict,
+        train_cfg: TrainCfg,
+        overwrite: Optional[bool] = False,
+        use_wandb: Optional[bool] = None,
+        metric: Optional[bool] = None,
+        output_dir: str = "test_outputs",
+        fold_pattern: str = r"_fold_(\d+)\.json$",  # TODO: maybe class attribute?
+        num_samples: Optional[int] = 0,
+        multiples_of_epsilon: int = 2,
+    ):
+        super().__init__(
+            config,
+            train_cfg,
+            overwrite=overwrite,
+            use_wandb=use_wandb,
+            metric=metric,
+            output_dir=output_dir,
+            fold_pattern=fold_pattern,
+        )
+
+        self.num_samples = (
+            num_samples if num_samples else config["analysis"]["num_samples"]
+        )
+        self.power_dict = {}
+        self.multiples_of_epsilon = multiples_of_epsilon
+
+        self.num_train_samples = None
+        self.num_runs = self.config["analysis"]["num_runs"]
+
+    def setup_logger(self, tag: str = "test_results"):
+        """ """
+        setup_logging(
+            self.model_name1,
+            self.seed1,
+            self.model_name2,
+            self.seed2,
+            self.fold_size,  # removed epsilon
+            tag=tag,
+        )
+        self.logger = logging.getLogger(__name__)
+
+    def calibrate_before_run(self):
+        """ """
+
+        dist_path = (
+            Path(self.directory)
+            / f"distance_scores_{self.num_train_samples}_{self.num_runs}.csv"
+        )
+        if dist_path.exists():
+            self.logger.info(
+                f"Skipping distance analysis as results file {dist_path} already exists."
+            )
+            distance_df = pd.read_csv(dist_path)
+        else:
+            self.logger.info(
+                f"Training neural net distance on {self.num_train_samples} samples for {self.num_runs} runs."
+            )
+            distance_df = get_distance_scores(
+                self.model_name1,
+                self.seed1,
+                self.seed2,
+                model_name2=self.model_name2,
+                metric=self.metric,
+                num_runs=self.num_runs,
+                net_cfg=self.config["net"],
+                train_cfg=self.train_cfg,
+                num_samples=self.num_train_samples,
+            )
+
+            distance_df.to_csv(dist_path, index=False)
+            self.logger.info(f"Distance analysis results saved to {dist_path}.")
+
+        nn_mean = distance_df["NeuralNet"].mean()
+        nn_std = distance_df["NeuralNet"].std()
+
+        return [
+            nn_mean + nn_std * i
+            for i in range(-self.multiples_of_epsilon, self.multiples_of_epsilon + 1)
+        ]
+
+    def run(
+        self, model_name1=None, seed1=None, model_name2=None, seed2=None, fold_size=4000
+    ):
+        """ """
+
+        self.model_name1 = (
+            model_name1 if model_name1 else self.config["tau1"]["model_id"]
+        )
+        self.seed1 = seed1 if seed1 else self.config["tau1"]["gen_seed"]
+        self.model_name2 = (
+            model_name2 if model_name2 else self.config["tau2"]["model_id"]
+        )
+        self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
+        self.fold_size = fold_size
+
+        self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+
+        if self.config["analysis"]["num_samples"] == 0:
+            self.num_train_samples = (
+                fold_size // self.train_cfg.batch_size
+            ) * self.train_cfg.batch_size - self.train_cfg.batch_size
+
+        else:
+            self.num_train_samples = self.config["analysis"]["num_samples"]
+
+        # set up logger
+        self.setup_logger(tag="calibrated_test_results")
+
+        epsilon_path = (
+            Path(self.directory)
+            / f"power_over_epsilon_{self.num_train_samples}_{self.num_runs}_{self.multiples_of_epsilon}.csv"
+        )
+
+        if epsilon_path.exists():
+            self.logger.info(
+                f"Calibrated testing results already exist in {epsilon_path}."
+            )
+
+        else:
+            epsilons = self.calibrate_before_run()
+            power_dict = {}
+
+            for epsilon in epsilons:
+                self.epsilon = epsilon
+                self.logger.info(f"Running test for epsilon: {epsilon}.")
+                power_dict[epsilon] = super().run(
+                    model_name1=model_name1,
+                    seed1=seed1,
+                    model_name2=model_name2,
+                    seed2=seed2,
+                    fold_size=fold_size,
+                    analyze_distance=False,
+                )
+
+            power_df = pd.DataFrame(power_dict.items(), columns=["epsilon", "power"])
+            power_df.to_csv(epsilon_path, index=False)
+            self.logger.info(f"Calibrated testing results saved to {epsilon_path}.")
 
 
 def eval_model(
