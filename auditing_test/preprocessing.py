@@ -251,6 +251,8 @@ def evaluate_all_models(
     for model_dir in tqdm(os.listdir(gen_dir)):
         start = time.time()
 
+        logger.info(f"Start evaluating model {model_dir} using metric {metric}.")
+
         try:
             evaluate_single_model(
                 model_dir=model_dir,
@@ -541,24 +543,7 @@ def create_folds_from_evaluations(
 
 
 if __name__ == "__main__":
-    # Put json file with generations in folder model_outputs/{model_name}_{seed}
+    setup_logging(log_file="evaluate_all_models.log")
+    logger = logging.getLogger(__name__)
 
-    model_name = "Meta-Llama-3-8B-Instruct"
-    seed = "seed1000"
-    metric = "perspective"
-
-    setup_logging(
-        model_name,
-        seed,
-        metric=metric,
-        tag="evaluation",
-    )
-
-    # evaluate_all_models(metric="perspective", overwrite=False)
-    evaluate_single_model(
-        model_name=model_name,
-        seed=seed,
-        metric=metric,
-        overwrite=False,
-        use_wandb=False,
-    )
+    evaluate_all_models(metric="perspective", overwrite=False)

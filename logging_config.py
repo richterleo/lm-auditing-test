@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 def setup_logging(
-    model_name1,
-    seed1,
+    model_name1: Optional[str] = None,
+    seed1: Optional[str] = None,
     model_name2: Optional[str] = None,
     seed2: Optional[str] = None,
     fold_size: Optional[int] = None,
