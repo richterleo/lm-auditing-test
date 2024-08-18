@@ -7001,3 +7001,4 @@
 2024-08-15 19:55:05,810 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt3_seed1000/perspective_scores_fold_18.json
 2024-08-15 19:55:05,811 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt3_seed1000/perspective_scores_fold_22.json
 2024-08-15 19:55:05,812 - auditing_test.test - INFO - Calibrated testing results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt3_seed1000/power_over_epsilon_3900_10_3.csv.
+2024-08-18 15:46:18,196 - auditing_test.test - INFO - Calibrated testing results already exist in test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt3_seed1000/power_over_epsilon_3900_10_3.csv.
