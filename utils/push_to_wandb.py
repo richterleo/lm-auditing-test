@@ -1,6 +1,7 @@
 import wandb
 
-from utils.utils import create_run_string
+# from utils.utils import create_run_string
+from utils import create_run_string
 
 wandb.init(
     project="toxicity_test",
