@@ -9,6 +9,6 @@ wandb.init(
     tags=["all_data"],
 )
 
-file_name = "model_outputs_1306.zip"
+file_name = "model_scores.tar.gz"
 wandb.save(file_name)
 wandb.finish()

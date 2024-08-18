@@ -20,3 +20,4 @@ closeness_testing
 __MACOSX
 artifacts
 __pycache__
+model_scores.tar.gz

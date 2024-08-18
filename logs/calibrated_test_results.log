@@ -1,4 +1,0 @@
-2024-08-15 15:43:06,414 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
-2024-08-15 15:52:29,302 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
-2024-08-15 15:52:29,436 - evaluation.analyze - ERROR - File for model Llama-3-8B-ckpt does not exist yet
-2024-08-15 15:53:30,646 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.

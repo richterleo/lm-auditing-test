@@ -145,11 +145,7 @@ if __name__ == "__main__":
     seed2 = "seed1000"
     fold_size = 4000
 
-    exp = CalibratedAuditingTest(
-        config,
-        train_cfg,
-        use_wandb=False,
-    )
+    exp = CalibratedAuditingTest(config, train_cfg, use_wandb=False, bias=0.005)
     exp.run(
         model_name1=model_name1,
         seed1=seed1,

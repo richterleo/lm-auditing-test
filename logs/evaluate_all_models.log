@@ -410,3 +410,224 @@
 2024-08-15 16:07:34,691 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed1000/perspective_scores_90000.json
 2024-08-15 16:07:34,705 - __main__ - INFO - Model Llama-3-8B-ckpt7_seed1000 took 474.262 seconds to evaluate.
 2024-08-15 16:07:34,706 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt7_seed6000 using metric perspective.
+2024-08-15 16:15:28,985 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_10000.json
+2024-08-15 16:15:28,988 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_20000.json
+2024-08-15 16:15:28,990 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_30000.json
+2024-08-15 16:15:28,992 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_40000.json
+2024-08-15 16:15:28,995 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_50000.json
+2024-08-15 16:15:28,998 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_60000.json
+2024-08-15 16:15:29,002 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_70000.json
+2024-08-15 16:15:29,005 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_80000.json
+2024-08-15 16:15:29,008 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt7_seed6000/perspective_scores_90000.json
+2024-08-15 16:15:29,027 - __main__ - INFO - Model Llama-3-8B-ckpt7_seed6000 took 474.321 seconds to evaluate.
+2024-08-15 16:15:29,027 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt8_seed1000 using metric perspective.
+2024-08-15 16:23:22,088 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_10000.json
+2024-08-15 16:23:22,090 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_20000.json
+2024-08-15 16:23:22,092 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_30000.json
+2024-08-15 16:23:22,094 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_40000.json
+2024-08-15 16:23:22,097 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_50000.json
+2024-08-15 16:23:22,100 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_60000.json
+2024-08-15 16:23:22,102 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_70000.json
+2024-08-15 16:23:22,104 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_80000.json
+2024-08-15 16:23:22,107 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed1000/perspective_scores_90000.json
+2024-08-15 16:23:22,123 - __main__ - INFO - Model Llama-3-8B-ckpt8_seed1000 took 473.096 seconds to evaluate.
+2024-08-15 16:23:22,123 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt8_seed7000 using metric perspective.
+2024-08-15 16:31:14,468 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_10000.json
+2024-08-15 16:31:14,470 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_20000.json
+2024-08-15 16:31:14,473 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_30000.json
+2024-08-15 16:31:14,475 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_40000.json
+2024-08-15 16:31:14,477 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_50000.json
+2024-08-15 16:31:14,479 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_60000.json
+2024-08-15 16:31:14,481 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_70000.json
+2024-08-15 16:31:14,483 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_80000.json
+2024-08-15 16:31:14,485 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt8_seed7000/perspective_scores_90000.json
+2024-08-15 16:31:14,500 - __main__ - INFO - Model Llama-3-8B-ckpt8_seed7000 took 472.376 seconds to evaluate.
+2024-08-15 16:31:14,500 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt9_seed1000 using metric perspective.
+2024-08-15 16:39:10,756 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_10000.json
+2024-08-15 16:39:10,758 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_20000.json
+2024-08-15 16:39:10,760 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_30000.json
+2024-08-15 16:39:10,762 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_40000.json
+2024-08-15 16:39:10,764 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_50000.json
+2024-08-15 16:39:10,766 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_60000.json
+2024-08-15 16:39:10,768 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_70000.json
+2024-08-15 16:39:10,770 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_80000.json
+2024-08-15 16:39:10,772 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed1000/perspective_scores_90000.json
+2024-08-15 16:39:10,786 - __main__ - INFO - Model Llama-3-8B-ckpt9_seed1000 took 476.286 seconds to evaluate.
+2024-08-15 16:39:10,787 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt9_seed7000 using metric perspective.
+2024-08-15 16:47:11,605 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_10000.json
+2024-08-15 16:47:11,607 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_20000.json
+2024-08-15 16:47:11,609 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_30000.json
+2024-08-15 16:47:11,611 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_40000.json
+2024-08-15 16:47:11,613 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_50000.json
+2024-08-15 16:47:11,615 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_60000.json
+2024-08-15 16:47:11,617 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_70000.json
+2024-08-15 16:47:11,619 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_80000.json
+2024-08-15 16:47:11,621 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt9_seed7000/perspective_scores_90000.json
+2024-08-15 16:47:11,636 - __main__ - INFO - Model Llama-3-8B-ckpt9_seed7000 took 480.849 seconds to evaluate.
+2024-08-15 16:47:11,637 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt10_seed1000 using metric perspective.
+2024-08-15 16:55:06,558 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_10000.json
+2024-08-15 16:55:06,560 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_20000.json
+2024-08-15 16:55:06,562 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_30000.json
+2024-08-15 16:55:06,564 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_40000.json
+2024-08-15 16:55:06,566 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_50000.json
+2024-08-15 16:55:06,568 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_60000.json
+2024-08-15 16:55:06,570 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_70000.json
+2024-08-15 16:55:06,572 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_80000.json
+2024-08-15 16:55:06,574 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_90000.json
+2024-08-15 16:55:06,589 - __main__ - INFO - Model Llama-3-8B-ckpt10_seed1000 took 474.952 seconds to evaluate.
+2024-08-15 16:55:06,590 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt10_seed5000 using metric perspective.
+2024-08-15 17:03:02,048 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_10000.json
+2024-08-15 17:03:02,051 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_20000.json
+2024-08-15 17:03:02,052 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_30000.json
+2024-08-15 17:03:02,055 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_40000.json
+2024-08-15 17:03:02,057 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_50000.json
+2024-08-15 17:03:02,059 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_60000.json
+2024-08-15 17:03:02,061 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_70000.json
+2024-08-15 17:03:02,063 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_80000.json
+2024-08-15 17:03:02,066 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed5000/perspective_scores_90000.json
+2024-08-15 17:03:02,081 - __main__ - INFO - Model Llama-3-8B-ckpt10_seed5000 took 475.491 seconds to evaluate.
+2024-08-15 17:03:02,082 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-08-15 17:03:02,082 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct_seed1000 took 0.0 seconds to evaluate.
+2024-08-15 17:03:02,082 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct_seed2000 using metric perspective.
+2024-08-15 17:10:56,876 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_10000.json
+2024-08-15 17:10:56,879 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_20000.json
+2024-08-15 17:10:56,881 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_30000.json
+2024-08-15 17:10:56,883 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_40000.json
+2024-08-15 17:10:56,886 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_50000.json
+2024-08-15 17:10:56,889 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_60000.json
+2024-08-15 17:10:56,891 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_70000.json
+2024-08-15 17:10:56,894 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_80000.json
+2024-08-15 17:10:56,896 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct_seed2000/perspective_scores_90000.json
+2024-08-15 17:10:56,912 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct_seed2000 took 474.83 seconds to evaluate.
+2024-08-15 17:10:56,912 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt1_seed1000 using metric perspective.
+2024-08-15 17:18:54,022 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_10000.json
+2024-08-15 17:18:54,028 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_20000.json
+2024-08-15 17:18:54,034 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_30000.json
+2024-08-15 17:18:54,041 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_40000.json
+2024-08-15 17:18:54,047 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_50000.json
+2024-08-15 17:18:54,053 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_60000.json
+2024-08-15 17:18:54,060 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_70000.json
+2024-08-15 17:18:54,065 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_80000.json
+2024-08-15 17:18:54,073 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt1_seed1000/perspective_scores_90000.json
+2024-08-15 17:18:54,099 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt1_seed1000 took 477.187 seconds to evaluate.
+2024-08-15 17:18:54,101 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt2_seed1000 using metric perspective.
+2024-08-15 17:26:54,977 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_10000.json
+2024-08-15 17:26:54,980 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_20000.json
+2024-08-15 17:26:54,983 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_30000.json
+2024-08-15 17:26:54,986 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_40000.json
+2024-08-15 17:26:54,990 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_50000.json
+2024-08-15 17:26:54,993 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_60000.json
+2024-08-15 17:26:54,996 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_70000.json
+2024-08-15 17:26:55,000 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_80000.json
+2024-08-15 17:26:55,003 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt2_seed1000/perspective_scores_90000.json
+2024-08-15 17:26:55,024 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt2_seed1000 took 480.923 seconds to evaluate.
+2024-08-15 17:26:55,025 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt3_seed1000 using metric perspective.
+2024-08-15 17:34:50,601 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_10000.json
+2024-08-15 17:34:50,604 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_20000.json
+2024-08-15 17:34:50,607 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_30000.json
+2024-08-15 17:34:50,610 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_40000.json
+2024-08-15 17:34:50,613 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_50000.json
+2024-08-15 17:34:50,617 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_60000.json
+2024-08-15 17:34:50,620 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_70000.json
+2024-08-15 17:34:50,623 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_80000.json
+2024-08-15 17:34:50,627 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt3_seed1000/perspective_scores_90000.json
+2024-08-15 17:34:50,653 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt3_seed1000 took 475.628 seconds to evaluate.
+2024-08-15 17:34:50,654 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt4_seed1000 using metric perspective.
+2024-08-15 17:42:47,251 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_10000.json
+2024-08-15 17:42:47,254 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_20000.json
+2024-08-15 17:42:47,257 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_30000.json
+2024-08-15 17:42:47,261 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_40000.json
+2024-08-15 17:42:47,264 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_50000.json
+2024-08-15 17:42:47,268 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_60000.json
+2024-08-15 17:42:47,271 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_70000.json
+2024-08-15 17:42:47,275 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_80000.json
+2024-08-15 17:42:47,278 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt4_seed1000/perspective_scores_90000.json
+2024-08-15 17:42:47,299 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt4_seed1000 took 476.645 seconds to evaluate.
+2024-08-15 17:42:47,301 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt5_seed1000 using metric perspective.
+2024-08-15 17:50:49,380 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_10000.json
+2024-08-15 17:50:49,383 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_20000.json
+2024-08-15 17:50:49,387 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_30000.json
+2024-08-15 17:50:49,391 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_40000.json
+2024-08-15 17:50:49,394 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_50000.json
+2024-08-15 17:50:49,399 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_60000.json
+2024-08-15 17:50:49,403 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_70000.json
+2024-08-15 17:50:49,407 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_80000.json
+2024-08-15 17:50:49,411 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt5_seed1000/perspective_scores_90000.json
+2024-08-15 17:50:49,432 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt5_seed1000 took 482.132 seconds to evaluate.
+2024-08-15 17:50:49,434 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt6_seed1000 using metric perspective.
+2024-08-15 17:59:04,656 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_10000.json
+2024-08-15 17:59:04,659 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_20000.json
+2024-08-15 17:59:04,662 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_30000.json
+2024-08-15 17:59:04,665 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_40000.json
+2024-08-15 17:59:04,669 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_50000.json
+2024-08-15 17:59:04,672 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_60000.json
+2024-08-15 17:59:04,674 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_70000.json
+2024-08-15 17:59:04,677 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_80000.json
+2024-08-15 17:59:04,680 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt6_seed1000/perspective_scores_90000.json
+2024-08-15 17:59:04,708 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt6_seed1000 took 495.274 seconds to evaluate.
+2024-08-15 17:59:04,709 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt7_seed1000 using metric perspective.
+2024-08-15 18:07:02,034 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_10000.json
+2024-08-15 18:07:02,037 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_20000.json
+2024-08-15 18:07:02,040 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_30000.json
+2024-08-15 18:07:02,043 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_40000.json
+2024-08-15 18:07:02,046 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_50000.json
+2024-08-15 18:07:02,049 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_60000.json
+2024-08-15 18:07:02,052 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_70000.json
+2024-08-15 18:07:02,057 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_80000.json
+2024-08-15 18:07:02,060 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt7_seed1000/perspective_scores_90000.json
+2024-08-15 18:07:02,079 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt7_seed1000 took 477.37 seconds to evaluate.
+2024-08-15 18:07:02,081 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt8_seed1000 using metric perspective.
+2024-08-15 18:15:00,638 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_10000.json
+2024-08-15 18:15:00,641 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_20000.json
+2024-08-15 18:15:00,644 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_30000.json
+2024-08-15 18:15:00,647 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_40000.json
+2024-08-15 18:15:00,650 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_50000.json
+2024-08-15 18:15:00,653 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_60000.json
+2024-08-15 18:15:00,656 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_70000.json
+2024-08-15 18:15:00,659 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_80000.json
+2024-08-15 18:15:00,662 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt8_seed1000/perspective_scores_90000.json
+2024-08-15 18:15:00,681 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt8_seed1000 took 478.6 seconds to evaluate.
+2024-08-15 18:15:00,681 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt9_seed1000 using metric perspective.
+2024-08-15 18:22:57,045 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_10000.json
+2024-08-15 18:22:57,047 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_20000.json
+2024-08-15 18:22:57,050 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_30000.json
+2024-08-15 18:22:57,053 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_40000.json
+2024-08-15 18:22:57,055 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_50000.json
+2024-08-15 18:22:57,058 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_60000.json
+2024-08-15 18:22:57,061 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_70000.json
+2024-08-15 18:22:57,064 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_80000.json
+2024-08-15 18:22:57,066 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt9_seed1000/perspective_scores_90000.json
+2024-08-15 18:22:57,084 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt9_seed1000 took 476.403 seconds to evaluate.
+2024-08-15 18:22:57,085 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-ckpt10_seed1000 using metric perspective.
+2024-08-15 18:30:52,528 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_10000.json
+2024-08-15 18:30:52,531 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_20000.json
+2024-08-15 18:30:52,534 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_30000.json
+2024-08-15 18:30:52,538 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_40000.json
+2024-08-15 18:30:52,541 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_50000.json
+2024-08-15 18:30:52,544 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_60000.json
+2024-08-15 18:30:52,547 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_70000.json
+2024-08-15 18:30:52,550 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_80000.json
+2024-08-15 18:30:52,554 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-ckpt10_seed1000/perspective_scores_90000.json
+2024-08-15 18:30:52,573 - __main__ - INFO - Model Mistral-7B-Instruct-ckpt10_seed1000 took 475.488 seconds to evaluate.
+2024-08-15 18:30:52,574 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-v0.2_seed1000 using metric perspective.
+2024-08-15 18:38:59,645 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_10000.json
+2024-08-15 18:38:59,651 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_20000.json
+2024-08-15 18:38:59,657 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_30000.json
+2024-08-15 18:38:59,663 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_40000.json
+2024-08-15 18:38:59,670 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_50000.json
+2024-08-15 18:38:59,677 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_60000.json
+2024-08-15 18:38:59,683 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_70000.json
+2024-08-15 18:38:59,690 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_80000.json
+2024-08-15 18:38:59,697 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed1000/perspective_scores_90000.json
+2024-08-15 18:38:59,727 - __main__ - INFO - Model Mistral-7B-Instruct-v0.2_seed1000 took 487.153 seconds to evaluate.
+2024-08-15 18:38:59,728 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-v0.2_seed2000 using metric perspective.
+2024-08-15 18:47:02,495 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_10000.json
+2024-08-15 18:47:02,501 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_20000.json
+2024-08-15 18:47:02,507 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_30000.json
+2024-08-15 18:47:02,513 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_40000.json
+2024-08-15 18:47:02,520 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_50000.json
+2024-08-15 18:47:02,526 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_60000.json
+2024-08-15 18:47:02,532 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_70000.json
+2024-08-15 18:47:02,538 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_80000.json
+2024-08-15 18:47:02,545 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_90000.json
+2024-08-15 18:47:02,575 - __main__ - INFO - Model Mistral-7B-Instruct-v0.2_seed2000 took 482.848 seconds to evaluate.

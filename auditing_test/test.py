@@ -49,7 +49,9 @@ class Experiment:
         self.output_dir = output_dir
         self.overwrite = overwrite
 
-        self.use_wandb = use_wandb if use_wandb else config["logging"]["use_wandb"]
+        self.use_wandb = (
+            use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+        )
         self.metric = metric if metric else config["metric"]["metric"]
 
         # initialize instance parameters to None
@@ -95,7 +97,7 @@ class AuditingTest(Experiment):
         self,
         config: Dict,
         train_cfg: TrainCfg,
-        overwrite: Optional[bool] = False,
+        overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
         output_dir: str = "test_outputs",
@@ -364,13 +366,14 @@ class CalibratedAuditingTest(AuditingTest):
         self,
         config: Dict,
         train_cfg: TrainCfg,
-        overwrite: Optional[bool] = False,
+        overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
         output_dir: str = "test_outputs",
         fold_pattern: str = r"_fold_(\d+)\.json$",  # TODO: maybe class attribute?
         num_samples: Optional[int] = 0,
-        multiples_of_epsilon: int = 2,
+        multiples_of_epsilon: int = 3,
+        bias: float = 0,
     ):
         super().__init__(
             config,
@@ -387,6 +390,7 @@ class CalibratedAuditingTest(AuditingTest):
         )
         self.power_dict = {}
         self.multiples_of_epsilon = multiples_of_epsilon
+        self.bias = bias
 
         self.num_train_samples = None
         self.num_runs = self.config["analysis"]["num_runs"]
@@ -437,8 +441,12 @@ class CalibratedAuditingTest(AuditingTest):
         nn_mean = distance_df["NeuralNet"].mean()
         nn_std = distance_df["NeuralNet"].std()
 
+        if not self.bias == 0:
+            self.logger.info(
+                f"Subtracting bias of {self.bias} to the neural net distance epsilon."
+            )
         return [
-            nn_mean + nn_std * i
+            nn_mean + nn_std * i - self.bias
             for i in range(-self.multiples_of_epsilon, self.multiples_of_epsilon + 1)
         ]
 

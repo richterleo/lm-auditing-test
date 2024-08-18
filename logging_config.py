@@ -26,7 +26,7 @@ def setup_logging(
         log_file = tag
         for item in args:
             if item:
-                log_file = log_file + str(item)
+                log_file = log_file + "_" + str(item)
 
         log_file = Path(directory) / f"{log_file}.log"
 
