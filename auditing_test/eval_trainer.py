@@ -262,6 +262,7 @@ class OfflineTrainer(Trainer):
             "wealth": betting_score.cpu().item(),  # wealth is the same as betting score in the first sequence
             "epochs_until_end_of_sequence": np.nan,
             "sequences_until_end_of_experiment": np.nan,
+            "test_positive": int(0),
         }
         new_data = pd.DataFrame([row])
         self.data = (
@@ -393,6 +394,8 @@ class OfflineTrainer(Trainer):
             logger.info(f"Null hypothesis not rejected. Final wealth at {wealth}.")
 
         self.data["fold_number"] = self.fold_num
+        self.data["test_positive"] = self.data["test_positive"].astype(int)
+
         return self.data, self.test_positive
 
     def train_evaluate_epoch(self, data_loader, mode="train"):

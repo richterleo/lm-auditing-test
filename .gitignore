@@ -5,6 +5,7 @@ keys.py
 test_perspective_api.py
 tox_scores.json
 perspective_scores.json
+perspective_scores_*.json
 llm
 Llama-3-8B-ckpt*_continuations_seed1000.json
 model_outputs

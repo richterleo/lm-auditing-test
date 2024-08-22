@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import importlib
 import logging
@@ -18,7 +19,7 @@ from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
 from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
 
 from evaluation.nn_for_nn_distance import CMLP
-from evaluation.analyze import get_distance_scores
+from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 from evaluation.plot import distance_box_plot
 
 from utils.generate_and_evaluate import generate_and_evaluate
@@ -102,6 +103,7 @@ class AuditingTest(Experiment):
         metric: Optional[bool] = None,
         output_dir: str = "test_outputs",
         fold_pattern: str = r"_fold_(\d+)\.json$",  # TODO: maybe class attribute?
+        use_full_ds_for_nn_distance: bool = False,
     ):
         super().__init__(
             config,
@@ -119,6 +121,9 @@ class AuditingTest(Experiment):
         self.model_name2 = None
         self.seed2 = None
         self.fold_size = None
+
+        # for neural net distance evaluation
+        self.use_full_ds_for_nn_distance = use_full_ds_for_nn_distance
 
     def initialize_wandb(self, tags: List[str] = ["kfold"]):
         """ """
@@ -198,6 +203,12 @@ class AuditingTest(Experiment):
                 f"Skipping test as results file {file_path} already exists."
             )
 
+            df = pd.read_csv(file_path)
+
+            # calculate positive test rate
+            test_positive_per_fold = df.groupby("fold_number")["test_positive"].max()
+            positive_rate = test_positive_per_fold.sum() / len(test_positive_per_fold)
+
         else:
             self.logger.info(
                 f"Running test for {self.model_name1}_{self.seed1} and {self.model_name2}_{self.seed2}."
@@ -205,7 +216,7 @@ class AuditingTest(Experiment):
             self.logger.info(f"Saving results in folder: {self.directory}.")
 
             # for fast analysis
-            sum_positive = 0
+            sum_positive = int(0)
             start = time.time()
             folds = []
 
@@ -246,13 +257,15 @@ class AuditingTest(Experiment):
                     sum_positive += 1
 
             all_folds_data.to_csv(file_path, index=False)
-            self.logger.info(
-                f"Positive tests: {sum_positive}/{len(folds)}, {round(sum_positive/len(folds)*100, 2)}%."
-            )
+            positive_rate = sum_positive / len(folds)
 
         cleanup_files(self.directory, f"{self.metric}_scores_fold_*.json")
 
-        return sum_positive / len(folds)
+        self.logger.info(
+            f"Positive tests: {positive_rate}, {round(positive_rate*100, 2)}%."
+        )
+
+        return positive_rate
 
     def analyze_and_plot_distance(self):
         """ """
@@ -276,9 +289,6 @@ class AuditingTest(Experiment):
             )
             distance_df = pd.read_csv(dist_path)
         else:
-            self.logger.info(
-                f"Training neural net distance on {num_train_samples} samples for {num_runs} runs."
-            )
             distance_df = get_distance_scores(
                 self.model_name1,
                 self.seed1,
@@ -288,14 +298,18 @@ class AuditingTest(Experiment):
                 num_runs=num_runs,
                 net_cfg=self.config["net"],
                 train_cfg=self.train_cfg,
-                num_samples=num_train_samples,
+                num_samples=[self.train_cfg.batch_size, num_train_samples],
+                num_test_samples=self.train_cfg.batch_size,
             )
 
             distance_df.to_csv(dist_path, index=False)
             self.logger.info(f"Distance analysis results saved to {dist_path}.")
 
+        mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(
+            distance_df
+        )
         self.logger.info(
-            f"Average nn distance: {distance_df['NeuralNet'].mean()}, std: {distance_df['NeuralNet'].std()}"
+            f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}"
         )
         self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein'].mean()}")
 
@@ -316,7 +330,6 @@ class AuditingTest(Experiment):
             self.seed2,
             self.model_name2,
             metric=self.metric,
-            num_samples=num_train_samples,
         )
 
     def run(
@@ -374,6 +387,7 @@ class CalibratedAuditingTest(AuditingTest):
         num_samples: Optional[int] = 0,
         multiples_of_epsilon: int = 3,
         bias: float = 0,
+        use_full_ds_for_nn_distance: bool = False,
     ):
         super().__init__(
             config,
@@ -383,6 +397,7 @@ class CalibratedAuditingTest(AuditingTest):
             metric=metric,
             output_dir=output_dir,
             fold_pattern=fold_pattern,
+            use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
         )
 
         self.num_samples = (
@@ -432,23 +447,34 @@ class CalibratedAuditingTest(AuditingTest):
                 num_runs=self.num_runs,
                 net_cfg=self.config["net"],
                 train_cfg=self.train_cfg,
-                num_samples=self.num_train_samples,
+                num_samples=[self.train_cfg.batch_size, self.num_train_samples],
+                num_test_samples=self.train_cfg.batch_size,
             )
 
             distance_df.to_csv(dist_path, index=False)
             self.logger.info(f"Distance analysis results saved to {dist_path}.")
 
-        nn_mean = distance_df["NeuralNet"].mean()
-        nn_std = distance_df["NeuralNet"].std()
+        mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(
+            distance_df
+        )
+        self.logger.info(
+            f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}."
+        )
 
         if not self.bias == 0:
             self.logger.info(
                 f"Subtracting bias of {self.bias} to the neural net distance epsilon."
             )
-        return [
-            nn_mean + nn_std * i - self.bias
-            for i in range(-self.multiples_of_epsilon, self.multiples_of_epsilon + 1)
-        ]
+        return sorted(
+            list(
+                set(
+                    max(mean_nn_distance + std_nn_distance * i - self.bias, 0)
+                    for i in range(
+                        -self.multiples_of_epsilon, self.multiples_of_epsilon + 1
+                    )
+                )
+            )
+        )
 
     def run(
         self, model_name1=None, seed1=None, model_name2=None, seed2=None, fold_size=4000
@@ -490,6 +516,8 @@ class CalibratedAuditingTest(AuditingTest):
 
         else:
             epsilons = self.calibrate_before_run()
+
+            self.logger.info(f"Calibrated epsilons: {epsilons}.")
             power_dict = {}
 
             for epsilon in epsilons:

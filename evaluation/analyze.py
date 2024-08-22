@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pandas as pd
 import json
 import logging
@@ -5,21 +7,19 @@ import numpy as np
 import sys
 import os
 
-import hydra
 from omegaconf import DictConfig
-from hydra.utils import instantiate
 
 from copy import deepcopy
 from pathlib import Path
+from sklearn.model_selection import KFold
+from sklearn.utils import shuffle
 from scipy.stats import skew, wasserstein_distance
 from typing import Union, List, Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from evaluation.distance import (
     empirical_wasserstein_distance_p1,
-    kolmogorov_variation,
     NeuralNetDistance,
-    calc_tot_discrete_variation,
 )
 from utils.utils import load_config
 from arguments import TrainCfg
@@ -190,7 +190,7 @@ def get_matrix_for_models(model_names, seeds, fold_size=4000):
             all_scores.append(power_df)
 
     all_scores_df = pd.concat(all_scores, ignore_index=True)
-    print(all_scores_df)
+    logger.info(all_scores_df)
 
 
 def get_power_over_sequences_for_checkpoints(
@@ -246,17 +246,17 @@ def get_distance_scores(
     pre_shuffle: bool = False,
     score_dir: str = "model_scores",
     random_seed: int = 0,
-    test_random_seed: int = 0,
-    num_samples: int = 100000,
+    num_samples: Union[int, list[int]] = 100000,
+    num_test_samples: int = 1000,
     test_split: float = 0.3,
-    compare_distance_metrics: bool = True,
+    evaluate_on_full: bool = False,
+    compare_wasserstein: bool = True,
     num_runs: int = 1,
-    scipy_only: bool = True,
+    use_scipy_wasserstein: bool = True,
 ) -> pd.DataFrame:
     """ """
-    random.seed(random_seed)
     np.random.seed(random_seed)
-
+    random.seed(random_seed)
     if not (checkpoint and checkpoint_base_name) and not model_name2:
         raise ValueError(
             "Either checkpoint and checkpoint_base_name or model_name2 must be provided"
@@ -276,107 +276,196 @@ def get_distance_scores(
         f"{metric}_scores.json",
     )
 
+    if not isinstance(num_samples, list):
+        num_samples = [num_samples]
+
     try:
         with open(score_path1, "r") as f:
             scores1 = json.load(f)["0"][f"{metric}_scores"]
         with open(score_path2, "r") as f:
             scores2 = json.load(f)["0"][f"{metric}_scores"]
 
-        # test_samples is always a fixed percentage of whole ds
-        num_test_samples = int(test_split * len(scores1))
-        # set separate random seed for test samples
-        np.random.seed(test_random_seed)
-        random_test_indices = np.random.randint(0, len(scores1), num_test_samples)
-
-        test_scores1 = [scores1[i] for i in random_test_indices]
-        test_scores2 = [scores2[i] for i in random_test_indices]
-
-        train_scores1 = [
-            scores1[i] for i in range(len(scores1)) if i not in random_test_indices
-        ]
-        train_scores2 = [
-            scores2[i] for i in range(len(scores2)) if i not in random_test_indices
-        ]
-
         dist_data = []
 
-        for run in range(num_runs):
-            np.random.seed(random_seed + run)
-            # TODO: Think if this is the best way to do this
-            if num_samples < len(scores1) - num_test_samples:
-                # num_samples -= num_test_samples
-                random_train_indices = np.random.randint(
-                    0, len(train_scores1), num_samples
-                )
-
-                # Grab random subset of train scores
-                train_scores1 = [train_scores1[i] for i in random_train_indices]
-                train_scores2 = [train_scores2[i] for i in random_train_indices]
-
-            dist_dict = {}
-            if "Wasserstein" in distance_measures:
-                if compare_distance_metrics:
-                    if scipy_only:
-                        dist_dict["Wasserstein"] = wasserstein_distance(
-                            test_scores1, test_scores2
-                        )
-                    else:
-                        dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
-                            test_scores1, test_scores2
-                        )
-                        dist_dict["Wasserstein_scipy"] = wasserstein_distance(
-                            test_scores1, test_scores2
-                        )
+        if evaluate_on_full:
+            if "Wasserstein" in distance_measures and not compare_wasserstein:
+                dist_dict = {"num_samples": len(scores1)}
+                if use_scipy_wasserstein:
+                    dist_dict["Wasserstein"] = wasserstein_distance(scores1, scores2)
                 else:
-                    if scipy_only:
-                        dist_dict["Wasserstein"] = wasserstein_distance(
-                            train_scores1 + test_scores1, train_scores2 + test_scores2
-                        )
-                    else:
-                        dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
-                            train_scores1 + test_scores1, train_scores2 + test_scores2
-                        )
-                        dist_dict["Wasserstein_scipy"] = wasserstein_distance(
-                            train_scores1 + test_scores1, train_scores1 + test_scores2
-                        )
-            # TODO: update this
-            if "Kolmogorov" in distance_measures:
-                dist_dict["Kolmogorov"] = kolmogorov_variation(scores1, scores2)
+                    dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
+                        scores1, scores2
+                    )
 
             if "NeuralNet" in distance_measures:
                 assert net_cfg, "net_dict must be provided for neuralnet distance"
                 assert train_cfg, "train_cfg must be provided for neuralnet distance"
 
-                if pre_shuffle:
-                    neural_net_distance_shuffled = NeuralNetDistance(
-                        net_cfg,
-                        deepcopy(train_scores1),
-                        deepcopy(train_scores2),
-                        deepcopy(test_scores1),
-                        deepcopy(test_scores2),
-                        train_cfg,
-                        pre_shuffle=pre_shuffle,
-                        random_seed=random_seed,
-                    )
-                    dist_dict["NeuralNet_unpaired"] = (
-                        neural_net_distance_shuffled.train().item()
-                    )
-                neural_net_distance = NeuralNetDistance(
-                    net_cfg,
-                    train_scores1,
-                    train_scores2,
-                    test_scores1,
-                    test_scores2,
-                    train_cfg,
-                    pre_shuffle=False,
-                    random_seed=random_seed,
+                shuffled_scores1, shuffled_scores2 = shuffle(
+                    scores1, scores2, random_state=random_seed
                 )
-                dist_dict["NeuralNet"] = neural_net_distance.train().item()
 
-            dist_data.append(dist_dict)
+                kf = KFold(n_splits=num_runs, shuffle=False)
+
+                for train_index, _ in kf.split(shuffled_scores1):
+                    fold_scores1 = [shuffled_scores1[i] for i in train_index]
+                    fold_scores2 = [shuffled_scores2[i] for i in train_index]
+
+                    # Only keep folds that are of equal length
+                    if len(fold_scores1) == len(scores1) // num_runs:
+                        # Randomly split the fold into test and train data
+                        fold_num_test_samples = int(len(fold_scores1) * test_split)
+                        dist_dict["num_train_samples"] = (
+                            len(fold_scores1) - fold_num_test_samples
+                        )
+                        dist_dict["num_test_samples"] = fold_num_test_samples
+
+                        indices = np.arange(len(fold_scores1))
+                        np.random.shuffle(indices)
+
+                        test_indices = indices[:fold_num_test_samples]
+                        train_indices = indices[fold_num_test_samples:]
+
+                        train_scores1 = [fold_scores1[i] for i in train_indices]
+                        train_scores2 = [fold_scores2[i] for i in train_indices]
+                        test_scores1 = [fold_scores1[i] for i in test_indices]
+                        test_scores2 = [fold_scores2[i] for i in test_indices]
+
+                        logger.info(
+                            f"Training neural net distance on {len(train_scores1)} samples."
+                        )
+
+                        # Rest of the code for each fold...
+                        if pre_shuffle:
+                            neural_net_distance_shuffled = NeuralNetDistance(
+                                net_cfg,
+                                deepcopy(train_scores1),
+                                deepcopy(train_scores2),
+                                deepcopy(test_scores1),
+                                deepcopy(test_scores2),
+                                train_cfg,
+                                pre_shuffle=pre_shuffle,
+                                random_seed=random_seed,
+                            )
+                            dist_dict["NeuralNet_unpaired"] = (
+                                neural_net_distance_shuffled.train().item()
+                            )
+                        neural_net_distance = NeuralNetDistance(
+                            net_cfg,
+                            train_scores1,
+                            train_scores2,
+                            test_scores1,
+                            test_scores2,
+                            train_cfg,
+                            pre_shuffle=False,
+                            random_seed=random_seed,
+                        )
+                        dist_dict["NeuralNet"] = neural_net_distance.train().item()
+
+                        if "Wasserstein" in distance_measures and compare_wasserstein:
+                            if use_scipy_wasserstein:
+                                dist_dict["Wasserstein"] = wasserstein_distance(
+                                    test_scores1, test_scores2
+                                )
+                            else:
+                                dist_dict["Wasserstein"] = (
+                                    empirical_wasserstein_distance_p1(
+                                        test_scores1, test_scores2
+                                    )
+                                )
+
+                        dist_data.append(dist_dict)
+
+        else:
+            if "NeuralNet" in distance_measures:
+                if isinstance(num_samples, int):
+                    num_samples = [num_samples]
+
+                for num_train_samples in num_samples:
+                    for run in range(num_runs):
+                        np.random.seed(random_seed + run)
+                        random_test_indices = np.random.choice(
+                            len(scores1), num_test_samples, replace=False
+                        )
+
+                        dist_dict = {
+                            "num_train_samples": num_train_samples,
+                            "num_test_samples": num_test_samples,
+                        }
+
+                        test_scores1 = [scores1[i] for i in random_test_indices]
+                        test_scores2 = [scores2[i] for i in random_test_indices]
+
+                        logger.info(
+                            f"Testing neural net distance on {len(test_scores1)} samples."
+                        )
+
+                        if "Wasserstein" in distance_measures:
+                            if use_scipy_wasserstein:
+                                dist_dict["Wasserstein"] = wasserstein_distance(
+                                    test_scores1, test_scores2
+                                )
+                            else:
+                                dist_dict["Wasserstein"] = (
+                                    empirical_wasserstein_distance_p1(
+                                        test_scores1, test_scores2
+                                    )
+                                )
+
+                        train_scores1 = [
+                            scores1[i]
+                            for i in range(len(scores1))
+                            if i not in random_test_indices
+                        ]
+                        train_scores2 = [
+                            scores2[i]
+                            for i in range(len(scores2))
+                            if i not in random_test_indices
+                        ]
+
+                        random_train_indices = np.random.choice(
+                            len(train_scores1), num_train_samples, replace=False
+                        )
+                        current_train_scores1 = [
+                            train_scores1[i] for i in random_train_indices
+                        ]
+                        current_train_scores2 = [
+                            train_scores2[i] for i in random_train_indices
+                        ]
+
+                        logger.info(
+                            f"Training neural net distance on {len(current_train_scores1)} samples."
+                        )
+
+                        if pre_shuffle:
+                            neural_net_distance_shuffled = NeuralNetDistance(
+                                net_cfg,
+                                deepcopy(current_train_scores1),
+                                deepcopy(current_train_scores2),
+                                deepcopy(test_scores1),
+                                deepcopy(test_scores2),
+                                train_cfg,
+                                pre_shuffle=pre_shuffle,
+                                random_seed=random_seed,
+                            )
+                            dist_dict["NeuralNet_unpaired"] = (
+                                neural_net_distance_shuffled.train().item()
+                            )
+                        neural_net_distance = NeuralNetDistance(
+                            net_cfg,
+                            current_train_scores1,
+                            current_train_scores2,
+                            test_scores1,
+                            test_scores2,
+                            train_cfg,
+                            pre_shuffle=False,
+                            random_seed=random_seed,
+                        )
+                        dist_dict["NeuralNet"] = neural_net_distance.train().item()
+
+                        dist_data.append(dist_dict)
 
         dist_df = pd.DataFrame(dist_data)
-
         return dist_df
 
     except FileNotFoundError:
@@ -384,6 +473,36 @@ def get_distance_scores(
             logger.error(f"File for checkpoint {checkpoint} does not exist yet")
         else:
             logger.error(f"File for model {model_name2} does not exist yet")
+
+
+def get_mean_and_std_for_nn_distance(df):
+    """"""
+
+    unique_sample_sizes = df["num_train_samples"].unique()
+
+    assert len(unique_sample_sizes) == 2, "Number of unique sample sizes must be 2"
+
+    # Splitting the data into two groups
+    group1 = df[df["num_train_samples"] == unique_sample_sizes[0]]["NeuralNet"]
+    group2 = df[df["num_train_samples"] == unique_sample_sizes[1]]["NeuralNet"]
+
+    # Calculate the mean for each group
+    mean1 = group1.mean()
+    mean2 = group2.mean()
+    logger.info(f"Mean of group1 with {unique_sample_sizes[0]} samples: {mean1}")
+    logger.info(f"Mean of group2 with {unique_sample_sizes[1]} samples: {mean2}")
+
+    # Calculate the variance for each group
+    var1 = group1.var()
+    var2 = group2.var()
+
+    # Calculate the average mean and std
+    # TODO: check if there is a more principled way of calculating this
+    avg_mean = (mean1 + mean2) / 2
+    avg_variance = (var1 + var2) / 2
+    avg_std_via_variance = avg_variance**0.5
+
+    return avg_mean, avg_std_via_variance
 
 
 def get_power_over_sequences_for_ranked_checkpoints(

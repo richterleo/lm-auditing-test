@@ -54,7 +54,6 @@ def distance_box_plot(
     seed1,
     seed2,
     model_name2,
-    num_samples=100000,
     pre_shuffled=False,
     metric="perspective",
     plot_dir: str = "test_outputs",
@@ -63,27 +62,70 @@ def distance_box_plot(
     """ """
 
     if pre_shuffled:
-        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}_unpaired.pdf"
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_unpaired.pdf"
     else:
-        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_{num_samples}.pdf"
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot.pdf"
 
     if not overwrite and Path(file_path).exists():
         logger.info(f"File already exists at {file_path}. Skipping...")
 
     else:
-        # Create a box plot
-        plt.figure(figsize=(10, 6))
-        df.boxplot()
-        plt.title("Box Plot of Different Methods to calculate Distance")
-        plt.ylabel("Distance")
-        plt.xticks(rotation=45)
-        plt.grid(True)
+        # Create a new column combining `num_samples` and `Wasserstein` for grouping
+        df["Group"] = (
+            df["num_train_samples"].astype(str) + " | " + df["Wasserstein"].astype(str)
+        )
 
+        wasserstein_df = df[["Wasserstein"]].rename(columns={"Wasserstein": "Distance"})
+        wasserstein_df["Group"] = "Wasserstein"
+
+        # 2. Two boxes for NeuralNet, split by num_samples
+        neuralnet_df = df[["num_train_samples", "NeuralNet"]].rename(
+            columns={"NeuralNet": "Distance"}
+        )
+        neuralnet_df["Group"] = (
+            neuralnet_df["num_train_samples"].astype(str) + " NeuralNet"
+        )
+
+        # Concatenate the dataframes
+        combined_df = pd.concat([wasserstein_df, neuralnet_df[["Distance", "Group"]]])
+
+        # Plotting the box plot using Seaborn
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x="Group", y="Distance", data=combined_df)
+        plt.xticks(rotation=45)
+        plt.title("Box Plot of Wasserstein and NeuralNet Distances")
+        # plt.xlabel("Group")
+        plt.ylabel("Distance")
+        plt.grid(True)
         plt.savefig(
             file_path,
             bbox_inches="tight",
             format="pdf",
         )
+
+        ## Plotting the box plot using Seaborn
+        # plt.figure(figsize=(10, 6))
+        # sns.boxplot(x='Group', y='NeuralNet', data=df)
+        # plt.xticks(rotation=45)
+        # plt.title('Box Plot of Different Methods to calculate Distance')
+        # plt.xlabel('num_samples | Wasserstein')
+        # plt.ylabel('NeuralNet Distance')
+        # plt.grid(True)
+        # plt.show()
+
+        # # Create a box plot
+        # plt.figure(figsize=(10, 6))
+        # df.boxplot()
+        # plt.title("Box Plot of Different Methods to calculate Distance")
+        # plt.ylabel("Distance")
+        # plt.xticks(rotation=45)
+        # plt.grid(True)
+
+        # plt.savefig(
+        #     file_path,
+        #     bbox_inches="tight",
+        #     format="pdf",
+        # )
 
 
 def plot_power_over_number_of_sequences(

@@ -1,0 +1,1334 @@
+2024-08-21 11:14:02,269 - auditing_test.test - INFO - Running test for Meta-Llama-3-8B-Instruct_seed1000 and Llama-3-8B-ckpt5_seed1000.
+2024-08-21 11:14:02,275 - auditing_test.test - INFO - Saving results in folder: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000.
+2024-08-21 11:14:03,275 - auditing_test.preprocessing - WARNING - Last fold contains fewer samples and is discarded, resulting in 3442 samples being discarded.
+2024-08-21 11:14:03,966 - auditing_test.test - INFO - We have 24 folds. The whole initialization took 1.688 seconds.
+2024-08-21 11:14:03,970 - auditing_test.test - INFO - Now starting experiment for fold 0.
+2024-08-21 11:14:04,137 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:14:04,450 - utils.utils - INFO - Sequence 1/40: 0.159 seconds
+2024-08-21 11:14:04,566 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:14:04,771 - utils.utils - INFO - Sequence 3/40: 0.203 seconds
+2024-08-21 11:14:05,427 - utils.utils - INFO - Sequence 4/40: 0.653 seconds
+2024-08-21 11:14:05,779 - utils.utils - INFO - Sequence 5/40: 0.35 seconds
+2024-08-21 11:14:06,206 - utils.utils - INFO - Sequence 6/40: 0.424 seconds
+2024-08-21 11:14:06,697 - utils.utils - INFO - Sequence 7/40: 0.488 seconds
+2024-08-21 11:14:09,044 - utils.utils - INFO - Sequence 8/40: 2.345 seconds
+2024-08-21 11:14:09,693 - utils.utils - INFO - Sequence 9/40: 0.647 seconds
+2024-08-21 11:14:10,407 - utils.utils - INFO - Sequence 10/40: 0.711 seconds
+2024-08-21 11:14:11,210 - utils.utils - INFO - Sequence 11/40: 0.8 seconds
+2024-08-21 11:14:12,132 - utils.utils - INFO - Sequence 12/40: 0.92 seconds
+2024-08-21 11:14:13,089 - utils.utils - INFO - Sequence 13/40: 0.954 seconds
+2024-08-21 11:14:14,102 - utils.utils - INFO - Sequence 14/40: 1.011 seconds
+2024-08-21 11:14:15,627 - utils.utils - INFO - Sequence 15/40: 1.523 seconds
+2024-08-21 11:14:16,797 - utils.utils - INFO - Sequence 16/40: 1.167 seconds
+2024-08-21 11:14:18,054 - utils.utils - INFO - Sequence 17/40: 1.255 seconds
+2024-08-21 11:14:19,473 - utils.utils - INFO - Sequence 18/40: 1.416 seconds
+2024-08-21 11:14:20,879 - utils.utils - INFO - Sequence 19/40: 1.403 seconds
+2024-08-21 11:14:24,296 - utils.utils - INFO - Sequence 20/40: 3.415 seconds
+2024-08-21 11:14:25,902 - utils.utils - INFO - Sequence 21/40: 1.603 seconds
+2024-08-21 11:14:27,543 - utils.utils - INFO - Sequence 22/40: 1.638 seconds
+2024-08-21 11:14:29,261 - utils.utils - INFO - Sequence 23/40: 1.716 seconds
+2024-08-21 11:14:31,133 - utils.utils - INFO - Sequence 24/40: 1.87 seconds
+2024-08-21 11:14:33,041 - utils.utils - INFO - Sequence 25/40: 1.906 seconds
+2024-08-21 11:14:35,028 - utils.utils - INFO - Sequence 26/40: 1.984 seconds
+2024-08-21 11:14:37,083 - utils.utils - INFO - Sequence 27/40: 2.053 seconds
+2024-08-21 11:14:39,241 - utils.utils - INFO - Sequence 28/40: 2.155 seconds
+2024-08-21 11:14:41,456 - utils.utils - INFO - Sequence 29/40: 2.212 seconds
+2024-08-21 11:14:43,846 - utils.utils - INFO - Sequence 30/40: 2.388 seconds
+2024-08-21 11:14:46,233 - utils.utils - INFO - Sequence 31/40: 2.384 seconds
+2024-08-21 11:14:48,686 - utils.utils - INFO - Sequence 32/40: 2.45 seconds
+2024-08-21 11:14:51,216 - utils.utils - INFO - Sequence 33/40: 2.528 seconds
+2024-08-21 11:14:53,848 - utils.utils - INFO - Sequence 34/40: 2.63 seconds
+2024-08-21 11:14:56,566 - utils.utils - INFO - Sequence 35/40: 2.715 seconds
+2024-08-21 11:14:59,364 - utils.utils - INFO - Sequence 36/40: 2.795 seconds
+2024-08-21 11:15:02,288 - utils.utils - INFO - Sequence 37/40: 2.922 seconds
+2024-08-21 11:15:05,294 - utils.utils - INFO - Sequence 38/40: 3.003 seconds
+2024-08-21 11:15:08,448 - utils.utils - INFO - Sequence 39/40: 3.151 seconds
+2024-08-21 11:15:08,450 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.1080291387281192e-08.
+2024-08-21 11:15:08,455 - auditing_test.test - INFO - Now starting experiment for fold 1.
+2024-08-21 11:15:08,468 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:15:09,446 - utils.utils - INFO - Sequence 1/40: 0.968 seconds
+2024-08-21 11:15:09,573 - utils.utils - INFO - Sequence 2/40: 0.125 seconds
+2024-08-21 11:15:09,789 - utils.utils - INFO - Sequence 3/40: 0.213 seconds
+2024-08-21 11:15:10,078 - utils.utils - INFO - Sequence 4/40: 0.286 seconds
+2024-08-21 11:15:10,445 - utils.utils - INFO - Sequence 5/40: 0.365 seconds
+2024-08-21 11:15:10,898 - utils.utils - INFO - Sequence 6/40: 0.45 seconds
+2024-08-21 11:15:11,416 - utils.utils - INFO - Sequence 7/40: 0.516 seconds
+2024-08-21 11:15:11,978 - utils.utils - INFO - Sequence 8/40: 0.559 seconds
+2024-08-21 11:15:12,618 - utils.utils - INFO - Sequence 9/40: 0.639 seconds
+2024-08-21 11:15:13,330 - utils.utils - INFO - Sequence 10/40: 0.709 seconds
+2024-08-21 11:15:14,114 - utils.utils - INFO - Sequence 11/40: 0.782 seconds
+2024-08-21 11:15:14,982 - utils.utils - INFO - Sequence 12/40: 0.865 seconds
+2024-08-21 11:15:15,911 - utils.utils - INFO - Sequence 13/40: 0.927 seconds
+2024-08-21 11:15:16,918 - utils.utils - INFO - Sequence 14/40: 1.005 seconds
+2024-08-21 11:15:18,012 - utils.utils - INFO - Sequence 15/40: 1.091 seconds
+2024-08-21 11:15:19,181 - utils.utils - INFO - Sequence 16/40: 1.167 seconds
+2024-08-21 11:15:20,478 - utils.utils - INFO - Sequence 17/40: 1.295 seconds
+2024-08-21 11:15:21,802 - utils.utils - INFO - Sequence 18/40: 1.321 seconds
+2024-08-21 11:15:23,228 - utils.utils - INFO - Sequence 19/40: 1.424 seconds
+2024-08-21 11:15:24,706 - utils.utils - INFO - Sequence 20/40: 1.475 seconds
+2024-08-21 11:15:26,265 - utils.utils - INFO - Sequence 21/40: 1.557 seconds
+2024-08-21 11:15:27,841 - utils.utils - INFO - Sequence 22/40: 1.573 seconds
+2024-08-21 11:15:29,570 - utils.utils - INFO - Sequence 23/40: 1.727 seconds
+2024-08-21 11:15:31,385 - utils.utils - INFO - Sequence 24/40: 1.813 seconds
+2024-08-21 11:15:33,288 - utils.utils - INFO - Sequence 25/40: 1.9 seconds
+2024-08-21 11:15:35,256 - utils.utils - INFO - Sequence 26/40: 1.965 seconds
+2024-08-21 11:15:37,303 - utils.utils - INFO - Sequence 27/40: 2.044 seconds
+2024-08-21 11:15:39,440 - utils.utils - INFO - Sequence 28/40: 2.135 seconds
+2024-08-21 11:15:41,668 - utils.utils - INFO - Sequence 29/40: 2.226 seconds
+2024-08-21 11:15:43,969 - utils.utils - INFO - Sequence 30/40: 2.298 seconds
+2024-08-21 11:15:46,414 - utils.utils - INFO - Sequence 31/40: 2.442 seconds
+2024-08-21 11:15:48,921 - utils.utils - INFO - Sequence 32/40: 2.504 seconds
+2024-08-21 11:15:51,483 - utils.utils - INFO - Sequence 33/40: 2.56 seconds
+2024-08-21 11:15:54,132 - utils.utils - INFO - Sequence 34/40: 2.647 seconds
+2024-08-21 11:15:56,878 - utils.utils - INFO - Sequence 35/40: 2.743 seconds
+2024-08-21 11:15:59,704 - utils.utils - INFO - Sequence 36/40: 2.823 seconds
+2024-08-21 11:16:02,656 - utils.utils - INFO - Sequence 37/40: 2.95 seconds
+2024-08-21 11:16:05,693 - utils.utils - INFO - Sequence 38/40: 3.034 seconds
+2024-08-21 11:16:08,781 - utils.utils - INFO - Sequence 39/40: 3.087 seconds
+2024-08-21 11:16:08,784 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.1264915707449106e-13.
+2024-08-21 11:16:08,788 - auditing_test.test - INFO - Now starting experiment for fold 2.
+2024-08-21 11:16:08,801 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:16:09,719 - utils.utils - INFO - Sequence 1/40: 0.908 seconds
+2024-08-21 11:16:09,837 - utils.utils - INFO - Sequence 2/40: 0.115 seconds
+2024-08-21 11:16:10,040 - utils.utils - INFO - Sequence 3/40: 0.201 seconds
+2024-08-21 11:16:10,310 - utils.utils - INFO - Sequence 4/40: 0.268 seconds
+2024-08-21 11:16:10,688 - utils.utils - INFO - Sequence 5/40: 0.376 seconds
+2024-08-21 11:16:11,111 - utils.utils - INFO - Sequence 6/40: 0.42 seconds
+2024-08-21 11:16:11,601 - utils.utils - INFO - Sequence 7/40: 0.488 seconds
+2024-08-21 11:16:12,167 - utils.utils - INFO - Sequence 8/40: 0.564 seconds
+2024-08-21 11:16:12,817 - utils.utils - INFO - Sequence 9/40: 0.647 seconds
+2024-08-21 11:16:13,536 - utils.utils - INFO - Sequence 10/40: 0.717 seconds
+2024-08-21 11:16:14,345 - utils.utils - INFO - Sequence 11/40: 0.807 seconds
+2024-08-21 11:16:15,214 - utils.utils - INFO - Sequence 12/40: 0.867 seconds
+2024-08-21 11:16:16,157 - utils.utils - INFO - Sequence 13/40: 0.94 seconds
+2024-08-21 11:16:17,186 - utils.utils - INFO - Sequence 14/40: 1.026 seconds
+2024-08-21 11:16:18,333 - utils.utils - INFO - Sequence 15/40: 1.144 seconds
+2024-08-21 11:16:19,512 - utils.utils - INFO - Sequence 16/40: 1.177 seconds
+2024-08-21 11:16:20,771 - utils.utils - INFO - Sequence 17/40: 1.256 seconds
+2024-08-21 11:16:22,116 - utils.utils - INFO - Sequence 18/40: 1.343 seconds
+2024-08-21 11:16:23,536 - utils.utils - INFO - Sequence 19/40: 1.418 seconds
+2024-08-21 11:16:25,035 - utils.utils - INFO - Sequence 20/40: 1.496 seconds
+2024-08-21 11:16:26,671 - utils.utils - INFO - Sequence 21/40: 1.634 seconds
+2024-08-21 11:16:28,233 - utils.utils - INFO - Sequence 22/40: 1.559 seconds
+2024-08-21 11:16:29,965 - utils.utils - INFO - Sequence 23/40: 1.73 seconds
+2024-08-21 11:16:31,823 - utils.utils - INFO - Sequence 24/40: 1.856 seconds
+2024-08-21 11:16:33,768 - utils.utils - INFO - Sequence 25/40: 1.943 seconds
+2024-08-21 11:16:35,736 - utils.utils - INFO - Sequence 26/40: 1.966 seconds
+2024-08-21 11:16:37,859 - utils.utils - INFO - Sequence 27/40: 2.121 seconds
+2024-08-21 11:16:40,008 - utils.utils - INFO - Sequence 28/40: 2.146 seconds
+2024-08-21 11:16:42,255 - utils.utils - INFO - Sequence 29/40: 2.244 seconds
+2024-08-21 11:16:44,505 - utils.utils - INFO - Sequence 30/40: 2.248 seconds
+2024-08-21 11:16:46,927 - utils.utils - INFO - Sequence 31/40: 2.419 seconds
+2024-08-21 11:16:49,284 - utils.utils - INFO - Sequence 32/40: 2.355 seconds
+2024-08-21 11:16:51,830 - utils.utils - INFO - Sequence 33/40: 2.543 seconds
+2024-08-21 11:16:54,469 - utils.utils - INFO - Sequence 34/40: 2.636 seconds
+2024-08-21 11:16:57,216 - utils.utils - INFO - Sequence 35/40: 2.745 seconds
+2024-08-21 11:17:00,059 - utils.utils - INFO - Sequence 36/40: 2.841 seconds
+2024-08-21 11:17:02,967 - utils.utils - INFO - Sequence 37/40: 2.905 seconds
+2024-08-21 11:17:05,970 - utils.utils - INFO - Sequence 38/40: 3.001 seconds
+2024-08-21 11:17:14,413 - utils.utils - INFO - Sequence 39/40: 8.44 seconds
+2024-08-21 11:17:14,415 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.9067975142372902e-08.
+2024-08-21 11:17:14,419 - auditing_test.test - INFO - Now starting experiment for fold 3.
+2024-08-21 11:17:14,431 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:17:14,552 - utils.utils - INFO - Sequence 1/40: 0.111 seconds
+2024-08-21 11:17:15,235 - utils.utils - INFO - Sequence 2/40: 0.681 seconds
+2024-08-21 11:17:15,624 - utils.utils - INFO - Sequence 3/40: 0.387 seconds
+2024-08-21 11:17:15,891 - utils.utils - INFO - Sequence 4/40: 0.265 seconds
+2024-08-21 11:17:16,233 - utils.utils - INFO - Sequence 5/40: 0.339 seconds
+2024-08-21 11:17:17,199 - utils.utils - INFO - Sequence 6/40: 0.964 seconds
+2024-08-21 11:17:17,692 - utils.utils - INFO - Sequence 7/40: 0.491 seconds
+2024-08-21 11:17:18,275 - utils.utils - INFO - Sequence 8/40: 0.581 seconds
+2024-08-21 11:17:18,923 - utils.utils - INFO - Sequence 9/40: 0.646 seconds
+2024-08-21 11:17:19,698 - utils.utils - INFO - Sequence 10/40: 0.772 seconds
+2024-08-21 11:17:22,725 - utils.utils - INFO - Sequence 11/40: 3.024 seconds
+2024-08-21 11:17:23,598 - utils.utils - INFO - Sequence 12/40: 0.871 seconds
+2024-08-21 11:17:24,541 - utils.utils - INFO - Sequence 13/40: 0.94 seconds
+2024-08-21 11:17:25,553 - utils.utils - INFO - Sequence 14/40: 1.01 seconds
+2024-08-21 11:17:26,641 - utils.utils - INFO - Sequence 15/40: 1.086 seconds
+2024-08-21 11:17:27,801 - utils.utils - INFO - Sequence 16/40: 1.157 seconds
+2024-08-21 11:17:29,034 - utils.utils - INFO - Sequence 17/40: 1.23 seconds
+2024-08-21 11:17:30,364 - utils.utils - INFO - Sequence 18/40: 1.328 seconds
+2024-08-21 11:17:31,756 - utils.utils - INFO - Sequence 19/40: 1.39 seconds
+2024-08-21 11:17:33,223 - utils.utils - INFO - Sequence 20/40: 1.465 seconds
+2024-08-21 11:17:34,789 - utils.utils - INFO - Sequence 21/40: 1.563 seconds
+2024-08-21 11:17:36,455 - utils.utils - INFO - Sequence 22/40: 1.664 seconds
+2024-08-21 11:17:38,236 - utils.utils - INFO - Sequence 23/40: 1.778 seconds
+2024-08-21 11:17:40,027 - utils.utils - INFO - Sequence 24/40: 1.789 seconds
+2024-08-21 11:17:43,773 - utils.utils - INFO - Sequence 25/40: 3.744 seconds
+2024-08-21 11:17:45,513 - utils.utils - INFO - Sequence 26/40: 1.738 seconds
+2024-08-21 11:17:47,322 - utils.utils - INFO - Sequence 27/40: 1.807 seconds
+2024-08-21 11:17:49,451 - utils.utils - INFO - Sequence 28/40: 2.126 seconds
+2024-08-21 11:17:51,662 - utils.utils - INFO - Sequence 29/40: 2.21 seconds
+2024-08-21 11:17:53,999 - utils.utils - INFO - Sequence 30/40: 2.334 seconds
+2024-08-21 11:17:56,426 - utils.utils - INFO - Sequence 31/40: 2.425 seconds
+2024-08-21 11:17:58,882 - utils.utils - INFO - Sequence 32/40: 2.453 seconds
+2024-08-21 11:18:01,440 - utils.utils - INFO - Sequence 33/40: 2.556 seconds
+2024-08-21 11:18:04,075 - utils.utils - INFO - Sequence 34/40: 2.632 seconds
+2024-08-21 11:18:06,800 - utils.utils - INFO - Sequence 35/40: 2.723 seconds
+2024-08-21 11:18:09,609 - utils.utils - INFO - Sequence 36/40: 2.806 seconds
+2024-08-21 11:18:12,499 - utils.utils - INFO - Sequence 37/40: 2.888 seconds
+2024-08-21 11:18:15,467 - utils.utils - INFO - Sequence 38/40: 2.966 seconds
+2024-08-21 11:18:18,517 - utils.utils - INFO - Sequence 39/40: 3.047 seconds
+2024-08-21 11:18:18,520 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.740173423087781e-11.
+2024-08-21 11:18:18,524 - auditing_test.test - INFO - Now starting experiment for fold 4.
+2024-08-21 11:18:18,536 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:18:19,228 - utils.utils - INFO - Sequence 1/40: 0.682 seconds
+2024-08-21 11:18:19,344 - utils.utils - INFO - Sequence 2/40: 0.114 seconds
+2024-08-21 11:18:19,554 - utils.utils - INFO - Sequence 3/40: 0.209 seconds
+2024-08-21 11:18:19,951 - utils.utils - INFO - Sequence 4/40: 0.394 seconds
+2024-08-21 11:18:20,289 - utils.utils - INFO - Sequence 5/40: 0.336 seconds
+2024-08-21 11:18:20,705 - utils.utils - INFO - Sequence 6/40: 0.414 seconds
+2024-08-21 11:18:21,234 - utils.utils - INFO - Sequence 7/40: 0.527 seconds
+2024-08-21 11:18:21,821 - utils.utils - INFO - Sequence 8/40: 0.584 seconds
+2024-08-21 11:18:22,457 - utils.utils - INFO - Sequence 9/40: 0.634 seconds
+2024-08-21 11:18:23,198 - utils.utils - INFO - Sequence 10/40: 0.738 seconds
+2024-08-21 11:18:24,018 - utils.utils - INFO - Sequence 11/40: 0.817 seconds
+2024-08-21 11:18:24,875 - utils.utils - INFO - Sequence 12/40: 0.855 seconds
+2024-08-21 11:18:25,810 - utils.utils - INFO - Sequence 13/40: 0.932 seconds
+2024-08-21 11:18:26,819 - utils.utils - INFO - Sequence 14/40: 1.007 seconds
+2024-08-21 11:18:27,914 - utils.utils - INFO - Sequence 15/40: 1.093 seconds
+2024-08-21 11:18:29,080 - utils.utils - INFO - Sequence 16/40: 1.163 seconds
+2024-08-21 11:18:30,320 - utils.utils - INFO - Sequence 17/40: 1.237 seconds
+2024-08-21 11:18:31,664 - utils.utils - INFO - Sequence 18/40: 1.342 seconds
+2024-08-21 11:18:32,970 - utils.utils - INFO - Sequence 19/40: 1.304 seconds
+2024-08-21 11:18:34,276 - utils.utils - INFO - Sequence 20/40: 1.304 seconds
+2024-08-21 11:18:35,824 - utils.utils - INFO - Sequence 21/40: 1.546 seconds
+2024-08-21 11:18:37,483 - utils.utils - INFO - Sequence 22/40: 1.656 seconds
+2024-08-21 11:18:39,234 - utils.utils - INFO - Sequence 23/40: 1.749 seconds
+2024-08-21 11:18:41,049 - utils.utils - INFO - Sequence 24/40: 1.813 seconds
+2024-08-21 11:18:42,941 - utils.utils - INFO - Sequence 25/40: 1.889 seconds
+2024-08-21 11:18:44,945 - utils.utils - INFO - Sequence 26/40: 2.002 seconds
+2024-08-21 11:18:47,014 - utils.utils - INFO - Sequence 27/40: 2.066 seconds
+2024-08-21 11:18:49,208 - utils.utils - INFO - Sequence 28/40: 2.191 seconds
+2024-08-21 11:18:51,436 - utils.utils - INFO - Sequence 29/40: 2.227 seconds
+2024-08-21 11:18:53,761 - utils.utils - INFO - Sequence 30/40: 2.322 seconds
+2024-08-21 11:18:56,229 - utils.utils - INFO - Sequence 31/40: 2.465 seconds
+2024-08-21 11:18:58,708 - utils.utils - INFO - Sequence 32/40: 2.477 seconds
+2024-08-21 11:19:01,262 - utils.utils - INFO - Sequence 33/40: 2.551 seconds
+2024-08-21 11:19:03,965 - utils.utils - INFO - Sequence 34/40: 2.7 seconds
+2024-08-21 11:19:06,726 - utils.utils - INFO - Sequence 35/40: 2.758 seconds
+2024-08-21 11:19:09,538 - utils.utils - INFO - Sequence 36/40: 2.81 seconds
+2024-08-21 11:19:12,458 - utils.utils - INFO - Sequence 37/40: 2.918 seconds
+2024-08-21 11:19:15,459 - utils.utils - INFO - Sequence 38/40: 2.998 seconds
+2024-08-21 11:19:18,585 - utils.utils - INFO - Sequence 39/40: 3.124 seconds
+2024-08-21 11:19:18,587 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 4.72913006185322e-06.
+2024-08-21 11:19:18,592 - auditing_test.test - INFO - Now starting experiment for fold 5.
+2024-08-21 11:19:18,604 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:19:19,524 - utils.utils - INFO - Sequence 1/40: 0.91 seconds
+2024-08-21 11:19:19,642 - utils.utils - INFO - Sequence 2/40: 0.116 seconds
+2024-08-21 11:19:19,852 - utils.utils - INFO - Sequence 3/40: 0.208 seconds
+2024-08-21 11:19:20,119 - utils.utils - INFO - Sequence 4/40: 0.265 seconds
+2024-08-21 11:19:20,460 - utils.utils - INFO - Sequence 5/40: 0.339 seconds
+2024-08-21 11:19:20,921 - utils.utils - INFO - Sequence 6/40: 0.459 seconds
+2024-08-21 11:19:21,431 - utils.utils - INFO - Sequence 7/40: 0.508 seconds
+2024-08-21 11:19:21,999 - utils.utils - INFO - Sequence 8/40: 0.566 seconds
+2024-08-21 11:19:22,643 - utils.utils - INFO - Sequence 9/40: 0.642 seconds
+2024-08-21 11:19:23,354 - utils.utils - INFO - Sequence 10/40: 0.709 seconds
+2024-08-21 11:19:28,258 - utils.utils - INFO - Sequence 11/40: 4.901 seconds
+2024-08-21 11:19:29,121 - utils.utils - INFO - Sequence 12/40: 0.861 seconds
+2024-08-21 11:19:30,072 - utils.utils - INFO - Sequence 13/40: 0.948 seconds
+2024-08-21 11:19:31,190 - utils.utils - INFO - Sequence 14/40: 1.115 seconds
+2024-08-21 11:19:32,369 - utils.utils - INFO - Sequence 15/40: 1.177 seconds
+2024-08-21 11:19:34,171 - utils.utils - INFO - Sequence 16/40: 1.799 seconds
+2024-08-21 11:19:35,422 - utils.utils - INFO - Sequence 17/40: 1.249 seconds
+2024-08-21 11:19:36,759 - utils.utils - INFO - Sequence 18/40: 1.334 seconds
+2024-08-21 11:19:40,400 - utils.utils - INFO - Sequence 19/40: 3.639 seconds
+2024-08-21 11:19:41,942 - utils.utils - INFO - Sequence 20/40: 1.539 seconds
+2024-08-21 11:19:43,530 - utils.utils - INFO - Sequence 21/40: 1.586 seconds
+2024-08-21 11:19:45,168 - utils.utils - INFO - Sequence 22/40: 1.635 seconds
+2024-08-21 11:19:46,914 - utils.utils - INFO - Sequence 23/40: 1.744 seconds
+2024-08-21 11:19:48,719 - utils.utils - INFO - Sequence 24/40: 1.802 seconds
+2024-08-21 11:19:50,606 - utils.utils - INFO - Sequence 25/40: 1.885 seconds
+2024-08-21 11:19:53,761 - utils.utils - INFO - Sequence 26/40: 3.153 seconds
+2024-08-21 11:19:55,822 - utils.utils - INFO - Sequence 27/40: 2.058 seconds
+2024-08-21 11:19:57,954 - utils.utils - INFO - Sequence 28/40: 2.13 seconds
+2024-08-21 11:20:00,145 - utils.utils - INFO - Sequence 29/40: 2.188 seconds
+2024-08-21 11:20:02,519 - utils.utils - INFO - Sequence 30/40: 2.372 seconds
+2024-08-21 11:20:04,980 - utils.utils - INFO - Sequence 31/40: 2.459 seconds
+2024-08-21 11:20:07,492 - utils.utils - INFO - Sequence 32/40: 2.509 seconds
+2024-08-21 11:20:10,057 - utils.utils - INFO - Sequence 33/40: 2.562 seconds
+2024-08-21 11:20:12,664 - utils.utils - INFO - Sequence 34/40: 2.605 seconds
+2024-08-21 11:20:15,345 - utils.utils - INFO - Sequence 35/40: 2.678 seconds
+2024-08-21 11:20:18,173 - utils.utils - INFO - Sequence 36/40: 2.826 seconds
+2024-08-21 11:20:21,045 - utils.utils - INFO - Sequence 37/40: 2.87 seconds
+2024-08-21 11:20:23,985 - utils.utils - INFO - Sequence 38/40: 2.938 seconds
+2024-08-21 11:20:27,106 - utils.utils - INFO - Sequence 39/40: 3.119 seconds
+2024-08-21 11:20:27,110 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 6.572008824294826e-09.
+2024-08-21 11:20:27,114 - auditing_test.test - INFO - Now starting experiment for fold 6.
+2024-08-21 11:20:27,128 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:20:28,066 - utils.utils - INFO - Sequence 1/40: 0.926 seconds
+2024-08-21 11:20:28,181 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:20:28,377 - utils.utils - INFO - Sequence 3/40: 0.194 seconds
+2024-08-21 11:20:28,639 - utils.utils - INFO - Sequence 4/40: 0.26 seconds
+2024-08-21 11:20:28,981 - utils.utils - INFO - Sequence 5/40: 0.34 seconds
+2024-08-21 11:20:29,394 - utils.utils - INFO - Sequence 6/40: 0.411 seconds
+2024-08-21 11:20:29,882 - utils.utils - INFO - Sequence 7/40: 0.485 seconds
+2024-08-21 11:20:30,443 - utils.utils - INFO - Sequence 8/40: 0.559 seconds
+2024-08-21 11:20:31,101 - utils.utils - INFO - Sequence 9/40: 0.656 seconds
+2024-08-21 11:20:31,820 - utils.utils - INFO - Sequence 10/40: 0.717 seconds
+2024-08-21 11:20:32,503 - utils.utils - INFO - Sequence 11/40: 0.68 seconds
+2024-08-21 11:20:33,249 - utils.utils - INFO - Sequence 12/40: 0.744 seconds
+2024-08-21 11:20:34,119 - utils.utils - INFO - Sequence 13/40: 0.868 seconds
+2024-08-21 11:20:35,118 - utils.utils - INFO - Sequence 14/40: 0.997 seconds
+2024-08-21 11:20:36,209 - utils.utils - INFO - Sequence 15/40: 1.089 seconds
+2024-08-21 11:20:37,389 - utils.utils - INFO - Sequence 16/40: 1.178 seconds
+2024-08-21 11:20:38,602 - utils.utils - INFO - Sequence 17/40: 1.21 seconds
+2024-08-21 11:20:39,910 - utils.utils - INFO - Sequence 18/40: 1.305 seconds
+2024-08-21 11:20:41,219 - utils.utils - INFO - Sequence 19/40: 1.307 seconds
+2024-08-21 11:20:42,506 - utils.utils - INFO - Sequence 20/40: 1.285 seconds
+2024-08-21 11:20:43,861 - utils.utils - INFO - Sequence 21/40: 1.353 seconds
+2024-08-21 11:20:45,371 - utils.utils - INFO - Sequence 22/40: 1.507 seconds
+2024-08-21 11:20:47,105 - utils.utils - INFO - Sequence 23/40: 1.732 seconds
+2024-08-21 11:20:48,895 - utils.utils - INFO - Sequence 24/40: 1.788 seconds
+2024-08-21 11:20:50,768 - utils.utils - INFO - Sequence 25/40: 1.871 seconds
+2024-08-21 11:20:52,708 - utils.utils - INFO - Sequence 26/40: 1.938 seconds
+2024-08-21 11:20:54,728 - utils.utils - INFO - Sequence 27/40: 2.018 seconds
+2024-08-21 11:20:56,838 - utils.utils - INFO - Sequence 28/40: 2.108 seconds
+2024-08-21 11:20:59,070 - utils.utils - INFO - Sequence 29/40: 2.229 seconds
+2024-08-21 11:21:01,416 - utils.utils - INFO - Sequence 30/40: 2.344 seconds
+2024-08-21 11:21:03,808 - utils.utils - INFO - Sequence 31/40: 2.39 seconds
+2024-08-21 11:21:06,319 - utils.utils - INFO - Sequence 32/40: 2.508 seconds
+2024-08-21 11:21:08,872 - utils.utils - INFO - Sequence 33/40: 2.551 seconds
+2024-08-21 11:21:11,513 - utils.utils - INFO - Sequence 34/40: 2.639 seconds
+2024-08-21 11:21:14,253 - utils.utils - INFO - Sequence 35/40: 2.737 seconds
+2024-08-21 11:21:17,102 - utils.utils - INFO - Sequence 36/40: 2.847 seconds
+2024-08-21 11:21:19,918 - utils.utils - INFO - Sequence 37/40: 2.814 seconds
+2024-08-21 11:21:22,879 - utils.utils - INFO - Sequence 38/40: 2.959 seconds
+2024-08-21 11:21:25,923 - utils.utils - INFO - Sequence 39/40: 3.041 seconds
+2024-08-21 11:21:25,926 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.756826593838885e-15.
+2024-08-21 11:21:25,930 - auditing_test.test - INFO - Now starting experiment for fold 7.
+2024-08-21 11:21:25,943 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:21:26,511 - utils.utils - INFO - Sequence 1/40: 0.558 seconds
+2024-08-21 11:21:26,629 - utils.utils - INFO - Sequence 2/40: 0.115 seconds
+2024-08-21 11:21:26,855 - utils.utils - INFO - Sequence 3/40: 0.224 seconds
+2024-08-21 11:21:27,119 - utils.utils - INFO - Sequence 4/40: 0.262 seconds
+2024-08-21 11:21:27,460 - utils.utils - INFO - Sequence 5/40: 0.338 seconds
+2024-08-21 11:21:27,881 - utils.utils - INFO - Sequence 6/40: 0.419 seconds
+2024-08-21 11:21:28,368 - utils.utils - INFO - Sequence 7/40: 0.485 seconds
+2024-08-21 11:21:28,931 - utils.utils - INFO - Sequence 8/40: 0.561 seconds
+2024-08-21 11:21:29,604 - utils.utils - INFO - Sequence 9/40: 0.67 seconds
+2024-08-21 11:21:30,320 - utils.utils - INFO - Sequence 10/40: 0.714 seconds
+2024-08-21 11:21:31,113 - utils.utils - INFO - Sequence 11/40: 0.791 seconds
+2024-08-21 11:21:32,246 - utils.utils - INFO - Sequence 12/40: 1.13 seconds
+2024-08-21 11:21:33,190 - utils.utils - INFO - Sequence 13/40: 0.942 seconds
+2024-08-21 11:21:34,211 - utils.utils - INFO - Sequence 14/40: 1.018 seconds
+2024-08-21 11:21:35,321 - utils.utils - INFO - Sequence 15/40: 1.108 seconds
+2024-08-21 11:21:36,488 - utils.utils - INFO - Sequence 16/40: 1.164 seconds
+2024-08-21 11:21:37,738 - utils.utils - INFO - Sequence 17/40: 1.248 seconds
+2024-08-21 11:21:39,061 - utils.utils - INFO - Sequence 18/40: 1.32 seconds
+2024-08-21 11:21:40,465 - utils.utils - INFO - Sequence 19/40: 1.402 seconds
+2024-08-21 11:21:41,943 - utils.utils - INFO - Sequence 20/40: 1.476 seconds
+2024-08-21 11:21:43,497 - utils.utils - INFO - Sequence 21/40: 1.552 seconds
+2024-08-21 11:21:45,134 - utils.utils - INFO - Sequence 22/40: 1.635 seconds
+2024-08-21 11:21:46,940 - utils.utils - INFO - Sequence 23/40: 1.804 seconds
+2024-08-21 11:21:48,776 - utils.utils - INFO - Sequence 24/40: 1.833 seconds
+2024-08-21 11:21:50,677 - utils.utils - INFO - Sequence 25/40: 1.899 seconds
+2024-08-21 11:21:52,678 - utils.utils - INFO - Sequence 26/40: 1.999 seconds
+2024-08-21 11:21:54,748 - utils.utils - INFO - Sequence 27/40: 2.068 seconds
+2024-08-21 11:21:56,908 - utils.utils - INFO - Sequence 28/40: 2.157 seconds
+2024-08-21 11:21:59,127 - utils.utils - INFO - Sequence 29/40: 2.217 seconds
+2024-08-21 11:22:01,930 - utils.utils - INFO - Sequence 30/40: 2.801 seconds
+2024-08-21 11:22:08,675 - utils.utils - INFO - Sequence 31/40: 6.742 seconds
+2024-08-21 11:22:11,211 - utils.utils - INFO - Sequence 32/40: 2.534 seconds
+2024-08-21 11:22:13,789 - utils.utils - INFO - Sequence 33/40: 2.576 seconds
+2024-08-21 11:22:16,445 - utils.utils - INFO - Sequence 34/40: 2.653 seconds
+2024-08-21 11:22:19,253 - utils.utils - INFO - Sequence 35/40: 2.805 seconds
+2024-08-21 11:22:22,057 - utils.utils - INFO - Sequence 36/40: 2.802 seconds
+2024-08-21 11:22:25,038 - utils.utils - INFO - Sequence 37/40: 2.979 seconds
+2024-08-21 11:22:28,053 - utils.utils - INFO - Sequence 38/40: 3.012 seconds
+2024-08-21 11:22:31,077 - utils.utils - INFO - Sequence 39/40: 3.021 seconds
+2024-08-21 11:22:31,079 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.7591515411112633e-11.
+2024-08-21 11:22:31,083 - auditing_test.test - INFO - Now starting experiment for fold 8.
+2024-08-21 11:22:31,095 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:22:31,963 - utils.utils - INFO - Sequence 1/40: 0.858 seconds
+2024-08-21 11:22:32,078 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:22:32,284 - utils.utils - INFO - Sequence 3/40: 0.203 seconds
+2024-08-21 11:22:32,544 - utils.utils - INFO - Sequence 4/40: 0.258 seconds
+2024-08-21 11:22:32,945 - utils.utils - INFO - Sequence 5/40: 0.399 seconds
+2024-08-21 11:22:33,391 - utils.utils - INFO - Sequence 6/40: 0.444 seconds
+2024-08-21 11:22:33,871 - utils.utils - INFO - Sequence 7/40: 0.477 seconds
+2024-08-21 11:22:34,427 - utils.utils - INFO - Sequence 8/40: 0.554 seconds
+2024-08-21 11:22:35,122 - utils.utils - INFO - Sequence 9/40: 0.692 seconds
+2024-08-21 11:22:35,847 - utils.utils - INFO - Sequence 10/40: 0.723 seconds
+2024-08-21 11:22:36,647 - utils.utils - INFO - Sequence 11/40: 0.798 seconds
+2024-08-21 11:22:37,517 - utils.utils - INFO - Sequence 12/40: 0.867 seconds
+2024-08-21 11:22:38,465 - utils.utils - INFO - Sequence 13/40: 0.946 seconds
+2024-08-21 11:22:39,490 - utils.utils - INFO - Sequence 14/40: 1.022 seconds
+2024-08-21 11:22:40,590 - utils.utils - INFO - Sequence 15/40: 1.098 seconds
+2024-08-21 11:22:41,773 - utils.utils - INFO - Sequence 16/40: 1.181 seconds
+2024-08-21 11:22:43,033 - utils.utils - INFO - Sequence 17/40: 1.257 seconds
+2024-08-21 11:22:44,379 - utils.utils - INFO - Sequence 18/40: 1.345 seconds
+2024-08-21 11:22:45,798 - utils.utils - INFO - Sequence 19/40: 1.416 seconds
+2024-08-21 11:22:47,289 - utils.utils - INFO - Sequence 20/40: 1.489 seconds
+2024-08-21 11:22:48,854 - utils.utils - INFO - Sequence 21/40: 1.563 seconds
+2024-08-21 11:22:50,491 - utils.utils - INFO - Sequence 22/40: 1.634 seconds
+2024-08-21 11:22:52,213 - utils.utils - INFO - Sequence 23/40: 1.72 seconds
+2024-08-21 11:22:54,012 - utils.utils - INFO - Sequence 24/40: 1.796 seconds
+2024-08-21 11:22:55,902 - utils.utils - INFO - Sequence 25/40: 1.888 seconds
+2024-08-21 11:22:57,864 - utils.utils - INFO - Sequence 26/40: 1.959 seconds
+2024-08-21 11:22:59,973 - utils.utils - INFO - Sequence 27/40: 2.107 seconds
+2024-08-21 11:23:02,115 - utils.utils - INFO - Sequence 28/40: 2.14 seconds
+2024-08-21 11:23:04,338 - utils.utils - INFO - Sequence 29/40: 2.221 seconds
+2024-08-21 11:23:06,678 - utils.utils - INFO - Sequence 30/40: 2.338 seconds
+2024-08-21 11:23:09,103 - utils.utils - INFO - Sequence 31/40: 2.422 seconds
+2024-08-21 11:23:11,565 - utils.utils - INFO - Sequence 32/40: 2.46 seconds
+2024-08-21 11:23:14,119 - utils.utils - INFO - Sequence 33/40: 2.552 seconds
+2024-08-21 11:23:16,768 - utils.utils - INFO - Sequence 34/40: 2.646 seconds
+2024-08-21 11:23:20,526 - utils.utils - INFO - Sequence 35/40: 3.755 seconds
+2024-08-21 11:23:23,394 - utils.utils - INFO - Sequence 36/40: 2.867 seconds
+2024-08-21 11:23:26,287 - utils.utils - INFO - Sequence 37/40: 2.89 seconds
+2024-08-21 11:23:29,283 - utils.utils - INFO - Sequence 38/40: 2.994 seconds
+2024-08-21 11:23:32,372 - utils.utils - INFO - Sequence 39/40: 3.086 seconds
+2024-08-21 11:23:32,374 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.1950257460996373e-09.
+2024-08-21 11:23:32,379 - auditing_test.test - INFO - Now starting experiment for fold 9.
+2024-08-21 11:23:32,390 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:23:33,332 - utils.utils - INFO - Sequence 1/40: 0.932 seconds
+2024-08-21 11:23:33,448 - utils.utils - INFO - Sequence 2/40: 0.114 seconds
+2024-08-21 11:23:33,652 - utils.utils - INFO - Sequence 3/40: 0.202 seconds
+2024-08-21 11:23:33,919 - utils.utils - INFO - Sequence 4/40: 0.265 seconds
+2024-08-21 11:23:34,263 - utils.utils - INFO - Sequence 5/40: 0.342 seconds
+2024-08-21 11:23:34,690 - utils.utils - INFO - Sequence 6/40: 0.425 seconds
+2024-08-21 11:23:35,181 - utils.utils - INFO - Sequence 7/40: 0.49 seconds
+2024-08-21 11:23:35,747 - utils.utils - INFO - Sequence 8/40: 0.564 seconds
+2024-08-21 11:23:36,392 - utils.utils - INFO - Sequence 9/40: 0.643 seconds
+2024-08-21 11:23:37,179 - utils.utils - INFO - Sequence 10/40: 0.785 seconds
+2024-08-21 11:23:37,964 - utils.utils - INFO - Sequence 11/40: 0.782 seconds
+2024-08-21 11:23:38,826 - utils.utils - INFO - Sequence 12/40: 0.86 seconds
+2024-08-21 11:23:41,186 - utils.utils - INFO - Sequence 13/40: 2.358 seconds
+2024-08-21 11:23:42,202 - utils.utils - INFO - Sequence 14/40: 1.014 seconds
+2024-08-21 11:23:43,302 - utils.utils - INFO - Sequence 15/40: 1.097 seconds
+2024-08-21 11:23:44,477 - utils.utils - INFO - Sequence 16/40: 1.173 seconds
+2024-08-21 11:23:45,723 - utils.utils - INFO - Sequence 17/40: 1.244 seconds
+2024-08-21 11:23:47,061 - utils.utils - INFO - Sequence 18/40: 1.336 seconds
+2024-08-21 11:23:48,491 - utils.utils - INFO - Sequence 19/40: 1.427 seconds
+2024-08-21 11:23:49,980 - utils.utils - INFO - Sequence 20/40: 1.488 seconds
+2024-08-21 11:23:51,558 - utils.utils - INFO - Sequence 21/40: 1.576 seconds
+2024-08-21 11:23:53,191 - utils.utils - INFO - Sequence 22/40: 1.63 seconds
+2024-08-21 11:23:54,912 - utils.utils - INFO - Sequence 23/40: 1.718 seconds
+2024-08-21 11:23:56,890 - utils.utils - INFO - Sequence 24/40: 1.976 seconds
+2024-08-21 11:23:58,766 - utils.utils - INFO - Sequence 25/40: 1.873 seconds
+2024-08-21 11:24:00,725 - utils.utils - INFO - Sequence 26/40: 1.957 seconds
+2024-08-21 11:24:02,773 - utils.utils - INFO - Sequence 27/40: 2.046 seconds
+2024-08-21 11:24:04,940 - utils.utils - INFO - Sequence 28/40: 2.165 seconds
+2024-08-21 11:24:07,142 - utils.utils - INFO - Sequence 29/40: 2.199 seconds
+2024-08-21 11:24:09,437 - utils.utils - INFO - Sequence 30/40: 2.293 seconds
+2024-08-21 11:24:12,788 - utils.utils - INFO - Sequence 31/40: 3.348 seconds
+2024-08-21 11:24:15,236 - utils.utils - INFO - Sequence 32/40: 2.446 seconds
+2024-08-21 11:24:21,596 - utils.utils - INFO - Sequence 33/40: 6.357 seconds
+2024-08-21 11:24:24,229 - utils.utils - INFO - Sequence 34/40: 2.631 seconds
+2024-08-21 11:24:26,978 - utils.utils - INFO - Sequence 35/40: 2.746 seconds
+2024-08-21 11:24:29,829 - utils.utils - INFO - Sequence 36/40: 2.848 seconds
+2024-08-21 11:24:32,733 - utils.utils - INFO - Sequence 37/40: 2.902 seconds
+2024-08-21 11:24:35,684 - utils.utils - INFO - Sequence 38/40: 2.949 seconds
+2024-08-21 11:24:38,727 - utils.utils - INFO - Sequence 39/40: 3.041 seconds
+2024-08-21 11:24:38,730 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 5.929612189013902e-15.
+2024-08-21 11:24:38,734 - auditing_test.test - INFO - Now starting experiment for fold 10.
+2024-08-21 11:24:38,746 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:24:39,666 - utils.utils - INFO - Sequence 1/40: 0.91 seconds
+2024-08-21 11:24:39,781 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:24:39,982 - utils.utils - INFO - Sequence 3/40: 0.199 seconds
+2024-08-21 11:24:40,248 - utils.utils - INFO - Sequence 4/40: 0.264 seconds
+2024-08-21 11:24:40,591 - utils.utils - INFO - Sequence 5/40: 0.341 seconds
+2024-08-21 11:24:41,015 - utils.utils - INFO - Sequence 6/40: 0.422 seconds
+2024-08-21 11:24:41,508 - utils.utils - INFO - Sequence 7/40: 0.491 seconds
+2024-08-21 11:24:42,107 - utils.utils - INFO - Sequence 8/40: 0.597 seconds
+2024-08-21 11:24:43,138 - utils.utils - INFO - Sequence 9/40: 1.029 seconds
+2024-08-21 11:24:43,854 - utils.utils - INFO - Sequence 10/40: 0.714 seconds
+2024-08-21 11:24:44,643 - utils.utils - INFO - Sequence 11/40: 0.787 seconds
+2024-08-21 11:24:45,516 - utils.utils - INFO - Sequence 12/40: 0.871 seconds
+2024-08-21 11:24:46,454 - utils.utils - INFO - Sequence 13/40: 0.936 seconds
+2024-08-21 11:24:47,471 - utils.utils - INFO - Sequence 14/40: 1.014 seconds
+2024-08-21 11:24:48,570 - utils.utils - INFO - Sequence 15/40: 1.097 seconds
+2024-08-21 11:24:49,746 - utils.utils - INFO - Sequence 16/40: 1.173 seconds
+2024-08-21 11:24:52,008 - utils.utils - INFO - Sequence 17/40: 2.26 seconds
+2024-08-21 11:24:53,362 - utils.utils - INFO - Sequence 18/40: 1.351 seconds
+2024-08-21 11:24:54,766 - utils.utils - INFO - Sequence 19/40: 1.402 seconds
+2024-08-21 11:24:56,256 - utils.utils - INFO - Sequence 20/40: 1.487 seconds
+2024-08-21 11:24:57,821 - utils.utils - INFO - Sequence 21/40: 1.563 seconds
+2024-08-21 11:24:59,494 - utils.utils - INFO - Sequence 22/40: 1.671 seconds
+2024-08-21 11:25:01,235 - utils.utils - INFO - Sequence 23/40: 1.738 seconds
+2024-08-21 11:25:03,059 - utils.utils - INFO - Sequence 24/40: 1.822 seconds
+2024-08-21 11:25:04,943 - utils.utils - INFO - Sequence 25/40: 1.882 seconds
+2024-08-21 11:25:06,916 - utils.utils - INFO - Sequence 26/40: 1.971 seconds
+2024-08-21 11:25:08,970 - utils.utils - INFO - Sequence 27/40: 2.051 seconds
+2024-08-21 11:25:11,116 - utils.utils - INFO - Sequence 28/40: 2.143 seconds
+2024-08-21 11:25:13,340 - utils.utils - INFO - Sequence 29/40: 2.222 seconds
+2024-08-21 11:25:15,661 - utils.utils - INFO - Sequence 30/40: 2.318 seconds
+2024-08-21 11:25:18,093 - utils.utils - INFO - Sequence 31/40: 2.429 seconds
+2024-08-21 11:25:20,409 - utils.utils - INFO - Sequence 32/40: 2.314 seconds
+2024-08-21 11:25:22,679 - utils.utils - INFO - Sequence 33/40: 2.267 seconds
+2024-08-21 11:25:25,020 - utils.utils - INFO - Sequence 34/40: 2.339 seconds
+2024-08-21 11:25:27,572 - utils.utils - INFO - Sequence 35/40: 2.55 seconds
+2024-08-21 11:25:30,371 - utils.utils - INFO - Sequence 36/40: 2.796 seconds
+2024-08-21 11:25:33,252 - utils.utils - INFO - Sequence 37/40: 2.879 seconds
+2024-08-21 11:25:36,232 - utils.utils - INFO - Sequence 38/40: 2.977 seconds
+2024-08-21 11:25:39,312 - utils.utils - INFO - Sequence 39/40: 3.077 seconds
+2024-08-21 11:25:39,314 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.970663918362193e-05.
+2024-08-21 11:25:39,319 - auditing_test.test - INFO - Now starting experiment for fold 11.
+2024-08-21 11:25:39,331 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:25:40,257 - utils.utils - INFO - Sequence 1/40: 0.916 seconds
+2024-08-21 11:25:40,374 - utils.utils - INFO - Sequence 2/40: 0.115 seconds
+2024-08-21 11:25:40,580 - utils.utils - INFO - Sequence 3/40: 0.204 seconds
+2024-08-21 11:25:40,853 - utils.utils - INFO - Sequence 4/40: 0.271 seconds
+2024-08-21 11:25:41,198 - utils.utils - INFO - Sequence 5/40: 0.343 seconds
+2024-08-21 11:25:41,619 - utils.utils - INFO - Sequence 6/40: 0.419 seconds
+2024-08-21 11:25:42,066 - utils.utils - INFO - Sequence 7/40: 0.444 seconds
+2024-08-21 11:25:42,556 - utils.utils - INFO - Sequence 8/40: 0.488 seconds
+2024-08-21 11:25:43,113 - utils.utils - INFO - Sequence 9/40: 0.555 seconds
+2024-08-21 11:25:43,739 - utils.utils - INFO - Sequence 10/40: 0.624 seconds
+2024-08-21 11:25:44,428 - utils.utils - INFO - Sequence 11/40: 0.687 seconds
+2024-08-21 11:25:45,235 - utils.utils - INFO - Sequence 12/40: 0.806 seconds
+2024-08-21 11:25:46,179 - utils.utils - INFO - Sequence 13/40: 0.941 seconds
+2024-08-21 11:25:47,214 - utils.utils - INFO - Sequence 14/40: 1.033 seconds
+2024-08-21 11:25:48,333 - utils.utils - INFO - Sequence 15/40: 1.116 seconds
+2024-08-21 11:25:49,508 - utils.utils - INFO - Sequence 16/40: 1.172 seconds
+2024-08-21 11:25:50,764 - utils.utils - INFO - Sequence 17/40: 1.254 seconds
+2024-08-21 11:25:52,124 - utils.utils - INFO - Sequence 18/40: 1.357 seconds
+2024-08-21 11:25:53,539 - utils.utils - INFO - Sequence 19/40: 1.414 seconds
+2024-08-21 11:25:55,050 - utils.utils - INFO - Sequence 20/40: 1.508 seconds
+2024-08-21 11:25:56,609 - utils.utils - INFO - Sequence 21/40: 1.557 seconds
+2024-08-21 11:25:58,249 - utils.utils - INFO - Sequence 22/40: 1.637 seconds
+2024-08-21 11:26:00,210 - utils.utils - INFO - Sequence 23/40: 1.959 seconds
+2024-08-21 11:26:02,026 - utils.utils - INFO - Sequence 24/40: 1.814 seconds
+2024-08-21 11:26:03,920 - utils.utils - INFO - Sequence 25/40: 1.892 seconds
+2024-08-21 11:26:05,934 - utils.utils - INFO - Sequence 26/40: 2.011 seconds
+2024-08-21 11:26:07,975 - utils.utils - INFO - Sequence 27/40: 2.038 seconds
+2024-08-21 11:26:10,103 - utils.utils - INFO - Sequence 28/40: 2.126 seconds
+2024-08-21 11:26:12,318 - utils.utils - INFO - Sequence 29/40: 2.212 seconds
+2024-08-21 11:26:14,666 - utils.utils - INFO - Sequence 30/40: 2.346 seconds
+2024-08-21 11:26:17,046 - utils.utils - INFO - Sequence 31/40: 2.377 seconds
+2024-08-21 11:26:19,547 - utils.utils - INFO - Sequence 32/40: 2.498 seconds
+2024-08-21 11:26:22,192 - utils.utils - INFO - Sequence 33/40: 2.642 seconds
+2024-08-21 11:26:24,909 - utils.utils - INFO - Sequence 34/40: 2.715 seconds
+2024-08-21 11:26:27,687 - utils.utils - INFO - Sequence 35/40: 2.776 seconds
+2024-08-21 11:26:30,503 - utils.utils - INFO - Sequence 36/40: 2.814 seconds
+2024-08-21 11:26:33,245 - utils.utils - INFO - Sequence 37/40: 2.74 seconds
+2024-08-21 11:26:35,879 - utils.utils - INFO - Sequence 38/40: 2.631 seconds
+2024-08-21 11:26:38,656 - utils.utils - INFO - Sequence 39/40: 2.774 seconds
+2024-08-21 11:26:38,658 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 3.595620900121934e-11.
+2024-08-21 11:26:38,663 - auditing_test.test - INFO - Now starting experiment for fold 12.
+2024-08-21 11:26:38,676 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:26:39,452 - utils.utils - INFO - Sequence 1/40: 0.765 seconds
+2024-08-21 11:26:39,568 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:26:39,771 - utils.utils - INFO - Sequence 3/40: 0.201 seconds
+2024-08-21 11:26:40,037 - utils.utils - INFO - Sequence 4/40: 0.264 seconds
+2024-08-21 11:26:40,377 - utils.utils - INFO - Sequence 5/40: 0.338 seconds
+2024-08-21 11:26:40,798 - utils.utils - INFO - Sequence 6/40: 0.418 seconds
+2024-08-21 11:26:41,287 - utils.utils - INFO - Sequence 7/40: 0.487 seconds
+2024-08-21 11:26:41,855 - utils.utils - INFO - Sequence 8/40: 0.566 seconds
+2024-08-21 11:26:42,499 - utils.utils - INFO - Sequence 9/40: 0.642 seconds
+2024-08-21 11:26:43,209 - utils.utils - INFO - Sequence 10/40: 0.709 seconds
+2024-08-21 11:26:43,998 - utils.utils - INFO - Sequence 11/40: 0.787 seconds
+2024-08-21 11:26:44,862 - utils.utils - INFO - Sequence 12/40: 0.861 seconds
+2024-08-21 11:26:45,801 - utils.utils - INFO - Sequence 13/40: 0.937 seconds
+2024-08-21 11:26:46,832 - utils.utils - INFO - Sequence 14/40: 1.028 seconds
+2024-08-21 11:26:47,931 - utils.utils - INFO - Sequence 15/40: 1.097 seconds
+2024-08-21 11:26:49,124 - utils.utils - INFO - Sequence 16/40: 1.191 seconds
+2024-08-21 11:26:50,371 - utils.utils - INFO - Sequence 17/40: 1.245 seconds
+2024-08-21 11:26:51,695 - utils.utils - INFO - Sequence 18/40: 1.321 seconds
+2024-08-21 11:26:53,099 - utils.utils - INFO - Sequence 19/40: 1.402 seconds
+2024-08-21 11:26:54,586 - utils.utils - INFO - Sequence 20/40: 1.485 seconds
+2024-08-21 11:26:56,150 - utils.utils - INFO - Sequence 21/40: 1.562 seconds
+2024-08-21 11:26:57,788 - utils.utils - INFO - Sequence 22/40: 1.635 seconds
+2024-08-21 11:26:59,516 - utils.utils - INFO - Sequence 23/40: 1.725 seconds
+2024-08-21 11:27:01,321 - utils.utils - INFO - Sequence 24/40: 1.802 seconds
+2024-08-21 11:27:03,207 - utils.utils - INFO - Sequence 25/40: 1.884 seconds
+2024-08-21 11:27:05,171 - utils.utils - INFO - Sequence 26/40: 1.962 seconds
+2024-08-21 11:27:07,228 - utils.utils - INFO - Sequence 27/40: 2.055 seconds
+2024-08-21 11:27:09,355 - utils.utils - INFO - Sequence 28/40: 2.125 seconds
+2024-08-21 11:27:11,543 - utils.utils - INFO - Sequence 29/40: 2.185 seconds
+2024-08-21 11:27:13,808 - utils.utils - INFO - Sequence 30/40: 2.263 seconds
+2024-08-21 11:27:16,184 - utils.utils - INFO - Sequence 31/40: 2.374 seconds
+2024-08-21 11:27:18,649 - utils.utils - INFO - Sequence 32/40: 2.463 seconds
+2024-08-21 11:27:21,239 - utils.utils - INFO - Sequence 33/40: 2.587 seconds
+2024-08-21 11:27:23,872 - utils.utils - INFO - Sequence 34/40: 2.63 seconds
+2024-08-21 11:27:26,605 - utils.utils - INFO - Sequence 35/40: 2.731 seconds
+2024-08-21 11:27:29,380 - utils.utils - INFO - Sequence 36/40: 2.773 seconds
+2024-08-21 11:27:32,333 - utils.utils - INFO - Sequence 37/40: 2.951 seconds
+2024-08-21 11:27:35,298 - utils.utils - INFO - Sequence 38/40: 2.963 seconds
+2024-08-21 11:27:38,380 - utils.utils - INFO - Sequence 39/40: 3.079 seconds
+2024-08-21 11:27:38,382 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.5224531129700856e-11.
+2024-08-21 11:27:38,387 - auditing_test.test - INFO - Now starting experiment for fold 13.
+2024-08-21 11:27:38,399 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:27:39,313 - utils.utils - INFO - Sequence 1/40: 0.904 seconds
+2024-08-21 11:27:39,428 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:27:39,632 - utils.utils - INFO - Sequence 3/40: 0.201 seconds
+2024-08-21 11:27:39,894 - utils.utils - INFO - Sequence 4/40: 0.26 seconds
+2024-08-21 11:27:40,232 - utils.utils - INFO - Sequence 5/40: 0.336 seconds
+2024-08-21 11:27:40,647 - utils.utils - INFO - Sequence 6/40: 0.413 seconds
+2024-08-21 11:27:41,136 - utils.utils - INFO - Sequence 7/40: 0.487 seconds
+2024-08-21 11:27:41,699 - utils.utils - INFO - Sequence 8/40: 0.56 seconds
+2024-08-21 11:27:42,343 - utils.utils - INFO - Sequence 9/40: 0.642 seconds
+2024-08-21 11:27:43,064 - utils.utils - INFO - Sequence 10/40: 0.718 seconds
+2024-08-21 11:27:44,167 - utils.utils - INFO - Sequence 11/40: 1.101 seconds
+2024-08-21 11:27:45,223 - utils.utils - INFO - Sequence 12/40: 1.053 seconds
+2024-08-21 11:27:46,164 - utils.utils - INFO - Sequence 13/40: 0.939 seconds
+2024-08-21 11:27:47,196 - utils.utils - INFO - Sequence 14/40: 1.03 seconds
+2024-08-21 11:27:48,317 - utils.utils - INFO - Sequence 15/40: 1.119 seconds
+2024-08-21 11:27:49,487 - utils.utils - INFO - Sequence 16/40: 1.167 seconds
+2024-08-21 11:27:50,887 - utils.utils - INFO - Sequence 17/40: 1.398 seconds
+2024-08-21 11:27:52,208 - utils.utils - INFO - Sequence 18/40: 1.319 seconds
+2024-08-21 11:27:53,614 - utils.utils - INFO - Sequence 19/40: 1.403 seconds
+2024-08-21 11:27:55,113 - utils.utils - INFO - Sequence 20/40: 1.497 seconds
+2024-08-21 11:27:56,671 - utils.utils - INFO - Sequence 21/40: 1.556 seconds
+2024-08-21 11:27:58,309 - utils.utils - INFO - Sequence 22/40: 1.636 seconds
+2024-08-21 11:28:00,028 - utils.utils - INFO - Sequence 23/40: 1.717 seconds
+2024-08-21 11:28:08,270 - utils.utils - INFO - Sequence 24/40: 8.239 seconds
+2024-08-21 11:28:10,151 - utils.utils - INFO - Sequence 25/40: 1.878 seconds
+2024-08-21 11:28:12,168 - utils.utils - INFO - Sequence 26/40: 2.015 seconds
+2024-08-21 11:28:14,236 - utils.utils - INFO - Sequence 27/40: 2.066 seconds
+2024-08-21 11:28:16,402 - utils.utils - INFO - Sequence 28/40: 2.164 seconds
+2024-08-21 11:28:18,679 - utils.utils - INFO - Sequence 29/40: 2.273 seconds
+2024-08-21 11:28:20,989 - utils.utils - INFO - Sequence 30/40: 2.308 seconds
+2024-08-21 11:28:28,119 - utils.utils - INFO - Sequence 31/40: 7.128 seconds
+2024-08-21 11:28:30,573 - utils.utils - INFO - Sequence 32/40: 2.451 seconds
+2024-08-21 11:28:33,095 - utils.utils - INFO - Sequence 33/40: 2.52 seconds
+2024-08-21 11:28:35,734 - utils.utils - INFO - Sequence 34/40: 2.637 seconds
+2024-08-21 11:28:38,449 - utils.utils - INFO - Sequence 35/40: 2.712 seconds
+2024-08-21 11:28:41,238 - utils.utils - INFO - Sequence 36/40: 2.787 seconds
+2024-08-21 11:28:44,125 - utils.utils - INFO - Sequence 37/40: 2.884 seconds
+2024-08-21 11:28:47,110 - utils.utils - INFO - Sequence 38/40: 2.982 seconds
+2024-08-21 11:28:50,189 - utils.utils - INFO - Sequence 39/40: 3.077 seconds
+2024-08-21 11:28:50,192 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.2836060900537104e-05.
+2024-08-21 11:28:50,197 - auditing_test.test - INFO - Now starting experiment for fold 14.
+2024-08-21 11:28:50,209 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:28:51,133 - utils.utils - INFO - Sequence 1/40: 0.914 seconds
+2024-08-21 11:28:51,691 - utils.utils - INFO - Sequence 2/40: 0.555 seconds
+2024-08-21 11:28:51,897 - utils.utils - INFO - Sequence 3/40: 0.204 seconds
+2024-08-21 11:28:52,927 - utils.utils - INFO - Sequence 4/40: 1.027 seconds
+2024-08-21 11:28:53,271 - utils.utils - INFO - Sequence 5/40: 0.341 seconds
+2024-08-21 11:28:53,697 - utils.utils - INFO - Sequence 6/40: 0.424 seconds
+2024-08-21 11:28:54,196 - utils.utils - INFO - Sequence 7/40: 0.496 seconds
+2024-08-21 11:28:54,784 - utils.utils - INFO - Sequence 8/40: 0.586 seconds
+2024-08-21 11:28:55,431 - utils.utils - INFO - Sequence 9/40: 0.644 seconds
+2024-08-21 11:28:56,147 - utils.utils - INFO - Sequence 10/40: 0.714 seconds
+2024-08-21 11:28:56,959 - utils.utils - INFO - Sequence 11/40: 0.81 seconds
+2024-08-21 11:28:57,853 - utils.utils - INFO - Sequence 12/40: 0.891 seconds
+2024-08-21 11:28:58,800 - utils.utils - INFO - Sequence 13/40: 0.944 seconds
+2024-08-21 11:28:59,828 - utils.utils - INFO - Sequence 14/40: 1.026 seconds
+2024-08-21 11:29:00,953 - utils.utils - INFO - Sequence 15/40: 1.123 seconds
+2024-08-21 11:29:02,136 - utils.utils - INFO - Sequence 16/40: 1.181 seconds
+2024-08-21 11:29:03,390 - utils.utils - INFO - Sequence 17/40: 1.252 seconds
+2024-08-21 11:29:04,727 - utils.utils - INFO - Sequence 18/40: 1.334 seconds
+2024-08-21 11:29:06,142 - utils.utils - INFO - Sequence 19/40: 1.412 seconds
+2024-08-21 11:29:07,645 - utils.utils - INFO - Sequence 20/40: 1.501 seconds
+2024-08-21 11:29:09,227 - utils.utils - INFO - Sequence 21/40: 1.579 seconds
+2024-08-21 11:29:11,070 - utils.utils - INFO - Sequence 22/40: 1.84 seconds
+2024-08-21 11:29:12,833 - utils.utils - INFO - Sequence 23/40: 1.761 seconds
+2024-08-21 11:29:14,621 - utils.utils - INFO - Sequence 24/40: 1.786 seconds
+2024-08-21 11:29:16,534 - utils.utils - INFO - Sequence 25/40: 1.911 seconds
+2024-08-21 11:29:18,517 - utils.utils - INFO - Sequence 26/40: 1.98 seconds
+2024-08-21 11:29:20,608 - utils.utils - INFO - Sequence 27/40: 2.089 seconds
+2024-08-21 11:29:22,759 - utils.utils - INFO - Sequence 28/40: 2.148 seconds
+2024-08-21 11:29:26,968 - utils.utils - INFO - Sequence 29/40: 4.207 seconds
+2024-08-21 11:29:29,256 - utils.utils - INFO - Sequence 30/40: 2.286 seconds
+2024-08-21 11:29:31,629 - utils.utils - INFO - Sequence 31/40: 2.371 seconds
+2024-08-21 11:29:34,076 - utils.utils - INFO - Sequence 32/40: 2.445 seconds
+2024-08-21 11:29:36,614 - utils.utils - INFO - Sequence 33/40: 2.536 seconds
+2024-08-21 11:29:39,234 - utils.utils - INFO - Sequence 34/40: 2.617 seconds
+2024-08-21 11:29:41,944 - utils.utils - INFO - Sequence 35/40: 2.708 seconds
+2024-08-21 11:29:44,725 - utils.utils - INFO - Sequence 36/40: 2.779 seconds
+2024-08-21 11:29:47,599 - utils.utils - INFO - Sequence 37/40: 2.872 seconds
+2024-08-21 11:29:51,181 - utils.utils - INFO - Sequence 38/40: 3.579 seconds
+2024-08-21 11:29:54,272 - utils.utils - INFO - Sequence 39/40: 3.088 seconds
+2024-08-21 11:29:54,274 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 0.3024956270255362.
+2024-08-21 11:29:54,279 - auditing_test.test - INFO - Now starting experiment for fold 15.
+2024-08-21 11:29:54,290 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:29:54,977 - utils.utils - INFO - Sequence 1/40: 0.677 seconds
+2024-08-21 11:29:55,614 - utils.utils - INFO - Sequence 2/40: 0.635 seconds
+2024-08-21 11:29:55,820 - utils.utils - INFO - Sequence 3/40: 0.203 seconds
+2024-08-21 11:29:56,956 - utils.utils - INFO - Sequence 4/40: 1.134 seconds
+2024-08-21 11:29:57,299 - utils.utils - INFO - Sequence 5/40: 0.341 seconds
+2024-08-21 11:29:57,758 - utils.utils - INFO - Sequence 6/40: 0.457 seconds
+2024-08-21 11:29:59,303 - utils.utils - INFO - Sequence 7/40: 1.543 seconds
+2024-08-21 11:29:59,870 - utils.utils - INFO - Sequence 8/40: 0.565 seconds
+2024-08-21 11:30:00,551 - utils.utils - INFO - Sequence 9/40: 0.679 seconds
+2024-08-21 11:30:01,300 - utils.utils - INFO - Sequence 10/40: 0.746 seconds
+2024-08-21 11:30:02,094 - utils.utils - INFO - Sequence 11/40: 0.791 seconds
+2024-08-21 11:30:02,960 - utils.utils - INFO - Sequence 12/40: 0.863 seconds
+2024-08-21 11:30:05,670 - utils.utils - INFO - Sequence 13/40: 2.708 seconds
+2024-08-21 11:30:06,692 - utils.utils - INFO - Sequence 14/40: 1.019 seconds
+2024-08-21 11:30:07,788 - utils.utils - INFO - Sequence 15/40: 1.094 seconds
+2024-08-21 11:30:08,944 - utils.utils - INFO - Sequence 16/40: 1.154 seconds
+2024-08-21 11:30:10,182 - utils.utils - INFO - Sequence 17/40: 1.236 seconds
+2024-08-21 11:30:11,500 - utils.utils - INFO - Sequence 18/40: 1.316 seconds
+2024-08-21 11:30:12,891 - utils.utils - INFO - Sequence 19/40: 1.388 seconds
+2024-08-21 11:30:14,367 - utils.utils - INFO - Sequence 20/40: 1.474 seconds
+2024-08-21 11:30:15,917 - utils.utils - INFO - Sequence 21/40: 1.548 seconds
+2024-08-21 11:30:17,546 - utils.utils - INFO - Sequence 22/40: 1.627 seconds
+2024-08-21 11:30:19,258 - utils.utils - INFO - Sequence 23/40: 1.71 seconds
+2024-08-21 11:30:21,055 - utils.utils - INFO - Sequence 24/40: 1.795 seconds
+2024-08-21 11:30:22,959 - utils.utils - INFO - Sequence 25/40: 1.902 seconds
+2024-08-21 11:30:24,918 - utils.utils - INFO - Sequence 26/40: 1.957 seconds
+2024-08-21 11:30:26,785 - utils.utils - INFO - Sequence 27/40: 1.864 seconds
+2024-08-21 11:30:28,690 - utils.utils - INFO - Sequence 28/40: 1.903 seconds
+2024-08-21 11:30:30,973 - utils.utils - INFO - Sequence 29/40: 2.28 seconds
+2024-08-21 11:30:33,280 - utils.utils - INFO - Sequence 30/40: 2.305 seconds
+2024-08-21 11:30:35,532 - utils.utils - INFO - Sequence 31/40: 2.25 seconds
+2024-08-21 11:30:37,993 - utils.utils - INFO - Sequence 32/40: 2.458 seconds
+2024-08-21 11:30:40,520 - utils.utils - INFO - Sequence 33/40: 2.525 seconds
+2024-08-21 11:30:43,156 - utils.utils - INFO - Sequence 34/40: 2.633 seconds
+2024-08-21 11:30:45,855 - utils.utils - INFO - Sequence 35/40: 2.697 seconds
+2024-08-21 11:30:48,670 - utils.utils - INFO - Sequence 36/40: 2.813 seconds
+2024-08-21 11:30:51,548 - utils.utils - INFO - Sequence 37/40: 2.876 seconds
+2024-08-21 11:30:54,537 - utils.utils - INFO - Sequence 38/40: 2.987 seconds
+2024-08-21 11:30:57,615 - utils.utils - INFO - Sequence 39/40: 3.075 seconds
+2024-08-21 11:30:57,618 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 4.899547318329494e-07.
+2024-08-21 11:30:57,622 - auditing_test.test - INFO - Now starting experiment for fold 16.
+2024-08-21 11:30:57,634 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:30:58,549 - utils.utils - INFO - Sequence 1/40: 0.905 seconds
+2024-08-21 11:30:58,663 - utils.utils - INFO - Sequence 2/40: 0.112 seconds
+2024-08-21 11:30:58,872 - utils.utils - INFO - Sequence 3/40: 0.206 seconds
+2024-08-21 11:30:59,134 - utils.utils - INFO - Sequence 4/40: 0.26 seconds
+2024-08-21 11:30:59,476 - utils.utils - INFO - Sequence 5/40: 0.34 seconds
+2024-08-21 11:31:00,651 - utils.utils - INFO - Sequence 6/40: 1.173 seconds
+2024-08-21 11:31:01,681 - utils.utils - INFO - Sequence 7/40: 1.027 seconds
+2024-08-21 11:31:02,250 - utils.utils - INFO - Sequence 8/40: 0.567 seconds
+2024-08-21 11:31:02,889 - utils.utils - INFO - Sequence 9/40: 0.636 seconds
+2024-08-21 11:31:03,608 - utils.utils - INFO - Sequence 10/40: 0.717 seconds
+2024-08-21 11:31:04,424 - utils.utils - INFO - Sequence 11/40: 0.813 seconds
+2024-08-21 11:31:05,292 - utils.utils - INFO - Sequence 12/40: 0.866 seconds
+2024-08-21 11:31:06,257 - utils.utils - INFO - Sequence 13/40: 0.963 seconds
+2024-08-21 11:31:07,286 - utils.utils - INFO - Sequence 14/40: 1.027 seconds
+2024-08-21 11:31:08,384 - utils.utils - INFO - Sequence 15/40: 1.095 seconds
+2024-08-21 11:31:09,556 - utils.utils - INFO - Sequence 16/40: 1.17 seconds
+2024-08-21 11:31:10,822 - utils.utils - INFO - Sequence 17/40: 1.263 seconds
+2024-08-21 11:31:12,165 - utils.utils - INFO - Sequence 18/40: 1.341 seconds
+2024-08-21 11:31:13,626 - utils.utils - INFO - Sequence 19/40: 1.459 seconds
+2024-08-21 11:31:15,126 - utils.utils - INFO - Sequence 20/40: 1.498 seconds
+2024-08-21 11:31:16,713 - utils.utils - INFO - Sequence 21/40: 1.584 seconds
+2024-08-21 11:31:18,384 - utils.utils - INFO - Sequence 22/40: 1.668 seconds
+2024-08-21 11:31:20,153 - utils.utils - INFO - Sequence 23/40: 1.767 seconds
+2024-08-21 11:31:21,989 - utils.utils - INFO - Sequence 24/40: 1.834 seconds
+2024-08-21 11:31:23,888 - utils.utils - INFO - Sequence 25/40: 1.896 seconds
+2024-08-21 11:31:25,873 - utils.utils - INFO - Sequence 26/40: 1.983 seconds
+2024-08-21 11:31:27,970 - utils.utils - INFO - Sequence 27/40: 2.094 seconds
+2024-08-21 11:31:30,129 - utils.utils - INFO - Sequence 28/40: 2.156 seconds
+2024-08-21 11:31:32,340 - utils.utils - INFO - Sequence 29/40: 2.209 seconds
+2024-08-21 11:31:34,699 - utils.utils - INFO - Sequence 30/40: 2.357 seconds
+2024-08-21 11:31:40,450 - utils.utils - INFO - Sequence 31/40: 5.749 seconds
+2024-08-21 11:31:42,903 - utils.utils - INFO - Sequence 32/40: 2.45 seconds
+2024-08-21 11:31:45,435 - utils.utils - INFO - Sequence 33/40: 2.529 seconds
+2024-08-21 11:31:48,081 - utils.utils - INFO - Sequence 34/40: 2.644 seconds
+2024-08-21 11:31:50,773 - utils.utils - INFO - Sequence 35/40: 2.691 seconds
+2024-08-21 11:31:53,569 - utils.utils - INFO - Sequence 36/40: 2.793 seconds
+2024-08-21 11:31:56,450 - utils.utils - INFO - Sequence 37/40: 2.879 seconds
+2024-08-21 11:31:59,431 - utils.utils - INFO - Sequence 38/40: 2.978 seconds
+2024-08-21 11:32:02,524 - utils.utils - INFO - Sequence 39/40: 3.091 seconds
+2024-08-21 11:32:02,527 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 5.099900100418461e-10.
+2024-08-21 11:32:02,533 - auditing_test.test - INFO - Now starting experiment for fold 17.
+2024-08-21 11:32:02,546 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:32:02,708 - utils.utils - INFO - Sequence 1/40: 0.15 seconds
+2024-08-21 11:32:03,292 - utils.utils - INFO - Sequence 2/40: 0.581 seconds
+2024-08-21 11:32:03,721 - utils.utils - INFO - Sequence 3/40: 0.426 seconds
+2024-08-21 11:32:04,001 - utils.utils - INFO - Sequence 4/40: 0.277 seconds
+2024-08-21 11:32:04,712 - utils.utils - INFO - Sequence 5/40: 0.707 seconds
+2024-08-21 11:32:05,125 - utils.utils - INFO - Sequence 6/40: 0.411 seconds
+2024-08-21 11:32:05,557 - utils.utils - INFO - Sequence 7/40: 0.429 seconds
+2024-08-21 11:32:06,041 - utils.utils - INFO - Sequence 8/40: 0.482 seconds
+2024-08-21 11:32:06,590 - utils.utils - INFO - Sequence 9/40: 0.547 seconds
+2024-08-21 11:32:07,247 - utils.utils - INFO - Sequence 10/40: 0.654 seconds
+2024-08-21 11:32:08,049 - utils.utils - INFO - Sequence 11/40: 0.8 seconds
+2024-08-21 11:32:09,254 - utils.utils - INFO - Sequence 12/40: 1.203 seconds
+2024-08-21 11:32:10,206 - utils.utils - INFO - Sequence 13/40: 0.95 seconds
+2024-08-21 11:32:11,241 - utils.utils - INFO - Sequence 14/40: 1.032 seconds
+2024-08-21 11:32:12,340 - utils.utils - INFO - Sequence 15/40: 1.097 seconds
+2024-08-21 11:32:13,518 - utils.utils - INFO - Sequence 16/40: 1.176 seconds
+2024-08-21 11:32:14,768 - utils.utils - INFO - Sequence 17/40: 1.248 seconds
+2024-08-21 11:32:16,121 - utils.utils - INFO - Sequence 18/40: 1.351 seconds
+2024-08-21 11:32:17,528 - utils.utils - INFO - Sequence 19/40: 1.405 seconds
+2024-08-21 11:32:19,067 - utils.utils - INFO - Sequence 20/40: 1.537 seconds
+2024-08-21 11:32:20,663 - utils.utils - INFO - Sequence 21/40: 1.592 seconds
+2024-08-21 11:32:22,308 - utils.utils - INFO - Sequence 22/40: 1.643 seconds
+2024-08-21 11:32:24,060 - utils.utils - INFO - Sequence 23/40: 1.75 seconds
+2024-08-21 11:32:25,900 - utils.utils - INFO - Sequence 24/40: 1.838 seconds
+2024-08-21 11:32:27,819 - utils.utils - INFO - Sequence 25/40: 1.917 seconds
+2024-08-21 11:32:29,783 - utils.utils - INFO - Sequence 26/40: 1.962 seconds
+2024-08-21 11:32:31,824 - utils.utils - INFO - Sequence 27/40: 2.038 seconds
+2024-08-21 11:32:34,040 - utils.utils - INFO - Sequence 28/40: 2.214 seconds
+2024-08-21 11:32:36,261 - utils.utils - INFO - Sequence 29/40: 2.218 seconds
+2024-08-21 11:32:38,587 - utils.utils - INFO - Sequence 30/40: 2.324 seconds
+2024-08-21 11:32:40,958 - utils.utils - INFO - Sequence 31/40: 2.368 seconds
+2024-08-21 11:32:43,508 - utils.utils - INFO - Sequence 32/40: 2.548 seconds
+2024-08-21 11:32:46,067 - utils.utils - INFO - Sequence 33/40: 2.556 seconds
+2024-08-21 11:32:48,714 - utils.utils - INFO - Sequence 34/40: 2.644 seconds
+2024-08-21 11:32:51,440 - utils.utils - INFO - Sequence 35/40: 2.724 seconds
+2024-08-21 11:32:54,252 - utils.utils - INFO - Sequence 36/40: 2.81 seconds
+2024-08-21 11:32:57,200 - utils.utils - INFO - Sequence 37/40: 2.946 seconds
+2024-08-21 11:33:00,234 - utils.utils - INFO - Sequence 38/40: 3.031 seconds
+2024-08-21 11:33:03,387 - utils.utils - INFO - Sequence 39/40: 3.151 seconds
+2024-08-21 11:33:03,391 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.1134494249521696e-14.
+2024-08-21 11:33:03,396 - auditing_test.test - INFO - Now starting experiment for fold 18.
+2024-08-21 11:33:03,410 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:33:03,615 - utils.utils - INFO - Sequence 1/40: 0.193 seconds
+2024-08-21 11:33:04,650 - utils.utils - INFO - Sequence 2/40: 1.033 seconds
+2024-08-21 11:33:04,855 - utils.utils - INFO - Sequence 3/40: 0.203 seconds
+2024-08-21 11:33:05,122 - utils.utils - INFO - Sequence 4/40: 0.265 seconds
+2024-08-21 11:33:05,469 - utils.utils - INFO - Sequence 5/40: 0.344 seconds
+2024-08-21 11:33:05,892 - utils.utils - INFO - Sequence 6/40: 0.421 seconds
+2024-08-21 11:33:06,385 - utils.utils - INFO - Sequence 7/40: 0.49 seconds
+2024-08-21 11:33:06,975 - utils.utils - INFO - Sequence 8/40: 0.588 seconds
+2024-08-21 11:33:07,643 - utils.utils - INFO - Sequence 9/40: 0.664 seconds
+2024-08-21 11:33:08,379 - utils.utils - INFO - Sequence 10/40: 0.734 seconds
+2024-08-21 11:33:09,174 - utils.utils - INFO - Sequence 11/40: 0.793 seconds
+2024-08-21 11:33:10,040 - utils.utils - INFO - Sequence 12/40: 0.864 seconds
+2024-08-21 11:33:10,985 - utils.utils - INFO - Sequence 13/40: 0.942 seconds
+2024-08-21 11:33:12,011 - utils.utils - INFO - Sequence 14/40: 1.024 seconds
+2024-08-21 11:33:13,111 - utils.utils - INFO - Sequence 15/40: 1.098 seconds
+2024-08-21 11:33:14,288 - utils.utils - INFO - Sequence 16/40: 1.174 seconds
+2024-08-21 11:33:15,545 - utils.utils - INFO - Sequence 17/40: 1.255 seconds
+2024-08-21 11:33:16,881 - utils.utils - INFO - Sequence 18/40: 1.333 seconds
+2024-08-21 11:33:18,301 - utils.utils - INFO - Sequence 19/40: 1.418 seconds
+2024-08-21 11:33:19,772 - utils.utils - INFO - Sequence 20/40: 1.469 seconds
+2024-08-21 11:33:21,336 - utils.utils - INFO - Sequence 21/40: 1.561 seconds
+2024-08-21 11:33:22,995 - utils.utils - INFO - Sequence 22/40: 1.657 seconds
+2024-08-21 11:33:24,718 - utils.utils - INFO - Sequence 23/40: 1.72 seconds
+2024-08-21 11:33:26,531 - utils.utils - INFO - Sequence 24/40: 1.811 seconds
+2024-08-21 11:33:28,414 - utils.utils - INFO - Sequence 25/40: 1.881 seconds
+2024-08-21 11:33:30,367 - utils.utils - INFO - Sequence 26/40: 1.95 seconds
+2024-08-21 11:33:32,408 - utils.utils - INFO - Sequence 27/40: 2.039 seconds
+2024-08-21 11:33:34,535 - utils.utils - INFO - Sequence 28/40: 2.124 seconds
+2024-08-21 11:33:36,753 - utils.utils - INFO - Sequence 29/40: 2.215 seconds
+2024-08-21 11:33:38,859 - utils.utils - INFO - Sequence 30/40: 2.104 seconds
+2024-08-21 11:33:42,411 - utils.utils - INFO - Sequence 31/40: 3.549 seconds
+2024-08-21 11:33:45,354 - utils.utils - INFO - Sequence 32/40: 2.941 seconds
+2024-08-21 11:33:47,886 - utils.utils - INFO - Sequence 33/40: 2.53 seconds
+2024-08-21 11:33:50,513 - utils.utils - INFO - Sequence 34/40: 2.625 seconds
+2024-08-21 11:33:53,218 - utils.utils - INFO - Sequence 35/40: 2.703 seconds
+2024-08-21 11:33:56,028 - utils.utils - INFO - Sequence 36/40: 2.807 seconds
+2024-08-21 11:33:58,924 - utils.utils - INFO - Sequence 37/40: 2.895 seconds
+2024-08-21 11:34:01,897 - utils.utils - INFO - Sequence 38/40: 2.97 seconds
+2024-08-21 11:34:04,959 - utils.utils - INFO - Sequence 39/40: 3.059 seconds
+2024-08-21 11:34:04,961 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.0799021414094826e-16.
+2024-08-21 11:34:04,966 - auditing_test.test - INFO - Now starting experiment for fold 19.
+2024-08-21 11:34:04,978 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:34:05,756 - utils.utils - INFO - Sequence 1/40: 0.769 seconds
+2024-08-21 11:34:05,872 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:34:06,116 - utils.utils - INFO - Sequence 3/40: 0.242 seconds
+2024-08-21 11:34:06,375 - utils.utils - INFO - Sequence 4/40: 0.257 seconds
+2024-08-21 11:34:06,713 - utils.utils - INFO - Sequence 5/40: 0.335 seconds
+2024-08-21 11:34:07,171 - utils.utils - INFO - Sequence 6/40: 0.456 seconds
+2024-08-21 11:34:07,659 - utils.utils - INFO - Sequence 7/40: 0.486 seconds
+2024-08-21 11:34:08,224 - utils.utils - INFO - Sequence 8/40: 0.564 seconds
+2024-08-21 11:34:08,870 - utils.utils - INFO - Sequence 9/40: 0.643 seconds
+2024-08-21 11:34:09,575 - utils.utils - INFO - Sequence 10/40: 0.703 seconds
+2024-08-21 11:34:10,359 - utils.utils - INFO - Sequence 11/40: 0.782 seconds
+2024-08-21 11:34:11,271 - utils.utils - INFO - Sequence 12/40: 0.909 seconds
+2024-08-21 11:34:12,210 - utils.utils - INFO - Sequence 13/40: 0.937 seconds
+2024-08-21 11:34:13,240 - utils.utils - INFO - Sequence 14/40: 1.028 seconds
+2024-08-21 11:34:16,094 - utils.utils - INFO - Sequence 15/40: 2.851 seconds
+2024-08-21 11:34:17,259 - utils.utils - INFO - Sequence 16/40: 1.162 seconds
+2024-08-21 11:34:18,620 - utils.utils - INFO - Sequence 17/40: 1.359 seconds
+2024-08-21 11:34:19,936 - utils.utils - INFO - Sequence 18/40: 1.314 seconds
+2024-08-21 11:34:21,349 - utils.utils - INFO - Sequence 19/40: 1.411 seconds
+2024-08-21 11:34:23,159 - utils.utils - INFO - Sequence 20/40: 1.806 seconds
+2024-08-21 11:34:24,706 - utils.utils - INFO - Sequence 21/40: 1.545 seconds
+2024-08-21 11:34:26,345 - utils.utils - INFO - Sequence 22/40: 1.636 seconds
+2024-08-21 11:34:28,076 - utils.utils - INFO - Sequence 23/40: 1.729 seconds
+2024-08-21 11:34:29,889 - utils.utils - INFO - Sequence 24/40: 1.811 seconds
+2024-08-21 11:34:31,807 - utils.utils - INFO - Sequence 25/40: 1.916 seconds
+2024-08-21 11:34:33,778 - utils.utils - INFO - Sequence 26/40: 1.969 seconds
+2024-08-21 11:34:35,826 - utils.utils - INFO - Sequence 27/40: 2.045 seconds
+2024-08-21 11:34:37,971 - utils.utils - INFO - Sequence 28/40: 2.142 seconds
+2024-08-21 11:34:40,231 - utils.utils - INFO - Sequence 29/40: 2.258 seconds
+2024-08-21 11:34:42,583 - utils.utils - INFO - Sequence 30/40: 2.349 seconds
+2024-08-21 11:34:45,004 - utils.utils - INFO - Sequence 31/40: 2.418 seconds
+2024-08-21 11:34:47,485 - utils.utils - INFO - Sequence 32/40: 2.479 seconds
+2024-08-21 11:34:50,160 - utils.utils - INFO - Sequence 33/40: 2.673 seconds
+2024-08-21 11:34:52,833 - utils.utils - INFO - Sequence 34/40: 2.67 seconds
+2024-08-21 11:34:55,594 - utils.utils - INFO - Sequence 35/40: 2.758 seconds
+2024-08-21 11:34:58,441 - utils.utils - INFO - Sequence 36/40: 2.845 seconds
+2024-08-21 11:35:01,378 - utils.utils - INFO - Sequence 37/40: 2.935 seconds
+2024-08-21 11:35:04,444 - utils.utils - INFO - Sequence 38/40: 3.063 seconds
+2024-08-21 11:35:07,486 - utils.utils - INFO - Sequence 39/40: 3.04 seconds
+2024-08-21 11:35:07,489 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.5144105410318844e-08.
+2024-08-21 11:35:07,493 - auditing_test.test - INFO - Now starting experiment for fold 20.
+2024-08-21 11:35:07,505 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:35:08,077 - utils.utils - INFO - Sequence 1/40: 0.562 seconds
+2024-08-21 11:35:08,193 - utils.utils - INFO - Sequence 2/40: 0.114 seconds
+2024-08-21 11:35:08,415 - utils.utils - INFO - Sequence 3/40: 0.221 seconds
+2024-08-21 11:35:08,837 - utils.utils - INFO - Sequence 4/40: 0.42 seconds
+2024-08-21 11:35:09,175 - utils.utils - INFO - Sequence 5/40: 0.336 seconds
+2024-08-21 11:35:09,589 - utils.utils - INFO - Sequence 6/40: 0.412 seconds
+2024-08-21 11:35:10,078 - utils.utils - INFO - Sequence 7/40: 0.487 seconds
+2024-08-21 11:35:10,658 - utils.utils - INFO - Sequence 8/40: 0.577 seconds
+2024-08-21 11:35:11,308 - utils.utils - INFO - Sequence 9/40: 0.648 seconds
+2024-08-21 11:35:12,025 - utils.utils - INFO - Sequence 10/40: 0.715 seconds
+2024-08-21 11:35:12,841 - utils.utils - INFO - Sequence 11/40: 0.813 seconds
+2024-08-21 11:35:13,710 - utils.utils - INFO - Sequence 12/40: 0.866 seconds
+2024-08-21 11:35:14,642 - utils.utils - INFO - Sequence 13/40: 0.93 seconds
+2024-08-21 11:35:15,655 - utils.utils - INFO - Sequence 14/40: 1.01 seconds
+2024-08-21 11:35:16,736 - utils.utils - INFO - Sequence 15/40: 1.079 seconds
+2024-08-21 11:35:17,899 - utils.utils - INFO - Sequence 16/40: 1.16 seconds
+2024-08-21 11:35:19,171 - utils.utils - INFO - Sequence 17/40: 1.27 seconds
+2024-08-21 11:35:20,484 - utils.utils - INFO - Sequence 18/40: 1.31 seconds
+2024-08-21 11:35:21,877 - utils.utils - INFO - Sequence 19/40: 1.39 seconds
+2024-08-21 11:35:23,356 - utils.utils - INFO - Sequence 20/40: 1.477 seconds
+2024-08-21 11:35:24,917 - utils.utils - INFO - Sequence 21/40: 1.559 seconds
+2024-08-21 11:35:26,547 - utils.utils - INFO - Sequence 22/40: 1.628 seconds
+2024-08-21 11:35:28,249 - utils.utils - INFO - Sequence 23/40: 1.7 seconds
+2024-08-21 11:35:32,101 - utils.utils - INFO - Sequence 24/40: 3.85 seconds
+2024-08-21 11:35:33,990 - utils.utils - INFO - Sequence 25/40: 1.887 seconds
+2024-08-21 11:35:35,974 - utils.utils - INFO - Sequence 26/40: 1.982 seconds
+2024-08-21 11:35:38,007 - utils.utils - INFO - Sequence 27/40: 2.03 seconds
+2024-08-21 11:35:40,159 - utils.utils - INFO - Sequence 28/40: 2.15 seconds
+2024-08-21 11:35:42,404 - utils.utils - INFO - Sequence 29/40: 2.243 seconds
+2024-08-21 11:35:44,715 - utils.utils - INFO - Sequence 30/40: 2.308 seconds
+2024-08-21 11:35:47,080 - utils.utils - INFO - Sequence 31/40: 2.362 seconds
+2024-08-21 11:35:49,537 - utils.utils - INFO - Sequence 32/40: 2.455 seconds
+2024-08-21 11:35:52,076 - utils.utils - INFO - Sequence 33/40: 2.536 seconds
+2024-08-21 11:35:54,726 - utils.utils - INFO - Sequence 34/40: 2.647 seconds
+2024-08-21 11:35:57,507 - utils.utils - INFO - Sequence 35/40: 2.779 seconds
+2024-08-21 11:36:00,311 - utils.utils - INFO - Sequence 36/40: 2.801 seconds
+2024-08-21 11:36:03,200 - utils.utils - INFO - Sequence 37/40: 2.887 seconds
+2024-08-21 11:36:06,179 - utils.utils - INFO - Sequence 38/40: 2.977 seconds
+2024-08-21 11:36:09,231 - utils.utils - INFO - Sequence 39/40: 3.049 seconds
+2024-08-21 11:36:09,234 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 0.010912477327574052.
+2024-08-21 11:36:09,238 - auditing_test.test - INFO - Now starting experiment for fold 21.
+2024-08-21 11:36:09,250 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:36:09,368 - utils.utils - INFO - Sequence 1/40: 0.108 seconds
+2024-08-21 11:36:09,661 - utils.utils - INFO - Sequence 2/40: 0.292 seconds
+2024-08-21 11:36:10,781 - utils.utils - INFO - Sequence 3/40: 1.117 seconds
+2024-08-21 11:36:11,538 - utils.utils - INFO - Sequence 4/40: 0.755 seconds
+2024-08-21 11:36:11,913 - utils.utils - INFO - Sequence 5/40: 0.372 seconds
+2024-08-21 11:36:12,334 - utils.utils - INFO - Sequence 6/40: 0.419 seconds
+2024-08-21 11:36:12,826 - utils.utils - INFO - Sequence 7/40: 0.49 seconds
+2024-08-21 11:36:13,393 - utils.utils - INFO - Sequence 8/40: 0.565 seconds
+2024-08-21 11:36:14,040 - utils.utils - INFO - Sequence 9/40: 0.645 seconds
+2024-08-21 11:36:14,749 - utils.utils - INFO - Sequence 10/40: 0.707 seconds
+2024-08-21 11:36:15,544 - utils.utils - INFO - Sequence 11/40: 0.792 seconds
+2024-08-21 11:36:16,438 - utils.utils - INFO - Sequence 12/40: 0.892 seconds
+2024-08-21 11:36:17,376 - utils.utils - INFO - Sequence 13/40: 0.935 seconds
+2024-08-21 11:36:18,392 - utils.utils - INFO - Sequence 14/40: 1.013 seconds
+2024-08-21 11:36:19,492 - utils.utils - INFO - Sequence 15/40: 1.098 seconds
+2024-08-21 11:36:20,663 - utils.utils - INFO - Sequence 16/40: 1.168 seconds
+2024-08-21 11:36:21,908 - utils.utils - INFO - Sequence 17/40: 1.242 seconds
+2024-08-21 11:36:23,227 - utils.utils - INFO - Sequence 18/40: 1.317 seconds
+2024-08-21 11:36:24,669 - utils.utils - INFO - Sequence 19/40: 1.439 seconds
+2024-08-21 11:36:26,220 - utils.utils - INFO - Sequence 20/40: 1.548 seconds
+2024-08-21 11:36:27,799 - utils.utils - INFO - Sequence 21/40: 1.577 seconds
+2024-08-21 11:36:29,467 - utils.utils - INFO - Sequence 22/40: 1.665 seconds
+2024-08-21 11:36:31,188 - utils.utils - INFO - Sequence 23/40: 1.719 seconds
+2024-08-21 11:36:33,008 - utils.utils - INFO - Sequence 24/40: 1.818 seconds
+2024-08-21 11:36:35,665 - utils.utils - INFO - Sequence 25/40: 2.655 seconds
+2024-08-21 11:36:37,653 - utils.utils - INFO - Sequence 26/40: 1.985 seconds
+2024-08-21 11:36:39,717 - utils.utils - INFO - Sequence 27/40: 2.062 seconds
+2024-08-21 11:36:41,855 - utils.utils - INFO - Sequence 28/40: 2.136 seconds
+2024-08-21 11:36:44,091 - utils.utils - INFO - Sequence 29/40: 2.233 seconds
+2024-08-21 11:36:46,421 - utils.utils - INFO - Sequence 30/40: 2.328 seconds
+2024-08-21 11:36:48,813 - utils.utils - INFO - Sequence 31/40: 2.389 seconds
+2024-08-21 11:36:51,293 - utils.utils - INFO - Sequence 32/40: 2.478 seconds
+2024-08-21 11:36:53,865 - utils.utils - INFO - Sequence 33/40: 2.569 seconds
+2024-08-21 11:36:56,516 - utils.utils - INFO - Sequence 34/40: 2.648 seconds
+2024-08-21 11:36:59,264 - utils.utils - INFO - Sequence 35/40: 2.746 seconds
+2024-08-21 11:37:02,106 - utils.utils - INFO - Sequence 36/40: 2.84 seconds
+2024-08-21 11:37:05,016 - utils.utils - INFO - Sequence 37/40: 2.908 seconds
+2024-08-21 11:37:07,989 - utils.utils - INFO - Sequence 38/40: 2.97 seconds
+2024-08-21 11:37:11,042 - utils.utils - INFO - Sequence 39/40: 3.05 seconds
+2024-08-21 11:37:11,045 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 6.992944066166871e-11.
+2024-08-21 11:37:11,049 - auditing_test.test - INFO - Now starting experiment for fold 22.
+2024-08-21 11:37:11,061 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:37:11,180 - utils.utils - INFO - Sequence 1/40: 0.109 seconds
+2024-08-21 11:37:11,889 - utils.utils - INFO - Sequence 2/40: 0.707 seconds
+2024-08-21 11:37:12,092 - utils.utils - INFO - Sequence 3/40: 0.201 seconds
+2024-08-21 11:37:12,378 - utils.utils - INFO - Sequence 4/40: 0.284 seconds
+2024-08-21 11:37:12,722 - utils.utils - INFO - Sequence 5/40: 0.342 seconds
+2024-08-21 11:37:13,142 - utils.utils - INFO - Sequence 6/40: 0.418 seconds
+2024-08-21 11:37:13,627 - utils.utils - INFO - Sequence 7/40: 0.483 seconds
+2024-08-21 11:37:14,191 - utils.utils - INFO - Sequence 8/40: 0.561 seconds
+2024-08-21 11:37:14,894 - utils.utils - INFO - Sequence 9/40: 0.701 seconds
+2024-08-21 11:37:15,607 - utils.utils - INFO - Sequence 10/40: 0.711 seconds
+2024-08-21 11:37:16,393 - utils.utils - INFO - Sequence 11/40: 0.784 seconds
+2024-08-21 11:37:17,255 - utils.utils - INFO - Sequence 12/40: 0.86 seconds
+2024-08-21 11:37:18,192 - utils.utils - INFO - Sequence 13/40: 0.934 seconds
+2024-08-21 11:37:19,207 - utils.utils - INFO - Sequence 14/40: 1.013 seconds
+2024-08-21 11:37:20,305 - utils.utils - INFO - Sequence 15/40: 1.095 seconds
+2024-08-21 11:37:21,476 - utils.utils - INFO - Sequence 16/40: 1.168 seconds
+2024-08-21 11:37:22,796 - utils.utils - INFO - Sequence 17/40: 1.318 seconds
+2024-08-21 11:37:24,145 - utils.utils - INFO - Sequence 18/40: 1.346 seconds
+2024-08-21 11:37:25,560 - utils.utils - INFO - Sequence 19/40: 1.413 seconds
+2024-08-21 11:37:27,084 - utils.utils - INFO - Sequence 20/40: 1.522 seconds
+2024-08-21 11:37:28,687 - utils.utils - INFO - Sequence 21/40: 1.6 seconds
+2024-08-21 11:37:30,341 - utils.utils - INFO - Sequence 22/40: 1.652 seconds
+2024-08-21 11:37:32,109 - utils.utils - INFO - Sequence 23/40: 1.766 seconds
+2024-08-21 11:37:33,987 - utils.utils - INFO - Sequence 24/40: 1.876 seconds
+2024-08-21 11:37:35,907 - utils.utils - INFO - Sequence 25/40: 1.918 seconds
+2024-08-21 11:37:37,859 - utils.utils - INFO - Sequence 26/40: 1.949 seconds
+2024-08-21 11:37:39,899 - utils.utils - INFO - Sequence 27/40: 2.037 seconds
+2024-08-21 11:37:42,044 - utils.utils - INFO - Sequence 28/40: 2.143 seconds
+2024-08-21 11:37:44,271 - utils.utils - INFO - Sequence 29/40: 2.224 seconds
+2024-08-21 11:37:46,594 - utils.utils - INFO - Sequence 30/40: 2.321 seconds
+2024-08-21 11:37:48,988 - utils.utils - INFO - Sequence 31/40: 2.392 seconds
+2024-08-21 11:37:51,495 - utils.utils - INFO - Sequence 32/40: 2.504 seconds
+2024-08-21 11:37:54,049 - utils.utils - INFO - Sequence 33/40: 2.552 seconds
+2024-08-21 11:37:56,730 - utils.utils - INFO - Sequence 34/40: 2.678 seconds
+2024-08-21 11:37:59,427 - utils.utils - INFO - Sequence 35/40: 2.695 seconds
+2024-08-21 11:38:02,220 - utils.utils - INFO - Sequence 36/40: 2.79 seconds
+2024-08-21 11:38:05,182 - utils.utils - INFO - Sequence 37/40: 2.96 seconds
+2024-08-21 11:38:08,186 - utils.utils - INFO - Sequence 38/40: 3.001 seconds
+2024-08-21 11:38:11,261 - utils.utils - INFO - Sequence 39/40: 3.072 seconds
+2024-08-21 11:38:11,263 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 1.9061863620000777e-07.
+2024-08-21 11:38:11,268 - auditing_test.test - INFO - Now starting experiment for fold 23.
+2024-08-21 11:38:11,280 - auditing_test.eval_trainer - INFO - Number of sequence batches created: 40
+2024-08-21 11:38:11,967 - utils.utils - INFO - Sequence 1/40: 0.677 seconds
+2024-08-21 11:38:12,083 - utils.utils - INFO - Sequence 2/40: 0.113 seconds
+2024-08-21 11:38:12,276 - utils.utils - INFO - Sequence 3/40: 0.191 seconds
+2024-08-21 11:38:12,566 - utils.utils - INFO - Sequence 4/40: 0.288 seconds
+2024-08-21 11:38:12,910 - utils.utils - INFO - Sequence 5/40: 0.342 seconds
+2024-08-21 11:38:13,332 - utils.utils - INFO - Sequence 6/40: 0.42 seconds
+2024-08-21 11:38:13,823 - utils.utils - INFO - Sequence 7/40: 0.489 seconds
+2024-08-21 11:38:14,390 - utils.utils - INFO - Sequence 8/40: 0.565 seconds
+2024-08-21 11:38:15,052 - utils.utils - INFO - Sequence 9/40: 0.66 seconds
+2024-08-21 11:38:15,771 - utils.utils - INFO - Sequence 10/40: 0.716 seconds
+2024-08-21 11:38:16,555 - utils.utils - INFO - Sequence 11/40: 0.782 seconds
+2024-08-21 11:38:17,413 - utils.utils - INFO - Sequence 12/40: 0.856 seconds
+2024-08-21 11:38:18,348 - utils.utils - INFO - Sequence 13/40: 0.933 seconds
+2024-08-21 11:38:19,424 - utils.utils - INFO - Sequence 14/40: 1.074 seconds
+2024-08-21 11:38:20,524 - utils.utils - INFO - Sequence 15/40: 1.097 seconds
+2024-08-21 11:38:21,702 - utils.utils - INFO - Sequence 16/40: 1.176 seconds
+2024-08-21 11:38:22,955 - utils.utils - INFO - Sequence 17/40: 1.25 seconds
+2024-08-21 11:38:24,290 - utils.utils - INFO - Sequence 18/40: 1.333 seconds
+2024-08-21 11:38:25,696 - utils.utils - INFO - Sequence 19/40: 1.404 seconds
+2024-08-21 11:38:27,188 - utils.utils - INFO - Sequence 20/40: 1.489 seconds
+2024-08-21 11:38:28,792 - utils.utils - INFO - Sequence 21/40: 1.601 seconds
+2024-08-21 11:38:30,783 - utils.utils - INFO - Sequence 22/40: 1.989 seconds
+2024-08-21 11:38:32,510 - utils.utils - INFO - Sequence 23/40: 1.725 seconds
+2024-08-21 11:38:34,323 - utils.utils - INFO - Sequence 24/40: 1.811 seconds
+2024-08-21 11:38:36,251 - utils.utils - INFO - Sequence 25/40: 1.925 seconds
+2024-08-21 11:38:38,247 - utils.utils - INFO - Sequence 26/40: 1.994 seconds
+2024-08-21 11:38:40,322 - utils.utils - INFO - Sequence 27/40: 2.072 seconds
+2024-08-21 11:38:42,498 - utils.utils - INFO - Sequence 28/40: 2.174 seconds
+2024-08-21 11:38:44,746 - utils.utils - INFO - Sequence 29/40: 2.245 seconds
+2024-08-21 11:38:47,072 - utils.utils - INFO - Sequence 30/40: 2.323 seconds
+2024-08-21 11:38:49,463 - utils.utils - INFO - Sequence 31/40: 2.388 seconds
+2024-08-21 11:38:51,954 - utils.utils - INFO - Sequence 32/40: 2.489 seconds
+2024-08-21 11:38:54,511 - utils.utils - INFO - Sequence 33/40: 2.555 seconds
+2024-08-21 11:38:57,138 - utils.utils - INFO - Sequence 34/40: 2.624 seconds
+2024-08-21 11:38:59,884 - utils.utils - INFO - Sequence 35/40: 2.743 seconds
+2024-08-21 11:39:02,684 - utils.utils - INFO - Sequence 36/40: 2.798 seconds
+2024-08-21 11:39:05,571 - utils.utils - INFO - Sequence 37/40: 2.885 seconds
+2024-08-21 11:39:08,536 - utils.utils - INFO - Sequence 38/40: 2.963 seconds
+2024-08-21 11:39:11,593 - utils.utils - INFO - Sequence 39/40: 3.054 seconds
+2024-08-21 11:39:11,595 - auditing_test.eval_trainer - INFO - Null hypothesis not rejected. Final wealth at 2.874343691565516e-07.
+2024-08-21 11:39:11,778 - auditing_test.test - INFO - Positive tests: 0/24, 0.0%.
+2024-08-21 11:39:11,781 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_0.json
+2024-08-21 11:39:11,783 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_1.json
+2024-08-21 11:39:11,786 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_2.json
+2024-08-21 11:39:11,788 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_3.json
+2024-08-21 11:39:11,791 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_4.json
+2024-08-21 11:39:11,794 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_5.json
+2024-08-21 11:39:11,796 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_6.json
+2024-08-21 11:39:11,799 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_7.json
+2024-08-21 11:39:11,801 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_8.json
+2024-08-21 11:39:11,804 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_9.json
+2024-08-21 11:39:11,806 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_10.json
+2024-08-21 11:39:11,809 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_11.json
+2024-08-21 11:39:11,811 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_12.json
+2024-08-21 11:39:11,814 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_13.json
+2024-08-21 11:39:11,816 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_14.json
+2024-08-21 11:39:11,819 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_15.json
+2024-08-21 11:39:11,821 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_16.json
+2024-08-21 11:39:11,824 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_17.json
+2024-08-21 11:39:11,826 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_18.json
+2024-08-21 11:39:11,829 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_19.json
+2024-08-21 11:39:11,832 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_20.json
+2024-08-21 11:39:11,834 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_21.json
+2024-08-21 11:39:11,837 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_22.json
+2024-08-21 11:39:11,839 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_23.json
+2024-08-21 11:39:11,842 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-21 11:39:12,038 - evaluation.analyze - INFO - Creating 29832 test samples.
+2024-08-21 11:41:31,772 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 11:58:34,466 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 11:58:34,506 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 11:58:34,509 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-21 11:58:34,725 - evaluation.analyze - INFO - Creating 3900 test samples.
+2024-08-21 12:00:34,270 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 12:00:34,273 - auditing_test.test - INFO - Average nn distance: 0.023461025208234787, std: 0.002475403156265027
+2024-08-21 12:00:34,276 - auditing_test.test - INFO - Wasserstein distance: 0.017526904103805134
+2024-08-21 12:40:45,778 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 12:40:45,809 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 12:40:45,812 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-21 12:40:46,027 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 12:42:13,718 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 12:42:13,722 - auditing_test.test - INFO - Average nn distance: 0.02259192047640681, std: 0.0040090724050876065
+2024-08-21 12:42:13,724 - auditing_test.test - INFO - Wasserstein distance: 0.020474179230000007
+2024-08-21 12:44:54,427 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 12:44:54,457 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 12:44:54,460 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-21 12:44:54,676 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 12:45:02,367 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 12:45:02,370 - auditing_test.test - INFO - Average nn distance: 0.016468380228616297, std: 0.008317235579600327
+2024-08-21 12:45:02,372 - auditing_test.test - INFO - Wasserstein distance: 0.020474179230000007
+2024-08-21 13:15:43,153 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:15:43,188 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:15:43,191 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-21 13:15:43,439 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 13:15:51,439 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 13:15:51,443 - auditing_test.test - INFO - Average nn distance: 0.017394911037990825, std: 0.007997188216488014
+2024-08-21 13:15:51,446 - auditing_test.test - INFO - Wasserstein distance: 0.020474179230000007
+2024-08-21 13:16:15,879 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:16:15,913 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:16:15,915 - auditing_test.test - INFO - Skipping distance analysis as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv already exists.
+2024-08-21 13:16:15,919 - auditing_test.test - INFO - Average nn distance: 0.01739491103799077, std: 0.00799718821648801
+2024-08-21 13:16:15,922 - auditing_test.test - INFO - Wasserstein distance: 0.02047417923
+2024-08-21 13:16:15,924 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_3900.pdf. Skipping...
+2024-08-21 13:17:23,700 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:17:23,734 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:17:23,737 - auditing_test.test - INFO - Skipping distance analysis as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv already exists.
+2024-08-21 13:17:23,741 - auditing_test.test - INFO - Average nn distance: 0.01739491103799077, std: 0.00799718821648801
+2024-08-21 13:17:23,744 - auditing_test.test - INFO - Wasserstein distance: 0.02047417923
+2024-08-21 13:17:23,746 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_3900.pdf. Skipping...
+2024-08-21 13:17:54,870 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:17:54,901 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:17:54,903 - auditing_test.test - INFO - Training neural net distance on 3900 samples for 10 runs.
+2024-08-21 13:17:55,122 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 13:19:17,597 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 13:19:17,601 - auditing_test.test - INFO - Average nn distance: 0.02376939430832863, std: 0.0016180035802512292
+2024-08-21 13:19:17,604 - auditing_test.test - INFO - Wasserstein distance: 0.020474179230000007
+2024-08-21 13:28:12,080 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:28:12,111 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:28:12,329 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 13:28:13,276 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:14,366 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:14,464 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:15,265 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:15,897 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:16,594 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:17,345 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:18,035 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:18,810 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:19,591 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:28:19,699 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 13:28:19,702 - auditing_test.test - INFO - Average nn distance: 0.015767327812500297, std: 0.009152231365293709
+2024-08-21 13:28:19,704 - auditing_test.test - INFO - Wasserstein distance: 0.020474179230000007
+2024-08-21 13:29:52,871 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:29:52,906 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:29:52,909 - auditing_test.test - INFO - Skipping distance analysis as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv already exists.
+2024-08-21 13:29:52,914 - auditing_test.test - INFO - Average nn distance: 0.01576732781250025, std: 0.009152231365293702
+2024-08-21 13:29:52,916 - auditing_test.test - INFO - Wasserstein distance: 0.02047417923
+2024-08-21 13:29:52,918 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_3900.pdf. Skipping...
+2024-08-21 13:30:20,641 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:30:20,677 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:30:20,909 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 13:30:22,072 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:30:26,082 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:30:39,440 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:30:59,106 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:12,233 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:28,688 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:34,499 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:41,609 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:46,312 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:52,274 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 13:31:58,603 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 13:31:58,606 - auditing_test.test - INFO - Average nn distance: 0.023389213439077138, std: 0.002994613704561147
+2024-08-21 13:31:58,609 - auditing_test.test - INFO - Wasserstein distance: 0.020474179230000007
+2024-08-21 13:52:08,557 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:52:08,591 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:52:08,594 - auditing_test.test - INFO - Skipping distance analysis as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv already exists.
+2024-08-21 13:52:08,599 - auditing_test.test - INFO - Average nn distance: 0.0233892134390771, std: 0.0029946137045611535
+2024-08-21 13:52:08,601 - auditing_test.test - INFO - Wasserstein distance: 0.02047417923
+2024-08-21 13:52:08,603 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_3900.pdf. Skipping...
+2024-08-21 13:52:30,758 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:52:30,792 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:53:40,975 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:53:41,009 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:53:41,242 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 13:54:49,979 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 13:54:50,012 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 13:54:50,251 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 13:54:51,261 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:51,874 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:51,976 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:52,075 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:52,511 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:53,345 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:53,450 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:53,553 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:54,039 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 13:54:54,136 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:10:20,844 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:10:20,878 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:10:21,116 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 14:10:22,124 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:22,961 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:23,699 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:24,379 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:25,213 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:26,006 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:26,845 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:27,022 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:27,421 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:27,521 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:28,246 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:33,849 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:48,533 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:10:51,665 - evaluation.analyze - INFO - Training neural net distance on 99342 samples.
+2024-08-21 14:12:58,857 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:12:58,891 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:12:59,124 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 14:13:00,167 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:00,816 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:01,583 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:02,117 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:02,376 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:03,216 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:04,039 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:04,144 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:04,294 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:04,395 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:13:05,098 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:13:20,332 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:13:39,330 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:13:43,761 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:13:46,921 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:13:56,868 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:14:07,416 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:14:11,619 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:14:16,743 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:14:28,666 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:14:33,457 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 14:14:33,460 - auditing_test.test - INFO - Average nn distance: 0.013935681352450047, std: 0.006875360159763408
+2024-08-21 14:14:33,463 - auditing_test.test - INFO - Wasserstein distance: 0.015744337748
+2024-08-21 14:31:42,621 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:31:42,656 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:31:42,925 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 14:31:43,976 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:44,585 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:45,301 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:46,078 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:46,185 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:46,978 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:47,625 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:47,725 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:48,199 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:48,300 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:31:49,094 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:31:59,359 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:10,104 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:13,207 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:16,563 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:25,479 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:37,082 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:46,856 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:32:51,367 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:33:02,450 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:33:10,972 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 14:33:10,985 - auditing_test.test - INFO - Average nn distance: 0.012527508700582437, std: 0.0019509821579951493
+2024-08-21 14:33:10,988 - auditing_test.test - INFO - Wasserstein distance: 0.015744337748
+2024-08-21 14:33:20,114 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:33:20,149 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:33:20,152 - auditing_test.test - INFO - Skipping distance analysis as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv already exists.
+2024-08-21 14:33:20,158 - auditing_test.test - INFO - Average nn distance: 0.012527508700582394, std: 0.0019509821579951523
+2024-08-21 14:33:20,160 - auditing_test.test - INFO - Wasserstein distance: 0.015744337748
+2024-08-21 14:33:20,163 - evaluation.plot - INFO - File already exists at test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_distance_box_plot_3900.pdf. Skipping...
+2024-08-21 14:36:33,384 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:36:33,418 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:36:33,655 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 14:36:34,651 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:35,404 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:36,018 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:36,520 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:37,343 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:38,153 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:38,949 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:39,051 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:39,563 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:39,664 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:36:40,503 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:36:51,617 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:03,065 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:06,712 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:12,116 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:17,358 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:22,402 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:31,026 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:37,343 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:43,384 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:37:48,102 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 14:37:48,107 - auditing_test.test - INFO - Average nn distance: 0.014210910310412437, std: 0.0015887862942673993
+2024-08-21 14:37:48,109 - auditing_test.test - INFO - Wasserstein distance: 0.015744337748
+2024-08-21 14:41:08,324 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:41:08,356 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:41:08,576 - evaluation.analyze - INFO - Creating 100 test samples.
+2024-08-21 14:41:09,637 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:10,229 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:11,033 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:11,678 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:12,385 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:13,199 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:13,997 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:14,099 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:14,528 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:14,631 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:41:15,448 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:41:24,835 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:41:42,456 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:41:45,941 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:41:49,515 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:41:54,674 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:42:06,151 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:42:17,303 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:42:20,152 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:42:35,167 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:42:38,398 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 14:42:38,403 - evaluation.analyze - INFO - Mean of group1 with 100 samples: 0.010664322150114458
+2024-08-21 14:42:38,405 - evaluation.analyze - INFO - Mean of group2 with 3900 samples: 0.018253415264189242
+2024-08-21 14:42:38,408 - auditing_test.test - INFO - Average nn distance: 0.013952071556479729, std: 0.00175284998560426
+2024-08-21 14:42:38,410 - auditing_test.test - INFO - Wasserstein distance: 0.015744337748
+2024-08-21 14:45:41,498 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:45:41,530 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:45:41,757 - evaluation.analyze - INFO - Creating 1000 test samples.
+2024-08-21 14:45:43,001 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:43,493 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:44,336 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:44,923 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:45,806 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:46,488 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:46,630 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:47,537 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:48,444 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:48,578 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:45:49,187 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:45:55,932 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:46:00,329 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:46:06,632 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:46:28,170 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:46:37,817 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:46:45,705 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:46:51,677 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:47:04,756 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:47:13,613 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:47:22,276 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 14:47:22,281 - evaluation.analyze - INFO - Mean of group1 with 100 samples: 0.014491076683043502
+2024-08-21 14:47:22,283 - evaluation.analyze - INFO - Mean of group2 with 3900 samples: 0.023130293376743792
+2024-08-21 14:47:22,286 - auditing_test.test - INFO - Average nn distance: 0.018307999754852727, std: 0.0018253345561747268
+2024-08-21 14:47:22,289 - auditing_test.test - INFO - Wasserstein distance: 0.0189036138497
+2024-08-21 14:51:02,447 - auditing_test.test - INFO - Skipping test as results file test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_4000_epsilon_0.021.csv already exists.
+2024-08-21 14:51:02,482 - auditing_test.test - INFO - Positive tests: 0.0, 0.0%.
+2024-08-21 14:51:02,732 - evaluation.analyze - INFO - Creating 4000 test samples.
+2024-08-21 14:51:04,413 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:05,596 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:06,587 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:07,398 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:07,955 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:08,890 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:09,133 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:09,812 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:10,774 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:11,366 - evaluation.analyze - INFO - Training neural net distance on 100 samples.
+2024-08-21 14:51:12,293 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:51:21,654 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:51:25,417 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:51:34,004 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:51:38,913 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:51:52,833 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:52:13,986 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:52:27,663 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:52:49,108 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:52:54,375 - evaluation.analyze - INFO - Training neural net distance on 3900 samples.
+2024-08-21 14:52:59,794 - auditing_test.test - INFO - Distance analysis results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/distance_scores_3900_10.csv.
+2024-08-21 14:52:59,799 - evaluation.analyze - INFO - Mean of group1 with 100 samples: 0.01568097506533377
+2024-08-21 14:52:59,801 - evaluation.analyze - INFO - Mean of group2 with 3900 samples: 0.023281908594071865
+2024-08-21 14:52:59,804 - auditing_test.test - INFO - Average nn distance: 0.019107145996642746, std: 0.0014791012985164206
+2024-08-21 14:52:59,807 - auditing_test.test - INFO - Wasserstein distance: 0.017551701921381502

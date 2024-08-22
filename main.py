@@ -140,7 +140,7 @@ if __name__ == "__main__":
     config = load_config("config.yml")
     train_cfg = TrainCfg()
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt3"
+    model_name2 = "Llama-3-8B-ckpt5"
     seed1 = "seed1000"
     seed2 = "seed1000"
     fold_size = 4000
@@ -153,5 +153,14 @@ if __name__ == "__main__":
         seed2=seed2,
         fold_size=fold_size,
     )
+
+    # exp = AuditingTest(config, train_cfg, use_wandb=False)
+    # exp.run(
+    #     model_name1=model_name1,
+    #     seed1=seed1,
+    #     model_name2=model_name2,
+    #     seed2=seed2,
+    #     fold_size=fold_size,
+    # )
 
     # main()
