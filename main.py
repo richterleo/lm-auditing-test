@@ -30,12 +30,6 @@ def main():
         help="Select the experiment to run: generating model outputs or auditing test.",
     )
 
-    parser.add_argument(
-        "--evaluate",
-        action="store_true",
-        help="Whether to evaluate the model on the metric.",
-    )
-
     # TODO: change this when OnlineTrainer is no longer deprecated.
     parser.add_argument(
         "--online",
@@ -108,7 +102,7 @@ def main():
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":
-        eval_model(config, evaluate=args.evaluate)
+        eval_model(config, num_samples=100)
 
     elif args.exp == "test":
         train_cfg = TrainCfg()
@@ -143,27 +137,27 @@ def main():
 
 
 if __name__ == "__main__":
-    config = load_config("config.yml")
-    train_cfg = TrainCfg()
-    model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt2"
-    seed1 = "seed1000"
-    seed2 = "seed1000"
-    fold_size = 4000
+    # config = load_config("config.yml")
+    # train_cfg = TrainCfg()
+    # model_name1 = "Meta-Llama-3-8B-Instruct"
+    # model_name2 = "Llama-3-8B-ckpt2"
+    # seed1 = "seed1000"
+    # seed2 = "seed1000"
+    # fold_size = 4000
 
-    exp = CalibratedAuditingTest(
-        config,
-        train_cfg,
-        DefaultEpsilonStrategy(config=config, num_runs=5),
-        use_wandb=False,
-    )
-    exp.run(
-        model_name1=model_name1,
-        seed1=seed1,
-        model_name2=model_name2,
-        seed2=seed2,
-        fold_size=fold_size,
-    )
+    # exp = CalibratedAuditingTest(
+    #     config,
+    #     train_cfg,
+    #     DefaultEpsilonStrategy(config=config, num_runs=5),
+    #     use_wandb=False,
+    # )
+    # exp.run(
+    #     model_name1=model_name1,
+    #     seed1=seed1,
+    #     model_name2=model_name2,
+    #     seed2=seed2,
+    #     fold_size=fold_size,
+    # )
 
     # exp = AuditingTest(config, train_cfg, use_wandb=False)
     # exp.run(
@@ -174,4 +168,4 @@ if __name__ == "__main__":
     #     fold_size=fold_size,
     # )
 
-    # main()
+    main()

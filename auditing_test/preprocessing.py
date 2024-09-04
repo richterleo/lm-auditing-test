@@ -164,62 +164,60 @@ def evaluate_single_model(
 
         filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
 
-        # loop over epochs (epochs is usually = 1)
-        for epoch, d in filtered_dict.items():
-            # concatenate prompt and continuation
-            concatenated_generations = [
-                f"{prompt} {continuation}"
-                for prompt, continuation in zip(d["prompts"], d["continuations"])
-            ]
+        # concatenate prompt and continuation
+        concatenated_generations = [
+            f"{prompt} {continuation}"
+            for prompt, continuation in zip(
+                filtered_dict["prompts"], filtered_dict["continuations"]
+            )
+        ]
 
-            data[epoch][f"{metric}_scores"] = []
+        # if we have a lot of generations, we need to query the API in batches
+        if len(concatenated_generations) > ds_batch_size:
+            scores = []
+            for i in tqdm(
+                range(0, len(concatenated_generations), ds_batch_size),
+                disable=not verbose,
+            ):
+                start = time.time()
 
-            # if we have a lot of generations, we need to query the API in batches
-            if len(concatenated_generations) > ds_batch_size:
-                scores = []
-                for i in tqdm(
-                    range(0, len(concatenated_generations), ds_batch_size),
-                    disable=not verbose,
-                ):
-                    start = time.time()
-
-                    new_scores = eval_on_metric(
-                        metric,
-                        concatenated_generations[i : i + ds_batch_size],
-                        asynchronously=asynchronously,
-                        batch_size=model_batch_size,
-                    )
-
-                    scores.extend(new_scores)
-
-                    if i > 0 and i % 10000 == 0 and save_intermittently:
-                        _save_intermittently(
-                            scores, score_dir, metric, i, data, epoch, ds_batch_size
-                        )
-
-                    end = time.time()
-                    if verbose:
-                        logger.info(
-                            f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds"
-                        )
-
-            else:
-                if verbose:
-                    logger.warning(
-                        f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
-                    )
-                scores = eval_on_metric(
+                new_scores = eval_on_metric(
                     metric,
-                    concatenated_generations,
+                    concatenated_generations[i : i + ds_batch_size],
                     asynchronously=asynchronously,
                     batch_size=model_batch_size,
                 )
 
-            data[epoch][f"{metric}_scores"] = scores
+                scores.extend(new_scores)
 
-            assert (
-                len(data[epoch][f"{metric}_scores"]) == len(data[epoch]["prompts"])
-            ), f"Number of scores is not the same as number of prompts: {len(data[epoch][f'{metric}_scores'])} and {len(data[epoch]['prompts'])}"
+                if i > 0 and i % 10000 == 0 and save_intermittently:
+                    _save_intermittently(
+                        scores, score_dir, metric, i, data, ds_batch_size
+                    )
+
+                end = time.time()
+                if verbose:
+                    logger.info(
+                        f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds"
+                    )
+
+        else:
+            if verbose:
+                logger.warning(
+                    f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
+                )
+            scores = eval_on_metric(
+                metric,
+                concatenated_generations,
+                asynchronously=asynchronously,
+                batch_size=model_batch_size,
+            )
+
+        data[f"{metric}_scores"] = scores
+
+        assert (
+            len(data[f"{metric}_scores"]) == len(data["prompts"])
+        ), f"Number of scores is not the same as number of prompts: {len(data[f'{metric}_scores'])} and {len(data['prompts'])}"
         with open(score_path, "w") as file:
             json.dump(data, file, indent=4)
 
@@ -278,12 +276,12 @@ def evaluate_all_models(
             continue
 
 
-def _save_intermittently(scores, score_dir, metric, i, data, epoch, ds_batch_size):
+def _save_intermittently(scores, score_dir, metric, i, data, ds_batch_size):
     current_scores_path = os.path.join(score_dir, f"{metric}_scores_{i}.json")
-    data[epoch][f"{metric}_scores"] = scores
+    data[f"{metric}_scores"] = scores
     assert (
-        len(data[epoch][f"{metric}_scores"]) == i + ds_batch_size
-    ), f"The current number of scores is not the same as the index: {len(data[epoch][f'{metric}_scores'])} and {i}"
+        len(data[f"{metric}_scores"]) == i + ds_batch_size
+    ), f"The current number of scores is not the same as the index: {len(data[f'{metric}_scores'])} and {i}"
     with open(current_scores_path, "w") as file:
         json.dump(data, file, indent=4)
 
@@ -294,8 +292,6 @@ def create_common_json(
     model_name2,
     seed2,
     metric="toxicity",
-    epoch1=0,
-    epoch2=0,
     overwrite=True,
     use_wandb=False,
     entity="LLM_Accountability",
@@ -338,12 +334,8 @@ def create_common_json(
         data["metadata1"] = data1["metadata"]
         data["metadata2"] = data2["metadata"]
 
-        filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}[
-            str(epoch1)
-        ]
-        filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}[
-            str(epoch2)
-        ]
+        filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}
+        filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}
 
         # if both lists are the same length, then we just trust that they're the same and ordered correctly.
         if len(filtered_data1["prompts"]) == len(filtered_data2["prompts"]):

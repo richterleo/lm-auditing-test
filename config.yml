@@ -12,6 +12,7 @@ eval:
   num_samples: 100000 #1e6
   num_bins: 10
   batch_size: 16
+  model_prefix: LLMAccountability
 
 logging: 
   use_wandb: true
@@ -29,7 +30,7 @@ analysis:
 
 
 tau1: 
-  model_id: Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2
+  model_id: Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000

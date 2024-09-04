@@ -661,11 +661,11 @@ def plot_calibrated_detection_rate(
     seed1: str,
     model_name2: str,
     seed2: str,
-    result_file_name: Optional[Union[str, Path]] = None,
+    result_file: Optional[Union[str, Path]] = None,
     num_train_samples: Optional[int] = None,
     num_runs: Optional[int] = None,
     multiples_of_epsilon: Optional[int] = None,
-    test_dir: str = "test_dir",
+    test_dir: str = "test_outputs",
     save_as_pdf: bool = True,
     overwrite: bool = False,
 ):
@@ -675,8 +675,8 @@ def plot_calibrated_detection_rate(
     test_dir = os.path.join(script_dir, "..", test_dir)
     plot_dir = os.path.join(test_dir, f"{model_name1}_{seed1}_{model_name2}_{seed2}")
 
-    if result_file_name is not None:
-        result_file_path = os.path.join(plot_dir, result_file_name)
+    if result_file is not None:
+        result_file_path = Path(result_file)
     else:
         result_file_path = os.path.join(
             plot_dir,
@@ -703,10 +703,11 @@ def plot_calibrated_detection_rate(
     # Adding label to the vertical line
     plt.text(
         true_epsilon + 0.0001,
-        0.5,
+        0.1,  # Changed from 0.5 to 0.1 to move the label lower
         "True Neural Net Distance",
         color="red",
         verticalalignment="center",
+        rotation=90,  # Added rotation for better readability
     )
 
     plot_path = os.path.join(plot_dir, "calibrated_detection_rate.pdf")

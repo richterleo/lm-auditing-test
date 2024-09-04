@@ -571,6 +571,17 @@ class CalibratedAuditingTest(AuditingTest):
             self.logger.info(
                 f"Calibrated testing results already exist in {epsilon_path}."
             )
+            dist_path = (
+                Path(self.directory)
+                / f"distance_scores_{self.num_train_samples}_{self.num_runs}.csv"
+            )
+            try:
+                distance_df = pd.read_csv(dist_path)
+                true_epsilon, _ = get_mean_and_std_for_nn_distance(distance_df)
+            except FileNotFoundError:
+                self.logger.error(
+                    f"Distance analysis results file {dist_path} not found."
+                )
 
         else:
             self.calibration_strategy.attach_logger(self.logger)
@@ -614,21 +625,17 @@ class CalibratedAuditingTest(AuditingTest):
             self.seed1,
             self.model_name2,
             self.seed2,
-            result_file_name=epsilon_path,
+            result_file=epsilon_path,
         )
 
 
 def eval_model(
     config,
-    num_samples=None,
-    num_epochs=None,
-    batch_size=None,
-    evaluate=True,
+    num_samples: Optional[int] = None,
+    batch_size: Optional[int] = None,
 ):
     """ """
-    project_name = (
-        f"{config['metric']['behavior']}_evaluation" if evaluate else "continuations"
-    )
+    project_name = "continuations"
 
     if config["logging"]["use_wandb"]:
         wandb.init(
@@ -637,16 +644,18 @@ def eval_model(
             name=create_run_string(),
             config=config,
         )
-        wandb.config.update({"evaluate": evaluate})
+
+    if "ckpt" in config["tau1"]["model_id"]:
+        config["tau1"]["model_id"] = (
+            config["eval"]["model_prefix"] + "/" + config["tau1"]["model_id"]
+        )
 
     generate_and_evaluate(
         config["metric"]["dataset_name"],
         config["tau1"],
         config["eval"]["num_samples"] if not num_samples else num_samples,
-        num_epochs=config["eval"]["epochs"] if not num_epochs else num_epochs,
         batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
         use_wandb=config["logging"]["use_wandb"],
-        evaluate=evaluate,
         seed=config["tau1"]["gen_seed"],
         metric=config["metric"]["metric"],
     )

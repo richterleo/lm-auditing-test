@@ -12,6 +12,7 @@ from tqdm import tqdm
 from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
+from vllm import LLM, SamplingParams
 from peft import AutoPeftModelForCausalLM
 
 from utils.utils import (
@@ -33,13 +34,9 @@ def generate_and_evaluate(
     dataset_name: str,
     model_cfg,
     num_samples: int,
-    num_epochs: int = 1,
     batch_size: int = 8,
-    save_continuations=True,  # TODO: add this flag
-    save_prompts=True,  # TODO: add this flag
     seed=0,
     use_wandb=True,
-    evaluate: bool = True,
     metric=None,
     meta_data=None,
 ):
@@ -101,7 +98,6 @@ def generate_and_evaluate(
         "model_id": model_cfg["model_id"],
         "gen_kwargs": gen_kwargs,
         "num_samples": num_samples,
-        "num_epochs": num_epochs,
         "batch_size": batch_size,
         "seed": seed,
         "use_wandb": use_wandb,
@@ -110,10 +106,6 @@ def generate_and_evaluate(
         "meta_data": meta_data,
     }
 
-    # For logging histogram
-    if use_wandb:
-        all_data_table = wandb.Table(columns=["epoch", "step", "ratings"])
-
     if "Llama-3" in model_cfg["model_id"]:
         format_func = format_funcs["llama3"]
     elif "Mistral" in model_cfg["model_id"]:
@@ -121,84 +113,56 @@ def generate_and_evaluate(
     elif "gemma" in model_cfg["model_id"]:
         format_func = format_funcs["gemma"]
 
-    # This loop is for repeated evaluation on the same prompts (default is only 1 epoch)
-    for epoch in range(num_epochs):
-        for i, out in tqdm(
-            enumerate(
-                generator(
-                    NestedKeyDataset(
-                        prompt_dataset,
-                        "prompt",
-                        "text",
-                        model_cfg["model_id"],
-                        tokenizer,
-                    ),
-                    batch_size=batch_size,
-                    eos_token_id=terminators,
-                    **gen_kwargs,
-                )
-            ),
-            total=len(prompt_dataset),
-        ):
-            prompt = tokenizer.apply_chat_template(
-                format_func(prompt_dataset[i]["prompt"]["text"]),
-                tokenize=False,
-                add_generation_prompt=True,
+    for i, out in tqdm(
+        enumerate(
+            generator(
+                NestedKeyDataset(
+                    prompt_dataset,
+                    "prompt",
+                    "text",
+                    model_cfg["model_id"],
+                    tokenizer,
+                ),
+                batch_size=batch_size,
+                eos_token_id=terminators,
+                **gen_kwargs,
             )
-            if use_wandb:
-                wandb.log(
-                    {
-                        "epoch": epoch,
-                        "prompt": prompt_dataset[i]["prompt"]["text"],
-                        "continuation": out[0]["generated_text"][len(prompt) :]
-                        .strip()
-                        .replace(prompt_dataset[i]["prompt"]["text"], ""),
-                    }
-                )
-
-            # cont = out[0]["generated_text"].replace(
-            # cont = out[0]["generated_text"].replace(
-            #    prompt_dataset[i]["prompt"]["text"], ""
-            cont = (
-                out[0]["generated_text"][len(prompt) :]
-                .strip()
-                .replace(prompt_dataset[i]["prompt"]["text"], "")
-            )
-            logs[epoch]["prompts"].append(prompt_dataset[i]["prompt"]["text"])
-            logs[epoch]["continuations"].append(cont)
-
-        if evaluate:
-            scores = eval_on_metric(metric, logs[epoch]["continuations"])
-            logs[epoch][f"{str(metric)}_scores"] = scores
-
-            if use_wandb:
-                for i, score in enumerate(scores):
-                    wandb.log({f"{str(metric)}_score": score, "samples": i})
-                    all_data_table.add_data(epoch, i, score)
-
-        file_name = (
-            f"{str(metric)}_scores.json"
-            if evaluate
-            else f"{model_cfg['model_id'].split('/')[-1]}_continuations_seed{seed}.json"
+        ),
+        total=len(prompt_dataset),
+    ):
+        prompt = tokenizer.apply_chat_template(
+            format_func(prompt_dataset[i]["prompt"]["text"]),
+            tokenize=False,
+            add_generation_prompt=True,
         )
-
-        with open(file_name, "w") as file:
-            json.dump(logs, file, indent=4)
-
         if use_wandb:
-            wandb.save(file_name)
+            wandb.log(
+                {
+                    "prompt": prompt_dataset[i]["prompt"]["text"],
+                    "continuation": out[0]["generated_text"][len(prompt) :]
+                    .strip()
+                    .replace(prompt_dataset[i]["prompt"]["text"], ""),
+                }
+            )
 
-    # plot histogram in wandb
-    if use_wandb and evaluate:
-        wandb.log(
-            {
-                "Ratings Histogram": wandb.plot.histogram(
-                    all_data_table,
-                    "ratings",
-                    title=f"{str(metric)}_scores",
-                )
-            }
+        # cont = out[0]["generated_text"].replace(
+        # cont = out[0]["generated_text"].replace(
+        #    prompt_dataset[i]["prompt"]["text"], ""
+        cont = (
+            out[0]["generated_text"][len(prompt) :]
+            .strip()
+            .replace(prompt_dataset[i]["prompt"]["text"], "")
         )
+        logs["prompts"].append(prompt_dataset[i]["prompt"]["text"])
+        logs["continuations"].append(cont)
+
+    file_name = f"{model_cfg['model_id'].split('/')[-1]}_continuations_seed{seed}.json"
+
+    with open(file_name, "w") as file:
+        json.dump(logs, file, indent=4)
+
+    if use_wandb:
+        wandb.save(file_name)
 
 
 def eval_on_metric(metric, continuations, asynchronously=True, batch_size=8):
