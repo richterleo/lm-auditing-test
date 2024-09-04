@@ -8,6 +8,7 @@ import sys
 import wandb
 import pandas as pd
 
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Dict, List
 
@@ -20,7 +21,7 @@ from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_f
 
 from evaluation.nn_for_nn_distance import CMLP
 from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
-from evaluation.plot import distance_box_plot
+from evaluation.plot import distance_box_plot, plot_calibrated_detection_rate
 
 from utils.generate_and_evaluate import generate_and_evaluate
 from utils.utils import (
@@ -94,6 +95,8 @@ class Experiment:
 class AuditingTest(Experiment):
     """ """
 
+    FOLD_PATTERN = r"_fold_(\d+)\.json$"
+
     def __init__(
         self,
         config: Dict,
@@ -102,7 +105,6 @@ class AuditingTest(Experiment):
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
         output_dir: str = "test_outputs",
-        fold_pattern: str = r"_fold_(\d+)\.json$",  # TODO: maybe class attribute?
         use_full_ds_for_nn_distance: bool = False,
     ):
         super().__init__(
@@ -113,8 +115,6 @@ class AuditingTest(Experiment):
             use_wandb=use_wandb,
             metric=metric,
         )
-        self.fold_pattern = fold_pattern
-
         self.epsilon = self.config["epsilon"]
 
         # initialize instance parameters to None
@@ -231,7 +231,7 @@ class AuditingTest(Experiment):
             )
 
             for file_name in os.listdir(self.directory):
-                match = re.search(self.fold_pattern, file_name)
+                match = re.search(self.FOLD_PATTERN, file_name)
                 if match:
                     fold_number = int(match.group(1))
                     folds.append(fold_number)
@@ -374,60 +374,67 @@ class AuditingTest(Experiment):
         return power
 
 
-class CalibratedAuditingTest(AuditingTest):
+class EpsilonStrategy(ABC):
+    @abstractmethod
+    def __init__(self, **kwargs):
+        """
+        Initialize the epsilon calculation strategy with any necessary parameters.
+
+        :param kwargs: Dictionary of configuration parameters
+        """
+        pass
+
+    def attach_logger(self, logger: logging.Logger):
+        self.logger = logger
+
+    @abstractmethod
+    def calculate_epsilons(self, **kwargs) -> list:
+        """
+        Calculate a list of epsilons based on the distance dataframe.
+
+        :param distance_df: DataFrame containing distance scores
+        :return: List of calculated epsilons
+        """
+        pass
+
+
+class DefaultEpsilonStrategy(EpsilonStrategy):
     def __init__(
         self,
-        config: Dict,
-        train_cfg: TrainCfg,
-        overwrite: bool = False,
-        use_wandb: Optional[bool] = None,
-        metric: Optional[bool] = None,
-        output_dir: str = "test_outputs",
-        fold_pattern: str = r"_fold_(\d+)\.json$",  # TODO: maybe class attribute?
-        num_samples: Optional[int] = 0,
-        multiples_of_epsilon: int = 3,
-        bias: float = 0,
-        use_full_ds_for_nn_distance: bool = False,
+        overwrite: bool = True,
+        multiples_of_epsilon: Optional[int] = None,
+        bias: Optional[float] = None,
+        use_full_ds_for_nn_distance: Optional[bool] = None,
+        num_runs: Optional[int] = None,
+        config: Optional[Dict] = None,
     ):
-        super().__init__(
-            config,
-            train_cfg,
-            overwrite=overwrite,
-            use_wandb=use_wandb,
-            metric=metric,
-            output_dir=output_dir,
-            fold_pattern=fold_pattern,
-            use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
+        self.overwrite = overwrite
+        self.multiples_of_epsilon = (
+            multiples_of_epsilon
+            if multiples_of_epsilon is not None
+            else config["analysis"]["multiples_of_epsilon"]
+        )
+        self.bias = bias if bias else config["analysis"]["bias"]
+        self.use_full_ds_for_nn_distance = (
+            use_full_ds_for_nn_distance
+            if use_full_ds_for_nn_distance is not None
+            else config["analysis"]["use_full_ds_for_nn_distance"]
         )
 
-        self.num_samples = (
-            num_samples if num_samples else config["analysis"]["num_samples"]
+        self.use_full_ds_for_nn_distance = (
+            use_full_ds_for_nn_distance
+            if use_full_ds_for_nn_distance is not None
+            else config["analysis"]["use_full_ds_for_nn_distance"]
         )
-        self.power_dict = {}
-        self.multiples_of_epsilon = multiples_of_epsilon
-        self.bias = bias
-
-        self.num_train_samples = None
-        self.num_runs = self.config["analysis"]["num_runs"]
-
-    def setup_logger(self, tag: str = "test_results"):
-        """ """
-        setup_logging(
-            self.model_name1,
-            self.seed1,
-            self.model_name2,
-            self.seed2,
-            self.fold_size,  # removed epsilon
-            tag=tag,
+        self.num_runs = (
+            num_runs if num_runs is not None else config["analysis"]["num_runs"]
         )
-        self.logger = logging.getLogger(__name__)
 
-    def calibrate_before_run(self):
-        """ """
-
+    def calculate_epsilons(
+        self, test_dir, num_train_samples, **distance_score_kwargs
+    ) -> list:
         dist_path = (
-            Path(self.directory)
-            / f"distance_scores_{self.num_train_samples}_{self.num_runs}.csv"
+            Path(test_dir) / f"distance_scores_{num_train_samples}_{self.num_runs}.csv"
         )
         if dist_path.exists():
             self.logger.info(
@@ -436,19 +443,20 @@ class CalibratedAuditingTest(AuditingTest):
             distance_df = pd.read_csv(dist_path)
         else:
             self.logger.info(
-                f"Training neural net distance on {self.num_train_samples} samples for {self.num_runs} runs."
+                f"Training neural net distance on {num_train_samples} samples for {self.num_runs} runs."
             )
+            # TODO: refactor this
             distance_df = get_distance_scores(
-                self.model_name1,
-                self.seed1,
-                self.seed2,
-                model_name2=self.model_name2,
-                metric=self.metric,
+                distance_score_kwargs["model_name1"],
+                distance_score_kwargs["seed1"],
+                distance_score_kwargs["seed2"],
+                model_name2=distance_score_kwargs["model_name2"],
+                metric=distance_score_kwargs["metric"],
                 num_runs=self.num_runs,
-                net_cfg=self.config["net"],
-                train_cfg=self.train_cfg,
-                num_samples=[self.train_cfg.batch_size, self.num_train_samples],
-                num_test_samples=self.train_cfg.batch_size,
+                net_cfg=distance_score_kwargs["net_cfg"],
+                train_cfg=distance_score_kwargs["train_cfg"],
+                num_samples=distance_score_kwargs["num_samples"],
+                num_test_samples=distance_score_kwargs["num_test_samples"],
             )
 
             distance_df.to_csv(dist_path, index=False)
@@ -474,7 +482,55 @@ class CalibratedAuditingTest(AuditingTest):
                     )
                 )
             )
+        ), mean_nn_distance
+
+
+class CalibratedAuditingTest(AuditingTest):
+    def __init__(
+        self,
+        config: Dict,
+        train_cfg: TrainCfg,
+        calibration_strategy: EpsilonStrategy,
+        overwrite: bool = False,
+        use_wandb: Optional[bool] = None,
+        metric: Optional[bool] = None,
+        output_dir: str = "test_outputs",
+        num_samples: Optional[int] = 0,
+        use_full_ds_for_nn_distance: bool = False,
+    ):
+        super().__init__(
+            config,
+            train_cfg,
+            overwrite=overwrite,
+            use_wandb=use_wandb,
+            metric=metric,
+            output_dir=output_dir,
+            use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
         )
+
+        self.num_samples = (
+            num_samples if num_samples else config["analysis"]["num_samples"]
+        )
+        self.power_dict = {}
+
+        self.num_train_samples = None
+
+        self.calibration_strategy = calibration_strategy
+
+        self.num_runs = self.calibration_strategy.num_runs
+        self.multiples_of_epsilon = self.calibration_strategy.multiples_of_epsilon
+
+    def setup_logger(self, tag: str = "test_results"):
+        """ """
+        setup_logging(
+            self.model_name1,
+            self.seed1,
+            self.model_name2,
+            self.seed2,
+            self.fold_size,  # removed epsilon
+            tag=tag,
+        )
+        self.logger = logging.getLogger(__name__)
 
     def run(
         self, model_name1=None, seed1=None, model_name2=None, seed2=None, fold_size=4000
@@ -492,6 +548,8 @@ class CalibratedAuditingTest(AuditingTest):
         self.fold_size = fold_size
 
         self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+        if not Path(self.directory).exists():
+            Path(self.directory).mkdir(parents=True)
 
         if self.config["analysis"]["num_samples"] == 0:
             self.num_train_samples = (
@@ -515,7 +573,21 @@ class CalibratedAuditingTest(AuditingTest):
             )
 
         else:
-            epsilons = self.calibrate_before_run()
+            self.calibration_strategy.attach_logger(self.logger)
+            calibration_cfg = {
+                "model_name1": self.model_name1,
+                "seed1": self.seed1,
+                "model_name2": self.model_name2,
+                "seed2": self.seed2,
+                "metric": self.metric,
+                "net_cfg": self.config["net"],
+                "train_cfg": self.train_cfg,
+                "num_samples": [self.train_cfg.batch_size, self.num_train_samples],
+                "num_test_samples": self.train_cfg.batch_size,
+            }
+            epsilons, true_epsilon = self.calibration_strategy.calculate_epsilons(
+                self.directory, self.num_train_samples, **calibration_cfg
+            )
 
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
             power_dict = {}
@@ -535,6 +607,15 @@ class CalibratedAuditingTest(AuditingTest):
             power_df = pd.DataFrame(power_dict.items(), columns=["epsilon", "power"])
             power_df.to_csv(epsilon_path, index=False)
             self.logger.info(f"Calibrated testing results saved to {epsilon_path}.")
+
+        plot_calibrated_detection_rate(
+            true_epsilon,
+            self.model_name1,
+            self.seed1,
+            self.model_name2,
+            self.seed2,
+            result_file_name=epsilon_path,
+        )
 
 
 def eval_model(

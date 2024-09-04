@@ -4773,3 +4773,4 @@
 2024-08-22 18:27:48,622 - auditing_test.preprocessing - INFO - Deleted file: test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/perspective_scores_fold_21.json
 2024-08-22 18:27:48,625 - auditing_test.test - INFO - Positive tests: 1.0, 100.0%.
 2024-08-22 18:27:48,629 - auditing_test.test - INFO - Calibrated testing results saved to test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/power_over_epsilon_3900_20_3.csv.
+2024-09-04 11:20:44,596 - auditing_test.test - INFO - Calibrated testing results already exist in test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/power_over_epsilon_3900_20_3.csv.

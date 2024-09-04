@@ -10,7 +10,12 @@ sys.path.append(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing")
 )
 
-from auditing_test.test import AuditingTest, CalibratedAuditingTest, eval_model
+from auditing_test.test import (
+    AuditingTest,
+    CalibratedAuditingTest,
+    DefaultEpsilonStrategy,
+    eval_model,
+)
 
 
 def main():
@@ -111,6 +116,7 @@ def main():
             exp = CalibratedAuditingTest(
                 config,
                 train_cfg,
+                DefaultEpsilonStrategy(config),
                 use_wandb=not args.no_wandb,
             )
             exp.run(
@@ -140,12 +146,17 @@ if __name__ == "__main__":
     config = load_config("config.yml")
     train_cfg = TrainCfg()
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt5"
+    model_name2 = "Llama-3-8B-ckpt2"
     seed1 = "seed1000"
     seed2 = "seed1000"
     fold_size = 4000
 
-    exp = CalibratedAuditingTest(config, train_cfg, use_wandb=False, bias=0)
+    exp = CalibratedAuditingTest(
+        config,
+        train_cfg,
+        DefaultEpsilonStrategy(config=config, num_runs=5),
+        use_wandb=False,
+    )
     exp.run(
         model_name1=model_name1,
         seed1=seed1,

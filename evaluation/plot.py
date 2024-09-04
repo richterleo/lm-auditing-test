@@ -134,7 +134,6 @@ def plot_power_over_number_of_sequences(
     checkpoints: List[str],
     seeds: List[str],
     checkpoint_base_name: str = "LLama-3-8B-ckpt",
-    save: bool = True,
     group_by: str = "Checkpoint",
     marker: str = "X",
     save_as_pdf: bool = True,
@@ -216,28 +215,26 @@ def plot_power_over_number_of_sequences(
     plt.gca().spines["bottom"].set_linewidth(1.5)
     plt.gca().spines["left"].set_linewidth(1.5)
 
-    if save:
-        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+    directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+    if not Path(directory).exists():
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    else:
+        for seed in seeds:
+            directory += f"_{seed}"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
-        else:
-            for seed in seeds:
-                directory += f"_{seed}"
-            if not Path(directory).exists():
-                Path(directory).mkdir(parents=True, exist_ok=True)
-        if save_as_pdf:
-            plt.savefig(
-                f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf",
-                bbox_inches="tight",
-                format="pdf",
-            )
-        else:
-            plt.savefig(
-                f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.png",
-                dpi=300,
-                bbox_inches="tight",
-            )
-    plt.show()
+    if save_as_pdf:
+        plt.savefig(
+            f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf",
+            bbox_inches="tight",
+            format="pdf",
+        )
+    else:
+        plt.savefig(
+            f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
 
 
 def plot_power_over_epsilon(
@@ -249,7 +246,6 @@ def plot_power_over_epsilon(
     epoch1=0,
     epoch2=0,
     metric="toxicity",
-    save=True,
     distance_measure="Wasserstein",
     fold_sizes: Union[int, List[int]] = [1000, 2000, 3000, 4000],
     marker="X",
@@ -343,43 +339,42 @@ def plot_power_over_epsilon(
     for spine in ax.spines.values():
         spine.set_linewidth(1.5)
 
-    if save:
-        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+    directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+    if not Path(directory).exists():
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    else:
+        for seed in seeds:
+            directory += f"_{seed}"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
-        else:
-            for seed in seeds:
-                directory += f"_{seed}"
-            if not Path(directory).exists():
-                Path(directory).mkdir(parents=True, exist_ok=True)
 
-        if "Samples per Test" in smaller_df.columns:
-            if save_as_pdf:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
-                    bbox_inches="tight",
-                    format="pdf",
-                )
+    if "Samples per Test" in smaller_df.columns:
+        if save_as_pdf:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
+                bbox_inches="tight",
+                format="pdf",
+            )
 
-            else:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
-                    dpi=300,
-                    bbox_inches="tight",
-                )
         else:
-            if save_as_pdf:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.pdf",
-                    bbox_inches="tight",
-                    format="pdf",
-                )
-            else:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.png",
-                    dpi=300,
-                    bbox_inches="tight",
-                )
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
+    else:
+        if save_as_pdf:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.pdf",
+                bbox_inches="tight",
+                format="pdf",
+            )
+        else:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
 
     plt.figure(figsize=(10, 6))
     sns.lineplot(
@@ -415,48 +410,46 @@ def plot_power_over_epsilon(
     for spine in ax.spines.values():
         spine.set_linewidth(1.5)
 
-    if save:
-        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+    directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+    if not Path(directory).exists():
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    else:
+        for seed in seeds:
+            directory += f"_{seed}"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+    if "Samples per Test" in smaller_df.columns:
+        if save_as_pdf:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
+                bbox_inches="tight",
+                format="pdf",
+            )
         else:
-            for seed in seeds:
-                directory += f"_{seed}"
-            if not Path(directory).exists():
-                Path(directory).mkdir(parents=True, exist_ok=True)
-        if "Samples per Test" in smaller_df.columns:
-            if save_as_pdf:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
-                    bbox_inches="tight",
-                    format="pdf",
-                )
-            else:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
-                    dpi=300,
-                    bbox_inches="tight",
-                )
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
+    else:
+        if save_as_pdf:
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.pdf",
+                bbox_inches="tight",
+                format="pdf",
+            )
         else:
-            if save_as_pdf:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.pdf",
-                    bbox_inches="tight",
-                    format="pdf",
-                )
-            else:
-                plt.savefig(
-                    f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.png",
-                    dpi=300,
-                    bbox_inches="tight",
-                )
+            plt.savefig(
+                f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
 
 
 def plot_alpha_over_sequences(
     model_names,
     seeds1,
     seeds2,
-    save=True,
     save_as_pdf=True,
     markers=["X", "o", "s"],
     palette=["#94D2BD", "#EE9B00", "#BB3E03"],
@@ -524,23 +517,22 @@ def plot_alpha_over_sequences(
         )
     plt.grid(True, linewidth=0.5, color="#ddddee")
 
-    if save:
-        directory = f"{plot_dir}/alpha_plots"
-        if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
-        fig_path = f"{directory}/alpha_error_over_number_of_sequences"
-        if isinstance(model_names, str):
-            fig_path += f"_{model_names}"
-        elif isinstance(model_names, list):
-            for model_name in model_names:
-                fig_path += f"_{model_name}"
+    directory = f"{plot_dir}/alpha_plots"
+    if not Path(directory).exists():
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    fig_path = f"{directory}/alpha_error_over_number_of_sequences"
+    if isinstance(model_names, str):
+        fig_path += f"_{model_names}"
+    elif isinstance(model_names, list):
+        for model_name in model_names:
+            fig_path += f"_{model_name}"
 
-        if save_as_pdf:
-            fig_path += ".pdf"
-            plt.savefig(fig_path, bbox_inches="tight", format="pdf")
-        else:
-            fig_path += ".png"
-            plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+    if save_as_pdf:
+        fig_path += ".pdf"
+        plt.savefig(fig_path, bbox_inches="tight", format="pdf")
+    else:
+        fig_path += ".png"
+        plt.savefig(fig_path, dpi=300, bbox_inches="tight")
 
 
 def plot_rejection_rate_matrix(
@@ -553,7 +545,6 @@ def plot_rejection_rate_matrix(
     metric: Optional[str] = "toxicity",
     epoch1: Optional[int] = 0,
     epoch2: Optional[int] = 0,
-    save: bool = True,
     save_as_pdf: bool = True,
     plot_dir: str = "plots",
 ):
@@ -601,7 +592,6 @@ def plot_rejection_rate_matrix(
 
         results_df = pd.concat(results_df, ignore_index=True)
 
-    print(results_df)
     pivot_table = results_df.pivot_table(values="Power", index="seed1", columns="seed2")
 
     # Create the heatmap
@@ -614,27 +604,21 @@ def plot_rejection_rate_matrix(
     )
     heatmap.set_title(f"Positive Test Rates for model {model_names1[0]}")
 
-    if save:
-        directory = f"{plot_dir}/power_heatmaps"
-        if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
-        file_name = "power_heatmap"
-        for model_name, seed in zip(model_names1, seeds1):
-            file_name += f"_{model_name}_{seed}"
+    directory = f"{plot_dir}/power_heatmaps"
+    if not Path(directory).exists():
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    file_name = "power_heatmap"
+    for model_name, seed in zip(model_names1, seeds1):
+        file_name += f"_{model_name}_{seed}"
 
-        if save_as_pdf:
-            file_name += ".pdf"
-            output_path = os.path.join(directory, file_name)
-            plt.savefig(output_path, format="pdf", bbox_inches="tight")
-        else:
-            file_name += ".png"
-            output_path = os.path.join(directory, file_name)
-            plt.savefig(output_path, dpi=300, bbox_inches="tight")
-
+    if save_as_pdf:
+        file_name += ".pdf"
+        output_path = os.path.join(directory, file_name)
+        plt.savefig(output_path, format="pdf", bbox_inches="tight")
     else:
-        plt.show()
-
-    plt.close()
+        file_name += ".png"
+        output_path = os.path.join(directory, file_name)
+        plt.savefig(output_path, dpi=300, bbox_inches="tight")
 
     if distance_measure:
         distance_pivot_table = results_df.pivot_table(
@@ -653,28 +637,91 @@ def plot_rejection_rate_matrix(
         )
         heatmap.set_title(f"Distance Heatmap for model {model_names1[0]}")
 
-        if save:
-            directory = f"{plot_dir}/power_heatmaps"
-            if not Path(directory).exists():
-                Path(directory).mkdir(parents=True, exist_ok=True)
+        directory = f"{plot_dir}/power_heatmaps"
+        if not Path(directory).exists():
+            Path(directory).mkdir(parents=True, exist_ok=True)
 
-            file_name = "distance_heatmap"
-            for model_name, seed in zip(model_names1, seeds1):
-                file_name += f"_{model_name}_{seed}"
+        file_name = "distance_heatmap"
+        for model_name, seed in zip(model_names1, seeds1):
+            file_name += f"_{model_name}_{seed}"
 
-            if save_as_pdf:
-                file_name += ".pdf"
-                output_path = os.path.join(directory, file_name)
-                plt.savefig(output_path, format="pdf", bbox_inches="tight")
-            else:
-                file_name += ".png"
-                output_path = os.path.join(directory, file_name)
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
-
+        if save_as_pdf:
+            file_name += ".pdf"
+            output_path = os.path.join(directory, file_name)
+            plt.savefig(output_path, format="pdf", bbox_inches="tight")
         else:
-            plt.show()
+            file_name += ".png"
+            output_path = os.path.join(directory, file_name)
+            plt.savefig(output_path, dpi=300, bbox_inches="tight")
 
-        plt.close()
+
+def plot_calibrated_detection_rate(
+    true_epsilon: float,
+    model_name1: str,
+    seed1: str,
+    model_name2: str,
+    seed2: str,
+    result_file_name: Optional[Union[str, Path]] = None,
+    num_train_samples: Optional[int] = None,
+    num_runs: Optional[int] = None,
+    multiples_of_epsilon: Optional[int] = None,
+    test_dir: str = "test_dir",
+    save_as_pdf: bool = True,
+    overwrite: bool = False,
+):
+    """ """
+
+    script_dir = os.path.dirname(__file__)
+    test_dir = os.path.join(script_dir, "..", test_dir)
+    plot_dir = os.path.join(test_dir, f"{model_name1}_{seed1}_{model_name2}_{seed2}")
+
+    if result_file_name is not None:
+        result_file_path = os.path.join(plot_dir, result_file_name)
+    else:
+        result_file_path = os.path.join(
+            plot_dir,
+            f"power_over_epsilon_{num_train_samples}_{num_runs}_{multiples_of_epsilon}.csv",
+        )
+
+    df = pd.read_csv(result_file_path)
+    df_sorted = df.sort_values(by="epsilon")
+
+    # Plotting
+    plt.figure(figsize=(8, 6))
+    plt.plot(
+        df_sorted["epsilon"],
+        df_sorted["power"],
+        marker="o",
+        label="Detection Rate over Epsilon",
+    )
+
+    # Adding the vertical line
+    plt.axvline(
+        x=true_epsilon, color="red", linestyle="--", label="True Neural Net Distance"
+    )
+
+    # Adding label to the vertical line
+    plt.text(
+        true_epsilon + 0.0001,
+        0.5,
+        "True Neural Net Distance",
+        color="red",
+        verticalalignment="center",
+    )
+
+    plot_path = os.path.join(plot_dir, "calibrated_detection_rate.pdf")
+
+    if not overwrite and Path(plot_path).exists():
+        logger.info(f"File already exists at {plot_path}. Skipping...")
+
+    else:
+        # Titles and labels
+        plt.title("Detection Rate vs Epsilon")
+        plt.xlabel("Epsilon")
+        plt.ylabel("Detection Rate")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(plot_path, format="pdf", bbox_inches="tight")
 
 
 def plot_scores(
