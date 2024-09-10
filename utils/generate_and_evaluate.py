@@ -1,6 +1,7 @@
 import evaluate
 import json
 import wandb
+import os
 import aiohttp
 import asyncio
 import torch
@@ -8,6 +9,7 @@ import torch
 from collections import defaultdict
 from datasets import load_dataset
 from googleapiclient import discovery
+from huggingface_hub import login
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
@@ -30,6 +32,10 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# hf_token = os.environ.get("HF_TOKEN", None)
+# wandb_token = os.environ.get("WANDB_API_KEY", None)
+# login(token=hf_token)
 
 
 def generate_on_dataset(
