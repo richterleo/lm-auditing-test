@@ -30,7 +30,8 @@ analysis:
 
 
 tau1: 
-  model_id: codealpaca-Meta-Llama-3-8B-Instruct
+  model_id: commonsense_classification-Meta-Llama-3-8B-Instruct
+  #codealpaca-Meta-Llama-3-8B-Instruct
     #Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
