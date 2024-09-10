@@ -20,3 +20,4 @@ tqdm==4.66.5
 transformers==4.44.2
 trl==0.9.6
 vllm==0.6.0
+ninja
