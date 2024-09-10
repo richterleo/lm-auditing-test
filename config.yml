@@ -12,7 +12,7 @@ eval:
   num_samples: 100000 #1e6
   num_bins: 10
   batch_size: 16
-  model_prefix: LLMAccountability
+  use_vllm: false
 
 logging: 
   use_wandb: true
@@ -30,7 +30,8 @@ analysis:
 
 
 tau1: 
-  model_id: Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
+  model_id: codealpaca-Meta-Llama-3-8B-Instruct
+    #Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
@@ -38,12 +39,14 @@ tau1:
     torch_dtype: torch.bfloat16
     load_in_4bit: true
     device_map: auto
+    low_cpu_mem_usage: true
   gen_kwargs:
     max_new_tokens: 100
     do_sample: true
     temperature: 0.7
     top_p: 0.9
   gen_batch_size: 8
+  hf_prefix: LLMAccountability #meta-llama
 
 tau2: 
   model_id: Llama-3-8B-ckpt4
@@ -59,6 +62,7 @@ tau2:
     temperature: 0.7
     top_p: 0.9
   gen_batch_size: 8
+  hf_prefix: LLMAccountability
 
 
 net:

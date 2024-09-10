@@ -8,6 +8,7 @@ import torch
 from collections import defaultdict
 from datasets import load_dataset
 from googleapiclient import discovery
+from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer
@@ -22,6 +23,7 @@ from utils.utils import (
     NestedKeyDataset,
     terminator,
     format_funcs,
+    check_seed,
 )
 
 import logging
@@ -30,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def generate_and_evaluate(
+def generate_on_dataset(
     dataset_name: str,
     model_cfg,
     num_samples: int,
@@ -39,8 +41,10 @@ def generate_and_evaluate(
     use_wandb=True,
     metric=None,
     meta_data=None,
+    output_dir: str = "model_outputs",
 ):
     """ """
+    seed = check_seed(seed)
 
     prompt_dataset = load_dataset(dataset_name, split="train")
 
@@ -50,26 +54,24 @@ def generate_and_evaluate(
         model_kwargs.update({"attn_implementation": "flash_attention_2"})
     gen_kwargs = model_cfg["gen_kwargs"]
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_cfg["model_id"], padding_side="left"
-    )
+    model_id = f"{model_cfg['hf_prefix']}/{model_cfg['model_id']}"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
 
     terminators = [tokenizer.eos_token_id]
 
-    if "Llama-3" in model_cfg["model_id"]:
+    if "Llama-3" in model_id:
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
-    elif "Mistral" in model_cfg["model_id"]:
+    elif "Mistral" in model_id:
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
-    elif "gemma" in model_cfg["model_id"]:
+    elif "gemma" in model_id:
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    if model_cfg["model_id"].startswith("LLMAccountability"):
-        model = AutoPeftModelForCausalLM.from_pretrained(
-            model_cfg["model_id"], **model_kwargs
-        )
+    if model_id.startswith("LLMAccountability"):
+        model = AutoPeftModelForCausalLM.from_pretrained(model_id, **model_kwargs)
         generator = pipeline(
             "text-generation",
             model=model,
@@ -80,7 +82,7 @@ def generate_and_evaluate(
     else:
         generator = pipeline(
             "text-generation",
-            model=model_cfg["model_id"],
+            model=model_id,
             model_kwargs=model_kwargs,
             tokenizer=tokenizer,
             pad_token_id=tokenizer.pad_token_id,
@@ -92,25 +94,24 @@ def generate_and_evaluate(
         subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
         prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
 
-    logs = defaultdict(lambda: defaultdict(list))
+    logs = defaultdict(list)
     logs["metadata"] = {
         "dataset_name": dataset_name,
-        "model_id": model_cfg["model_id"],
-        "gen_kwargs": gen_kwargs,
+        "model_id": model_id,
+        "gen_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
         "num_samples": num_samples,
         "batch_size": batch_size,
         "seed": seed,
         "use_wandb": use_wandb,
-        "evaluate": evaluate,
         "metric": str(metric),
         "meta_data": meta_data,
     }
 
-    if "Llama-3" in model_cfg["model_id"]:
+    if "Llama-3" in model_id:
         format_func = format_funcs["llama3"]
-    elif "Mistral" in model_cfg["model_id"]:
+    elif "Mistral" in model_id:
         format_func = format_funcs["mistral"]
-    elif "gemma" in model_cfg["model_id"]:
+    elif "gemma" in model_id:
         format_func = format_funcs["gemma"]
 
     for i, out in tqdm(
@@ -120,7 +121,7 @@ def generate_and_evaluate(
                     prompt_dataset,
                     "prompt",
                     "text",
-                    model_cfg["model_id"],
+                    model_id,
                     tokenizer,
                 ),
                 batch_size=batch_size,
@@ -156,13 +157,17 @@ def generate_and_evaluate(
         logs["prompts"].append(prompt_dataset[i]["prompt"]["text"])
         logs["continuations"].append(cont)
 
-    file_name = f"{model_cfg['model_id'].split('/')[-1]}_continuations_seed{seed}.json"
+    file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}"
+    file_path = f"{folder_path}/{file_name}"
+    if not Path(folder_path).exists():
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
 
-    with open(file_name, "w") as file:
+    with open(file_path, "w") as file:
         json.dump(logs, file, indent=4)
 
     if use_wandb:
-        wandb.save(file_name)
+        wandb.save(file_path)
 
 
 def eval_on_metric(metric, continuations, asynchronously=True, batch_size=8):

@@ -323,6 +323,30 @@ def folder_from_model_and_seed(file_name):
     return folder
 
 
+def check_seed(seed):
+    if isinstance(seed, str):
+        if seed.startswith("seed"):
+            try:
+                seed = int(seed[4:])  # Extract the number after "seed"
+            except ValueError:
+                raise ValueError(
+                    f"Invalid seed format: {seed}. Expected 'seed<number>' or an integer."
+                )
+        else:
+            try:
+                seed = int(seed)  # Try to convert the entire string to an integer
+            except ValueError:
+                raise ValueError(
+                    f"Invalid seed format: {seed}. Expected 'seed<number>' or an integer."
+                )
+    elif not isinstance(seed, int):
+        raise ValueError(
+            f"Invalid seed type: {type(seed)}. Expected 'seed<number>' string or an integer."
+        )
+
+    return seed
+
+
 if __name__ == "__main__":
     run_path = "LLM_Accountability/continuations/0t7mlrj1"
     pattern = "continuations"

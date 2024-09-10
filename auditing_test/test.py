@@ -23,7 +23,7 @@ from evaluation.nn_for_nn_distance import CMLP
 from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 from evaluation.plot import distance_box_plot, plot_calibrated_detection_rate
 
-from utils.generate_and_evaluate import generate_and_evaluate
+from utils.generate_and_evaluate import generate_on_dataset
 from utils.utils import (
     create_run_string,
 )
@@ -633,11 +633,14 @@ def eval_model(
     config,
     num_samples: Optional[int] = None,
     batch_size: Optional[int] = None,
+    use_wandb: Optional[int] = None,
 ):
     """ """
+    use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
+
     project_name = "continuations"
 
-    if config["logging"]["use_wandb"]:
+    if use_wandb:
         wandb.init(
             project=project_name,
             entity=config["logging"]["entity"],
@@ -645,20 +648,15 @@ def eval_model(
             config=config,
         )
 
-    if "ckpt" in config["tau1"]["model_id"]:
-        config["tau1"]["model_id"] = (
-            config["eval"]["model_prefix"] + "/" + config["tau1"]["model_id"]
-        )
-
-    generate_and_evaluate(
+    generate_on_dataset(
         config["metric"]["dataset_name"],
         config["tau1"],
         config["eval"]["num_samples"] if not num_samples else num_samples,
         batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
-        use_wandb=config["logging"]["use_wandb"],
+        use_wandb=use_wandb,
         seed=config["tau1"]["gen_seed"],
         metric=config["metric"]["metric"],
     )
 
-    if config["logging"]["use_wandb"]:
+    if use_wandb:
         wandb.finish()
