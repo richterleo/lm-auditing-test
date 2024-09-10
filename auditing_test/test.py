@@ -10,7 +10,7 @@ import pandas as pd
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 
 # imports from other scripts
 from arguments import TrainCfg
@@ -483,6 +483,113 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
                 )
             )
         ), mean_nn_distance
+
+
+class CrossValEpsilonStrategy(EpsilonStrategy):
+    def __init__(
+        self,
+        models_and_seeds: List[Dict[str, Union[str, int]]],
+        overwrite: bool = True,
+        multiples_of_epsilon: Optional[int] = None,
+        bias: Optional[float] = None,
+        use_full_ds_for_nn_distance: Optional[bool] = None,
+        num_runs: Optional[int] = None,
+        config: Optional[Dict] = None,
+    ):
+        self.models_and_seeds = models_and_seeds
+        self.overwrite = overwrite
+        self.multiples_of_epsilon = (
+            multiples_of_epsilon
+            if multiples_of_epsilon is not None
+            else config["analysis"]["multiples_of_epsilon"]
+        )
+        self.bias = bias if bias else config["analysis"]["bias"]
+        self.use_full_ds_for_nn_distance = (
+            use_full_ds_for_nn_distance
+            if use_full_ds_for_nn_distance is not None
+            else config["analysis"]["use_full_ds_for_nn_distance"]
+        )
+        self.num_runs = (
+            num_runs if num_runs is not None else config["analysis"]["num_runs"]
+        )
+
+    def calculate_epsilons(
+        self, test_dir, num_train_samples, **distance_score_kwargs
+    ) -> list:
+        all_distances = []
+
+        # Extract the base directory
+        base_dir = Path(test_dir).parent
+
+        for model in self.models_and_seeds:
+            model_name = model["model_name"]
+            seed = model["seed"]
+
+            # Construct the new directory path
+            new_dir = (
+                base_dir
+                / f"{distance_score_kwargs['model_name1']}_{distance_score_kwargs['seed1']}_{model_name}_{seed}"
+            )
+
+            # Ensure the directory exists
+            new_dir.mkdir(parents=True, exist_ok=True)
+
+            dist_path = (
+                new_dir / f"distance_scores_{num_train_samples}_{self.num_runs}.csv"
+            )
+
+            if dist_path.exists() and not self.overwrite:
+                self.logger.info(
+                    f"Loading existing distance analysis for {model_name}_{seed} from {dist_path}."
+                )
+                distance_df = pd.read_csv(dist_path)
+            else:
+                self.logger.info(
+                    f"Training neural net distance for {model_name}_{seed} on {num_train_samples} samples for {self.num_runs} runs."
+                )
+                distance_df = get_distance_scores(
+                    distance_score_kwargs["model_name1"],
+                    distance_score_kwargs["seed1"],
+                    seed,
+                    model_name2=model_name,
+                    metric=distance_score_kwargs["metric"],
+                    num_runs=self.num_runs,
+                    net_cfg=distance_score_kwargs["net_cfg"],
+                    train_cfg=distance_score_kwargs["train_cfg"],
+                    num_samples=distance_score_kwargs["num_samples"],
+                    num_test_samples=distance_score_kwargs["num_test_samples"],
+                )
+
+                distance_df.to_csv(dist_path, index=False)
+                self.logger.info(
+                    f"Distance analysis results for {model_name}_{seed} saved to {dist_path}."
+                )
+
+            mean_nn_distance, _ = get_mean_and_std_for_nn_distance(distance_df)
+            all_distances.extend(distance_df["NeuralNet"].tolist())
+
+        overall_mean = np.mean(all_distances)
+        overall_std = np.std(all_distances)
+
+        self.logger.info(
+            f"Overall average nn distance: {overall_mean}, overall std: {overall_std}."
+        )
+
+        if not self.bias == 0:
+            self.logger.info(
+                f"Subtracting bias of {self.bias} to the neural net distance epsilon."
+            )
+
+        return sorted(
+            list(
+                set(
+                    max(overall_mean + overall_std * i - self.bias, 0)
+                    for i in range(
+                        -self.multiples_of_epsilon, self.multiples_of_epsilon + 1
+                    )
+                )
+            )
+        ), overall_mean
 
 
 class CalibratedAuditingTest(AuditingTest):
