@@ -102,7 +102,7 @@ def main():
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":
-        eval_model(config, use_wandb=not args.no_wandb)
+        eval_model(config, model_id=args.model_name1, use_wandb=not args.no_wandb)
 
     elif args.exp == "test":
         train_cfg = TrainCfg()

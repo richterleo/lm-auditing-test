@@ -738,6 +738,7 @@ class CalibratedAuditingTest(AuditingTest):
 
 def eval_model(
     config,
+    model_id: Optional[int] = None,
     num_samples: Optional[int] = None,
     batch_size: Optional[int] = None,
     use_wandb: Optional[int] = None,
@@ -754,6 +755,9 @@ def eval_model(
             name=create_run_string(),
             config=config,
         )
+
+    if model_id:
+        config["tau1"]["model_id"] = model_id
 
     generate_on_dataset(
         config["metric"]["dataset_name"],
