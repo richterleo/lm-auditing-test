@@ -4,7 +4,7 @@ evaluate==0.4.2
 google_api_python_client==2.143.0
 hydra-core
 matplotlib==3.9.2
-numpy==2.1.1
+numpy>=1.23.5,<2.3
 omegaconf
 pandas==2.2.2
 peft==0.10.0
