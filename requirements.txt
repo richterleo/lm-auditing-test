@@ -23,4 +23,4 @@ trl==0.9.6
 vllm==0.6.0
 ninja
 wandb
-bitandbytes
+bitsandbytes
