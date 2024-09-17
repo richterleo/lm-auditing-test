@@ -7,13 +7,14 @@ import asyncio
 import torch
 
 from collections import defaultdict
+from copy import deepcopy
 from datasets import load_dataset
 from googleapiclient import discovery
 from huggingface_hub import login
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
-from transformers import pipeline, AutoTokenizer
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 from transformers.utils import is_flash_attn_2_available
 from vllm import LLM, SamplingParams
 from peft import AutoPeftModelForCausalLM
@@ -48,6 +49,7 @@ def generate_on_dataset(
     metric=None,
     meta_data=None,
     output_dir: str = "model_outputs",
+    sample_randomly: bool = False,
 ):
     """ """
     seed = check_seed(seed)
@@ -97,8 +99,11 @@ def generate_on_dataset(
     torch.manual_seed(seed)
 
     if num_samples < len(prompt_dataset):
-        subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
-        prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
+        if sample_randomly:
+            subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
+            prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
+        else:
+            prompt_dataset = Subset(prompt_dataset, range(num_samples))
 
     logs = defaultdict(list)
     logs["metadata"] = {
@@ -162,6 +167,143 @@ def generate_on_dataset(
         )
         logs["prompts"].append(prompt_dataset[i]["prompt"]["text"])
         logs["continuations"].append(cont)
+
+    file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}"
+    file_path = f"{folder_path}/{file_name}"
+    if not Path(folder_path).exists():
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "w") as file:
+        json.dump(logs, file, indent=4)
+
+    if use_wandb:
+        wandb.save(file_path)
+
+
+def generate_on_dataset_with_model(
+    dataset_name: str,
+    model_cfg,
+    num_samples: int,
+    batch_size: int = 8,
+    seed=0,
+    use_wandb=True,
+    metric=None,
+    meta_data=None,
+    output_dir: str = "model_outputs",
+    sample_randomly: bool = False,
+):
+    """ """
+
+    seed = check_seed(seed)
+
+    prompt_dataset = load_dataset(dataset_name, split="train")
+
+    # wandb only logs strings, floats, ... so need to modify torch_dtype
+    model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    if is_flash_attn_2_available():
+        model_kwargs.update({"attn_implementation": "flash_attention_2"})
+    gen_kwargs = model_cfg["gen_kwargs"]
+
+    model_id = f"{model_cfg['hf_prefix']}/{model_cfg['model_id']}"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
+
+    terminators = [tokenizer.eos_token_id]
+
+    if "Llama-3" in model_id:
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
+    elif "Mistral" in model_id:
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
+    elif "gemma" in model_id:
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    if model_id.startswith("LLMAccountability"):
+        model = AutoPeftModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+    else:
+        model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+
+    model.eval()
+    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+    torch.manual_seed(seed)
+
+    if num_samples < len(prompt_dataset):
+        if sample_randomly:
+            subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
+            prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
+        else:
+            prompt_dataset = Subset(prompt_dataset, range(num_samples))
+
+    logs = defaultdict(list)
+    logs["metadata"] = {
+        "dataset_name": dataset_name,
+        "model_id": model_id,
+        "gen_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
+        "num_samples": num_samples,
+        "batch_size": batch_size,
+        "seed": seed,
+        "use_wandb": use_wandb,
+        "metric": str(metric),
+        "meta_data": meta_data,
+    }
+
+    if "Llama-3" in model_id:
+        format_func = format_funcs["llama3"]
+    elif "Mistral" in model_id:
+        format_func = format_funcs["mistral"]
+    elif "gemma" in model_id:
+        format_func = format_funcs["gemma"]
+
+    for i in tqdm(
+        range(0, len(prompt_dataset), batch_size),
+        total=len(prompt_dataset) // batch_size,
+    ):
+        end = min(i + batch_size, len(prompt_dataset))
+        batch = [
+            format_func(prompt_dataset[j]["prompt"]["text"]) for j in range(i, end)
+        ]
+        # set add_generation_prompt to False because we want text continuation
+        formatted_inputs = tokenizer.apply_chat_template(
+            batch,
+            tokenize=False,
+            add_generation_prompt=True,  # TODO: I think this should probably be set to False actually
+            return_tensors="pt",
+        )
+
+        inputs = tokenizer(formatted_inputs, return_tensors="pt", padding=True)
+
+        attention_mask = inputs["attention_mask"].to(model.device)
+        input_ids = inputs["input_ids"].to(model.device)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                eos_token_id=terminators,
+                **gen_kwargs,
+            )
+
+        preproc_outputs = [
+            outputs[k][len(input_ids[k]) :] for k in range(outputs.shape[0])
+        ]
+
+        decoded_outputs = tokenizer.batch_decode(
+            preproc_outputs,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )
+
+        for j, output in enumerate(decoded_outputs):
+            idx = i + j
+            if idx >= len(prompt_dataset):
+                break
+
+            logs["prompts"].append(prompt_dataset[idx]["prompt"]["text"])
+            logs["continuations"].append(output)
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}"

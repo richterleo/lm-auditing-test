@@ -1,4 +1,5 @@
 import argparse
+import debugpy
 import os
 import sys
 
@@ -16,6 +17,8 @@ from auditing_test.test import (
     DefaultEpsilonStrategy,
     eval_model,
 )
+
+os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
 
 
 def main():
@@ -167,5 +170,10 @@ if __name__ == "__main__":
     #     seed2=seed2,
     #     fold_size=fold_size,
     # )
+
+    # debugpy.listen(("0.0.0.0", 5678))
+    # print("waiting for debugger attach...")
+    # debugpy.wait_for_client()
+    # print("Debugger attached")
 
     main()
