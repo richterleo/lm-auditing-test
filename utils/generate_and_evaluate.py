@@ -347,8 +347,9 @@ def generate_on_dataset_with_model(
 
 #     # model_id = f"{model_cfg['hf_prefix']}/{model_cfg['model_id']}"
 #     model_id = "Meta-Llama-3-8B-Instruct"
+#     model = LLM(model=model_id, seed=seed, **model_kwargs)
 
-#     # tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
+#     tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
 
 #     terminators = [tokenizer.eos_token_id]
 
@@ -362,13 +363,7 @@ def generate_on_dataset_with_model(
 #     if tokenizer.pad_token is None:
 #         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-#     if model_id.startswith("LLMAccountability"):
-#         model = AutoPeftModelForCausalLM.from_pretrained(model_id, **model_kwargs)
-#     else:
-#         model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
-
-#     model.eval()
-#     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+#     sampling_params = SamplingParams(**gen_kwargs, seed=seed)
 
 #     torch.manual_seed(seed)
 
