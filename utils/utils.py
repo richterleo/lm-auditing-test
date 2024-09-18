@@ -412,12 +412,13 @@ def check_seed(seed):
 
 
 if __name__ == "__main__":
-    run_paths = [
-        "LLM_Accountability/continuations/7hkje1iq",
-        "LLM_Accountability/continuations/u58ia0si",
-        "LLM_Accountability/continuations/iu34st5q",
-        "LLM_Accountability/continuations/4ll681jg",
-    ]
+    # run_paths = [
+    #     "LLM_Accountability/continuations/7hkje1iq",
+    #     "LLM_Accountability/continuations/u58ia0si",
+    #     "LLM_Accountability/continuations/iu34st5q",
+    #     "LLM_Accountability/continuations/4ll681jg",
+    # ]
+    run_paths = ["LLM_Accountability/continuations/0inasi5j"]
     pattern = "continuations"
 
     for run_path in run_paths:

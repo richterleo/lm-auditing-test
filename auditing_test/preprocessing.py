@@ -23,6 +23,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from utils.utils import download_file_from_wandb, time_block, create_run_string
 from utils.generate_and_evaluate import eval_on_metric
+from utils.remove_unused_epoch_key import remove_zero_key_and_flatten
 from logging_config import setup_logging
 
 # setup_logging()
@@ -155,8 +156,10 @@ def evaluate_single_model(
     if overwrite or not os.path.exists(score_path):
         for file_name in os.listdir(gen_dir):
             if "continuations" in file_name:
-                with open(os.path.join(gen_dir, file_name), "r") as file:
-                    data = json.load(file)
+                # older versions have unnecessary 0 key
+                data = remove_zero_key_and_flatten(
+                    os.path.join(gen_dir, file_name), return_data=True
+                )
                 break
 
         if data is None:
@@ -535,7 +538,23 @@ def create_folds_from_evaluations(
 
 
 if __name__ == "__main__":
-    setup_logging(log_file="evaluate_all_models.log")
+    setup_logging(log_file="create_common_jsons.log")
     logger = logging.getLogger(__name__)
 
     evaluate_all_models(metric="perspective", overwrite=False)
+
+    task_models = [
+        "commonsense_classification-Meta-Llama-3-8B-Instruct",
+        # "program_execution-Meta-Llama-3-8B-Instruct",
+        "sentence_perturbation-Meta-Llama-3-8B-Instruct",
+        "text_matching-Meta-Llama-3-8B-Instruct",
+    ]
+
+    for task_model in task_models:
+        create_common_json(
+            model_name1="Meta-Llama-3-8B-Instruct",
+            seed1="seed2000",
+            model_name2=task_model,
+            seed2="seed1000",
+            metric="perspective",
+        )
