@@ -317,9 +317,11 @@ def download_file_from_wandb(
             return None
 
 
-def folder_from_model_and_seed(file_name):
-    folder_name = os.path.splitext(file_name.replace("_continuations", ""))[0]
-    folder = Path(f"model_outputs/{folder_name}")
+def folder_from_model_and_seed(file_name, save_path: str = "model_outputs"):
+    """ """
+    model_name = os.path.basename(file_name)
+    folder_name = os.path.splitext(model_name.replace("_continuations", ""))[0]
+    folder = Path(f"{save_path}/{folder_name}")
     return folder
 
 
@@ -348,8 +350,15 @@ def check_seed(seed):
 
 
 if __name__ == "__main__":
-    run_path = "LLM_Accountability/continuations/0t7mlrj1"
+    run_paths = [
+        "LLM_Accountability/continuations/7hkje1iq",
+        "LLM_Accountability/continuations/u58ia0si",
+        "LLM_Accountability/continuations/iu34st5q",
+        "LLM_Accountability/continuations/4ll681jg",
+    ]
     pattern = "continuations"
-    download_file_from_wandb(
-        run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed
-    )
+
+    for run_path in run_paths:
+        download_file_from_wandb(
+            run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed
+        )
