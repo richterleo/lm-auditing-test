@@ -48,7 +48,7 @@ tau1:
     do_sample: true
     temperature: 0.7
     top_p: 0.9
-  gen_kwargs_high_temperature:
+  gen_kwargs_high_temp:
     max_new_tokens: 250
     do_sample: true
     temperature: 1.2
