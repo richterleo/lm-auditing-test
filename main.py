@@ -106,6 +106,10 @@ def main():
         "--high_temp", action="store_true", help="Run with high temperature"
     )
 
+    parser.add_argument(
+        "--hf_prefix", type=str, default=None, help="Prefix for huggingface model"
+    )
+
     args = parser.parse_args()
 
     if args.debug_mode:
@@ -121,7 +125,12 @@ def main():
         # TODO: make this a bit smoother
         if args.high_temp:
             config["tau1"]["gen_kwargs"] = config["tau1"]["gen_kwargs_high_temp"]
-        eval_model(config, model_id=args.model_name1, use_wandb=not args.no_wandb)
+        eval_model(
+            config,
+            model_id=args.model_name1,
+            hf_prefix=args.hf_prefix,
+            use_wandb=not args.no_wandb,
+        )
 
     elif args.exp == "test":
         train_cfg = TrainCfg()

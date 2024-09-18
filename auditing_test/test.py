@@ -742,6 +742,7 @@ class CalibratedAuditingTest(AuditingTest):
 def eval_model(
     config,
     model_id: Optional[int] = None,
+    hf_prefix: Optional[str] = None,
     num_samples: Optional[int] = None,
     batch_size: Optional[int] = None,
     use_wandb: Optional[int] = None,
@@ -761,6 +762,9 @@ def eval_model(
 
     if model_id:
         config["tau1"]["model_id"] = model_id
+
+    if hf_prefix:
+        config["tau1"]["hf_prefix"] = hf_prefix
 
     generate_on_dataset_with_model(
         config["metric"]["dataset_name"],
