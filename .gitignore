@@ -25,3 +25,4 @@ model_scores.tar.gz
 poetry.lock
 pyproject.toml
 !requirements.txt
+model_generations

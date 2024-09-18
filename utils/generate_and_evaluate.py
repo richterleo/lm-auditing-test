@@ -174,7 +174,7 @@ def generate_on_dataset(
         logs["continuations"].append(cont)
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
-    folder_path = f"{output_dir}/{model_id.split('/')[-1]}"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
     file_path = f"{folder_path}/{file_name}"
     if not Path(folder_path).exists():
         Path(folder_path).mkdir(parents=True, exist_ok=True)
