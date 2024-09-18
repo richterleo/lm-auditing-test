@@ -100,11 +100,27 @@ def main():
         help="If this is set to true, then we run the test with calibrated epsilon",
     )
 
+    parser.add_argument("--debug_mode", action="store_true", help="Run in debug mode")
+
+    parser.add_argument(
+        "--high_temp", action="store_true", help="Run with high temperature"
+    )
+
     args = parser.parse_args()
+
+    if args.debug_mode:
+        debugpy.listen(("0.0.0.0", 5678))
+        print("waiting for debugger attach...")
+        debugpy.wait_for_client()
+        print("Debugger attached")
+
     config = load_config(args.config_path)
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":
+        # TODO: make this a bit smoother
+        if args.high_temp:
+            config["tau1"]["gen_kwargs"] = config["tau1"]["gen_kwargs_high_temp"]
         eval_model(config, model_id=args.model_name1, use_wandb=not args.no_wandb)
 
     elif args.exp == "test":
@@ -170,10 +186,5 @@ if __name__ == "__main__":
     #     seed2=seed2,
     #     fold_size=fold_size,
     # )
-
-    # debugpy.listen(("0.0.0.0", 5678))
-    # print("waiting for debugger attach...")
-    # debugpy.wait_for_client()
-    # print("Debugger attached")
 
     main()

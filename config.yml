@@ -9,7 +9,7 @@ epsilon: 0.01948 # neural net distance between tau1 and tau2 that we tolerate
 
 eval:
   epochs: 1
-  num_samples: 20 #1e6
+  num_samples: 100000 #1e6
   num_bins: 10
   batch_size: 16
   use_vllm: false
@@ -30,7 +30,7 @@ analysis:
 
 
 tau1: 
-  model_id: text_matching-Meta-Llama-3-8B-Instruct
+  model_id: Meta-Llama-3-8B-Instruct
   #codealpaca-Meta-Llama-3-8B-Instruct
     #Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
@@ -48,8 +48,13 @@ tau1:
     do_sample: true
     temperature: 0.7
     top_p: 0.9
+  gen_kwargs_high_temperature:
+    max_new_tokens: 250
+    do_sample: true
+    temperature: 1.2
+    top_p: 0.7
   gen_batch_size: 8
-  hf_prefix: LLMAccountability #meta-llama
+  hf_prefix: meta-llama #meta-llama #LLMAccountability
 
 tau2: 
   model_id: Llama-3-8B-ckpt4
