@@ -1431,11 +1431,62 @@ if __name__ == "__main__":
     #     "wasserstein_distance_vs_num_samples.pdf", format="pdf", bbox_inches="tight"
     # )
 
-    res_df = get_power_over_sequences_for_models_or_checkpoints(
-        model_name1, seed1, seed2, model_name2=model_name2, epsilon=0.02
-    )
+    # res_df = get_power_over_sequences_for_models_or_checkpoints(
+    #     model_name1, seed1, seed2, model_name2=model_name2, epsilon=0.02
+    # )
 
-    power_df = extract_power_from_sequence_df(
-        res_df, distance_measure=None, by_checkpoints=False
+    # power_df = extract_power_from_sequence_df(
+    #     res_df, distance_measure=None, by_checkpoints=False
+    # )
+    # print(power_df)
+
+    num_train_samples = 40
+    num_runs = 20
+
+    dist_path = (
+        Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}.csv"
     )
-    print(power_df)
+    if dist_path.exists():
+        self.logger.info(
+            f"Skipping distance analysis as results file {dist_path} already exists."
+        )
+        distance_df = pd.read_csv(dist_path)
+    else:
+        distance_df = get_distance_scores(
+            self.model_name1,
+            self.seed1,
+            self.seed2,
+            model_name2=self.model_name2,
+            metric=self.metric,
+            num_runs=num_runs,
+            net_cfg=self.config["net"],
+            train_cfg=self.train_cfg,
+            num_samples=[self.train_cfg.batch_size, num_train_samples],
+            num_test_samples=self.train_cfg.batch_size,
+        )
+
+        distance_df.to_csv(dist_path, index=False)
+        self.logger.info(f"Distance analysis results saved to {dist_path}.")
+
+    mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(distance_df)
+    self.logger.info(f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}")
+    self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein'].mean()}")
+
+    if self.use_wandb:
+        wandb.log(
+            {
+                "average_nn_distance": distance_df["NeuralNet"].mean(),
+                "std_nn_distance": distance_df["NeuralNet"].std(),
+                "wasserstein_distance": distance_df["Wasserstein"].mean(),
+            }
+        )
+
+    # Plot the results
+    distance_box_plot(
+        distance_df,
+        self.model_name1,
+        self.seed1,
+        self.seed2,
+        self.model_name2,
+        metric=self.metric,
+    )

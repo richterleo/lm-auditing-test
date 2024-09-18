@@ -545,7 +545,7 @@ if __name__ == "__main__":
 
     task_models = [
         "commonsense_classification-Meta-Llama-3-8B-Instruct",
-        # "program_execution-Meta-Llama-3-8B-Instruct",
+        "program_execution-Meta-Llama-3-8B-Instruct",
         "sentence_perturbation-Meta-Llama-3-8B-Instruct",
         "text_matching-Meta-Llama-3-8B-Instruct",
     ]
