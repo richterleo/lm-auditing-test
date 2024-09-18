@@ -766,7 +766,7 @@ def eval_model(
     if hf_prefix:
         config["tau1"]["hf_prefix"] = hf_prefix
 
-    generate_on_dataset_with_model(
+    generate_on_dataset(
         config["metric"]["dataset_name"],
         config["tau1"],
         config["eval"]["num_samples"] if not num_samples else num_samples,
