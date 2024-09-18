@@ -631,3 +631,4 @@
 2024-08-15 18:47:02,538 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_80000.json
 2024-08-15 18:47:02,545 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_90000.json
 2024-08-15 18:47:02,575 - __main__ - INFO - Model Mistral-7B-Instruct-v0.2_seed2000 took 482.848 seconds to evaluate.
+2024-09-18 11:46:11,976 - __main__ - INFO - Start evaluating model program_execution-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.

@@ -143,8 +143,8 @@ def evaluate_single_model(
             tags=["evaluate_model"],
         )
 
-    gen_dir = f"{gen_dir}/{model_name}_{seed}"
-    score_dir = f"{output_dir}/{model_name}_{seed}"
+    gen_dir = f"{gen_dir}/{model_name}_seed{seed}"
+    score_dir = f"{output_dir}/{model_name}_seed{seed}"
 
     # check if folder exists already
     if not Path(score_dir).exists():
