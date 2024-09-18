@@ -41,6 +41,8 @@ tau1:
     load_in_4bit: true
     device_map: auto
     low_cpu_mem_usage: true
+  model_kwargs_vllm:
+    dtype: bfloat16
   gen_kwargs:
     max_new_tokens: 100
     do_sample: true
