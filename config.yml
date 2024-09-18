@@ -9,7 +9,7 @@ epsilon: 0.01948 # neural net distance between tau1 and tau2 that we tolerate
 
 eval:
   epochs: 1
-  num_samples: 20 #1e6
+  num_samples: 100000 #1e6
   num_bins: 10
   batch_size: 16
   use_vllm: false
