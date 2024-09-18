@@ -7,6 +7,7 @@ import time
 import torch
 import wandb
 import yaml
+import shutil
 import sys
 
 from contextlib import contextmanager
@@ -274,55 +275,116 @@ def download_file_from_wandb(
     run = api.run(run_name)
 
     if file_name:
+        files = [file for file in run.files() if file.name == file_name]
+    else:
+        files = [file for file in run.files() if pattern in file.name]
+
+    if not files:
+        logger.error(
+            f"No file found matching {'file_name' if file_name else 'pattern'}: {file_name or pattern}"
+        )
+        return None
+
+    file = files[0]
+
+    try:
         # Define the path to the folder where the file will be saved
         if get_save_path:
-            folder_path = get_save_path(file_name)
+            file_path = get_save_path(file.name)
         else:
             if not run_id:
                 run_id = os.path.basename(run_path)
-            folder_path = Path(f"outputs/{run_id}")
+            file_path = Path(f"outputs/{run_id}/{os.path.basename(file.name)}")
 
-        if not folder_path.exists():
-            folder_path.mkdir(parents=True, exist_ok=True)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        temp_dir = file_path.parent / "temp_download"
+        temp_dir.mkdir(exist_ok=True)
+        file.download(root=temp_dir, replace=True)
 
-        try:
-            file_name.download(root=folder_path, replace=True)
-            if return_file_path:
-                return folder_path / file_name
-        except Exception as e:
-            logger.error(f"Error downloading file {file_name}: {e}")
-            return None
+        downloaded_file = next(temp_dir.rglob(file.name))
+        os.rename(str(downloaded_file), str(file_path))
 
-    if not file_name:
-        for f in run.files():
-            if pattern in f.name:
-                file = f
-                break
-        try:
-            if get_save_path:
-                folder_path = get_save_path(file.name)
-            else:
-                if not run_id:
-                    run_id = os.path.basename(run_path)
-                folder_path = Path(f"outputs/{run_id}")
+        # Delete temp folder
+        shutil.rmtree(temp_dir)
 
-            if not folder_path.exists():
-                folder_path.mkdir(parents=True, exist_ok=True)
+        if return_file_path:
+            return file_path
 
-            file.download(root=folder_path, replace=True)
-            return folder_path / file.name
+    except Exception as e:
+        logger.error(f"Error downloading file: {file.name}: {e}")
+        return None
 
-        except Exception as e:
-            logger.error(f"No file found that matches pattern: {pattern}: {e}")
-            return None
+
+# def download_file_from_wandb(
+#     run_path: Optional[str] = None,
+#     run_id: Optional[str] = None,
+#     project_name: Optional[str] = None,
+#     file_name: Optional[str] = None,
+#     pattern: Optional[str] = None,
+#     entity: str = "LLM_Accountability",
+#     return_file_path: bool = True,
+#     get_save_path: Optional[Callable] = None,
+# ) -> Optional[Path]:
+#     """
+#     Helper function for downloading the scores file from a W&B run.
+#     """
+#     assert file_name or pattern, "Either file_name or pattern must be provided"
+#     assert run_path or (
+#         run_id and project_name and entity
+#     ), "Either run_path or run_id, project_name and entity must be provided"
+
+#     api = wandb.Api()
+#     run_name = run_path if run_path else f"{entity}/{project_name}/{run_id}"
+#     run = api.run(run_name)
+
+#     if file_name:
+#         files = [file for file in run.files() if file.name == file_name]
+#     else:
+#         files = [file for file in run.files() if pattern in file.name]
+
+#     if not files:
+#         logger.error(
+#             f"No file found matching {'file_name' if file_name else 'pattern'}: {file_name or pattern}"
+#         )
+#         return None
+
+#     file = files[0]
+
+#     try:
+#         if get_save_path:
+#             file_path = get_save_path(file.name)
+#         else:
+#             if not run_id:
+#                 run_id = os.path.basename(run_path)
+#             file_path = Path(f"outputs/{run_id}/{os.path.basename(file.name)}")
+
+#         # Ensure the parent directory exists
+#         file_path.parent.mkdir(parents=True, exist_ok=True)
+
+#         # Download directly to the final location
+#         file.download(root=file_path.parent, replace=True)
+
+#         # Rename if necessary (in case Wandb added any prefixes)
+#         downloaded_file = next(file_path.parent.glob(f"*{file.name}"))
+#         if downloaded_file.name != file_path.name:
+#             downloaded_file.rename(file_path)
+
+#         if return_file_path:
+#             return file_path
+#     except Exception as e:
+#         logger.error(f"Error downloading file: {file.name}: {e}")
+#         return None
 
 
 def folder_from_model_and_seed(file_name, save_path: str = "model_outputs"):
     """ """
-    model_name = os.path.basename(file_name)
-    folder_name = os.path.splitext(model_name.replace("_continuations", ""))[0]
+    file_name = os.path.basename(file_name)
+
+    folder_name = os.path.splitext(file_name.replace("_continuations", ""))[0]
     folder = Path(f"{save_path}/{folder_name}")
-    return folder
+    new_file_path = Path(f"{folder}/{file_name}")
+
+    return new_file_path
 
 
 def check_seed(seed):
