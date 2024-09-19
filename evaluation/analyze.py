@@ -249,8 +249,9 @@ def get_distance_scores(
     num_samples: Union[int, list[int]] = 100000,
     num_test_samples: int = 1000,
     test_split: float = 0.3,
-    evaluate_on_full: bool = False,
-    compare_wasserstein: bool = True,
+    evaluate_wasserstein_on_full: bool = True,
+    evaluate_nn_on_full: bool = False,
+    compare_wasserstein: bool = False,
     num_runs: int = 1,
     use_scipy_wasserstein: bool = True,
 ) -> pd.DataFrame:
@@ -281,22 +282,24 @@ def get_distance_scores(
 
     try:
         with open(score_path1, "r") as f:
-            scores1 = json.load(f)["0"][f"{metric}_scores"]
+            scores1 = json.load(f)[f"{metric}_scores"]
         with open(score_path2, "r") as f:
-            scores2 = json.load(f)["0"][f"{metric}_scores"]
+            scores2 = json.load(f)[f"{metric}_scores"]
 
         dist_data = []
 
-        if evaluate_on_full:
-            if "Wasserstein" in distance_measures and not compare_wasserstein:
+        if evaluate_wasserstein_on_full:
+            if "Wasserstein" in distance_measures:
                 dist_dict = {"num_samples": len(scores1)}
                 if use_scipy_wasserstein:
-                    dist_dict["Wasserstein"] = wasserstein_distance(scores1, scores2)
-                else:
-                    dist_dict["Wasserstein"] = empirical_wasserstein_distance_p1(
+                    dist_dict["Wasserstein_full"] = wasserstein_distance(
                         scores1, scores2
                     )
-
+                else:
+                    dist_dict["Wasserstein_full"] = empirical_wasserstein_distance_p1(
+                        scores1, scores2
+                    )
+        if evaluate_nn_on_full:
             if "NeuralNet" in distance_measures:
                 assert net_cfg, "net_dict must be provided for neuralnet distance"
                 assert train_cfg, "train_cfg must be provided for neuralnet distance"
@@ -364,11 +367,11 @@ def get_distance_scores(
 
                         if "Wasserstein" in distance_measures and compare_wasserstein:
                             if use_scipy_wasserstein:
-                                dist_dict["Wasserstein"] = wasserstein_distance(
-                                    test_scores1, test_scores2
+                                dist_dict["Wasserstein_comparison"] = (
+                                    wasserstein_distance(test_scores1, test_scores2)
                                 )
                             else:
-                                dist_dict["Wasserstein"] = (
+                                dist_dict["Wasserstein_comparison"] = (
                                     empirical_wasserstein_distance_p1(
                                         test_scores1, test_scores2
                                     )
@@ -402,11 +405,11 @@ def get_distance_scores(
 
                         if "Wasserstein" in distance_measures:
                             if use_scipy_wasserstein:
-                                dist_dict["Wasserstein"] = wasserstein_distance(
-                                    test_scores1, test_scores2
+                                dist_dict["Wasserstein_comparison"] = (
+                                    wasserstein_distance(test_scores1, test_scores2)
                                 )
                             else:
-                                dist_dict["Wasserstein"] = (
+                                dist_dict["Wasserstein_comparison"] = (
                                     empirical_wasserstein_distance_p1(
                                         test_scores1, test_scores2
                                     )
@@ -668,3 +671,40 @@ def get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=4000):
     final_df["model_id"] = final_df["model_name1"]
 
     return final_df
+
+
+def get_mean_tox_scores(
+    model_names: Optional[None] = None,
+    seeds: Optional[None] = None,
+    score_dir="model_scores",
+    metric="perspective",
+):
+    if model_names:
+        if not isinstance(model_names, list):
+            model_names = [model_names]
+            seeds = [seeds]
+        model_files = [
+            f"{model_name}_{seed}" for model_name, seed in zip(model_names, seeds)
+        ]
+    else:
+        model_files = os.listdir(score_dir)
+
+    all_scores = []
+
+    for model_file in model_files:
+        score_path = f"{score_dir}/{model_file}/{metric}_scores.json"
+        with open(score_path, "r") as f:
+            scores = json.load(f)
+
+        mean, std = (
+            np.mean(scores[f"{metric}_scores"]),
+            np.std(scores[f"{metric}_scores"]),
+        )
+        all_scores.append({"model": model_file, "mean": mean, "std": std})
+
+    with open(f"{score_dir}/mean_{metric}_scores.json", "w") as f:
+        json.dump(all_scores, f, indent=4)
+
+
+if __name__ == "__main__":
+    get_mean_tox_scores()

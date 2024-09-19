@@ -343,6 +343,7 @@ class AuditingTest(Experiment):
         seed2=None,
         fold_size=4000,
         analyze_distance=True,
+        run_davtt=True,
     ):
         """ """
         self.model_name1 = (
@@ -366,7 +367,8 @@ class AuditingTest(Experiment):
         if not self.directory:
             self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
 
-        power = self.kfold_davtt()
+        if run_davtt:
+            power = self.kfold_davtt()
 
         if analyze_distance:
             self.analyze_and_plot_distance()
@@ -374,7 +376,8 @@ class AuditingTest(Experiment):
         if self.use_wandb:
             wandb.finish()
 
-        return power
+        if run_davtt:
+            return power
 
 
 class EpsilonStrategy(ABC):
@@ -498,6 +501,7 @@ class CrossValEpsilonStrategy(EpsilonStrategy):
         use_full_ds_for_nn_distance: Optional[bool] = None,
         num_runs: Optional[int] = None,
         config: Optional[Dict] = None,
+        autocorrelate: bool = False,
     ):
         self.models_and_seeds = models_and_seeds
         self.overwrite = overwrite
@@ -516,6 +520,8 @@ class CrossValEpsilonStrategy(EpsilonStrategy):
             num_runs if num_runs is not None else config["analysis"]["num_runs"]
         )
 
+        self.autocorrelate = autocorrelate
+
     def calculate_epsilons(
         self, test_dir, num_train_samples, **distance_score_kwargs
     ) -> list:
@@ -527,6 +533,19 @@ class CrossValEpsilonStrategy(EpsilonStrategy):
         for model in self.models_and_seeds:
             model_name = model["model_name"]
             seed = model["seed"]
+
+            base_model = distance_score_kwargs["model_name1"]
+            base_seed = distance_score_kwargs["seed1"]
+
+            test_model = distance_score_kwargs["model_name2"]
+            test_seed = distance_score_kwargs["seed2"]
+
+            if not self.autocorrelate:
+                if (model_name == base_model and seed == base_seed) or (
+                    model_name == test_model and seed == test_seed
+                ):
+                    self.logger.info(f"Skipped model {model_name}_{seed}.")
+                    continue
 
             # Construct the new directory path
             new_dir = (
@@ -550,6 +569,7 @@ class CrossValEpsilonStrategy(EpsilonStrategy):
                 self.logger.info(
                     f"Training neural net distance for {model_name}_{seed} on {num_train_samples} samples for {self.num_runs} runs."
                 )
+
                 distance_df = get_distance_scores(
                     distance_score_kwargs["model_name1"],
                     distance_score_kwargs["seed1"],
@@ -570,6 +590,9 @@ class CrossValEpsilonStrategy(EpsilonStrategy):
 
             mean_nn_distance, _ = get_mean_and_std_for_nn_distance(distance_df)
             all_distances.extend(distance_df["NeuralNet"].tolist())
+            self.logger.info(
+                f"Mean nn distance for {model_name}_{seed}: {mean_nn_distance}."
+            )
 
         overall_mean = np.mean(all_distances)
         overall_std = np.std(all_distances)
@@ -643,7 +666,13 @@ class CalibratedAuditingTest(AuditingTest):
         self.logger = logging.getLogger(__name__)
 
     def run(
-        self, model_name1=None, seed1=None, model_name2=None, seed2=None, fold_size=4000
+        self,
+        model_name1=None,
+        seed1=None,
+        model_name2=None,
+        seed2=None,
+        fold_size=4000,
+        calibrate_only=False,
     ):
         """ """
 
@@ -711,32 +740,36 @@ class CalibratedAuditingTest(AuditingTest):
             )
 
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
-            power_dict = {}
 
-            for epsilon in epsilons:
-                self.epsilon = epsilon
-                self.logger.info(f"Running test for epsilon: {epsilon}.")
-                power_dict[epsilon] = super().run(
-                    model_name1=model_name1,
-                    seed1=seed1,
-                    model_name2=model_name2,
-                    seed2=seed2,
-                    fold_size=fold_size,
-                    analyze_distance=False,
+            if not calibrate_only:
+                power_dict = {}
+
+                for epsilon in epsilons:
+                    self.epsilon = epsilon
+                    self.logger.info(f"Running test for epsilon: {epsilon}.")
+                    power_dict[epsilon] = super().run(
+                        model_name1=model_name1,
+                        seed1=seed1,
+                        model_name2=model_name2,
+                        seed2=seed2,
+                        fold_size=fold_size,
+                        analyze_distance=False,
+                    )
+
+                power_df = pd.DataFrame(
+                    power_dict.items(), columns=["epsilon", "power"]
                 )
+                power_df.to_csv(epsilon_path, index=False)
+                self.logger.info(f"Calibrated testing results saved to {epsilon_path}.")
 
-            power_df = pd.DataFrame(power_dict.items(), columns=["epsilon", "power"])
-            power_df.to_csv(epsilon_path, index=False)
-            self.logger.info(f"Calibrated testing results saved to {epsilon_path}.")
-
-        plot_calibrated_detection_rate(
-            true_epsilon,
-            self.model_name1,
-            self.seed1,
-            self.model_name2,
-            self.seed2,
-            result_file=epsilon_path,
-        )
+            plot_calibrated_detection_rate(
+                true_epsilon,
+                self.model_name1,
+                self.seed1,
+                self.model_name2,
+                self.seed2,
+                result_file=epsilon_path,
+            )
 
 
 def eval_model(

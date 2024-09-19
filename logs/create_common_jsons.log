@@ -146,3 +146,95 @@
 2024-09-18 18:56:32,876 - __main__ - INFO - Model sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
 2024-09-18 18:56:32,878 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct_seed2000 using metric perspective.
 2024-09-18 18:56:32,881 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct_seed2000 took 0.003 seconds to evaluate.
+2024-09-19 11:12:11,446 - __main__ - INFO - Start evaluating model program_execution-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 11:12:11,455 - __main__ - INFO - Model program_execution-Meta-Llama-3-8B-Instruct_seed1000 took 0.008 seconds to evaluate.
+2024-09-19 11:12:11,458 - __main__ - INFO - Start evaluating model text_matching-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 11:12:11,460 - __main__ - INFO - Model text_matching-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 11:12:11,463 - __main__ - INFO - Start evaluating model commonsense_classification-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 11:12:11,465 - __main__ - INFO - Model commonsense_classification-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 11:12:11,468 - __main__ - INFO - Start evaluating model sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 11:12:11,470 - __main__ - INFO - Model sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 11:12:11,473 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct_seed2000 using metric perspective.
+2024-09-19 11:12:11,475 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct_seed2000 took 0.003 seconds to evaluate.
+2024-09-19 11:12:11,478 - __main__ - INFO - Start evaluating model textual_entailment-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 11:20:20,315 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_10000.json
+2024-09-19 11:20:20,320 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_20000.json
+2024-09-19 11:20:20,324 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_30000.json
+2024-09-19 11:20:20,329 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_40000.json
+2024-09-19 11:20:20,333 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_50000.json
+2024-09-19 11:20:20,338 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_60000.json
+2024-09-19 11:20:20,343 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_70000.json
+2024-09-19 11:20:20,347 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_80000.json
+2024-09-19 11:20:20,352 - __main__ - INFO - Deleted file: model_scores/textual_entailment-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_90000.json
+2024-09-19 11:20:20,370 - __main__ - INFO - Model textual_entailment-Meta-Llama-3-8B-Instruct_seed1000 took 488.892 seconds to evaluate.
+2024-09-19 11:20:20,373 - __main__ - INFO - Start evaluating model codealpaca-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 11:28:08,063 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_10000.json
+2024-09-19 11:28:08,068 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_20000.json
+2024-09-19 11:28:08,073 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_30000.json
+2024-09-19 11:28:08,078 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_40000.json
+2024-09-19 11:28:08,082 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_50000.json
+2024-09-19 11:28:08,087 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_60000.json
+2024-09-19 11:28:08,092 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_70000.json
+2024-09-19 11:28:08,098 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_80000.json
+2024-09-19 11:28:08,103 - __main__ - INFO - Deleted file: model_scores/codealpaca-Meta-Llama-3-8B-Instruct_seed1000/perspective_scores_90000.json
+2024-09-19 11:28:08,125 - __main__ - INFO - Model codealpaca-Meta-Llama-3-8B-Instruct_seed1000 took 467.752 seconds to evaluate.
+2024-09-19 11:28:08,131 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct-hightemp_seed1000 using metric perspective.
+2024-09-19 11:35:56,673 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_10000.json
+2024-09-19 11:35:56,678 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_20000.json
+2024-09-19 11:35:56,682 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_30000.json
+2024-09-19 11:35:56,687 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_40000.json
+2024-09-19 11:35:56,692 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_50000.json
+2024-09-19 11:35:56,697 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_60000.json
+2024-09-19 11:35:56,702 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_70000.json
+2024-09-19 11:35:56,707 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_80000.json
+2024-09-19 11:35:56,713 - __main__ - INFO - Deleted file: model_scores/Meta-Llama-3-8B-Instruct-hightemp_seed1000/perspective_scores_90000.json
+2024-09-19 11:35:56,733 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct-hightemp_seed1000 took 468.602 seconds to evaluate.
+2024-09-19 12:50:01,130 - __main__ - INFO - Start evaluating model program_execution-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 12:50:01,138 - __main__ - INFO - Model program_execution-Meta-Llama-3-8B-Instruct_seed1000 took 0.008 seconds to evaluate.
+2024-09-19 12:50:01,141 - __main__ - INFO - Start evaluating model text_matching-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 12:50:01,143 - __main__ - INFO - Model text_matching-Meta-Llama-3-8B-Instruct_seed1000 took 0.002 seconds to evaluate.
+2024-09-19 12:50:01,146 - __main__ - INFO - Start evaluating model commonsense_classification-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 12:50:01,148 - __main__ - INFO - Model commonsense_classification-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 12:50:01,151 - __main__ - INFO - Start evaluating model sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 12:50:01,154 - __main__ - INFO - Model sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 12:50:01,156 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct_seed2000 using metric perspective.
+2024-09-19 12:50:01,159 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct_seed2000 took 0.003 seconds to evaluate.
+2024-09-19 12:50:01,161 - __main__ - INFO - Start evaluating model textual_entailment-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 12:50:01,164 - __main__ - INFO - Model textual_entailment-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 12:50:01,166 - __main__ - INFO - Start evaluating model codealpaca-Meta-Llama-3-8B-Instruct_seed1000 using metric perspective.
+2024-09-19 12:50:01,169 - __main__ - INFO - Model codealpaca-Meta-Llama-3-8B-Instruct_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 12:50:01,171 - __main__ - INFO - Start evaluating model Meta-Llama-3-8B-Instruct-hightemp_seed1000 using metric perspective.
+2024-09-19 12:50:01,174 - __main__ - INFO - Model Meta-Llama-3-8B-Instruct-hightemp_seed1000 took 0.003 seconds to evaluate.
+2024-09-19 12:50:01,177 - __main__ - INFO - Start evaluating model Mistral-7B-Instruct-v0.2_seed2000 using metric perspective.
+2024-09-19 12:58:20,985 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_10000.json
+2024-09-19 12:58:20,993 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_20000.json
+2024-09-19 12:58:21,002 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_30000.json
+2024-09-19 12:58:21,010 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_40000.json
+2024-09-19 12:58:21,021 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_50000.json
+2024-09-19 12:58:21,031 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_60000.json
+2024-09-19 12:58:21,039 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_70000.json
+2024-09-19 12:58:21,049 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_80000.json
+2024-09-19 12:58:21,057 - __main__ - INFO - Deleted file: model_scores/Mistral-7B-Instruct-v0.2_seed2000/perspective_scores_90000.json
+2024-09-19 12:58:21,091 - __main__ - INFO - Model Mistral-7B-Instruct-v0.2_seed2000 took 499.914 seconds to evaluate.
+2024-09-19 12:58:21,094 - __main__ - INFO - Start evaluating model gemma-1.1-7b-it_seed1000 using metric perspective.
+2024-09-19 13:06:10,050 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_10000.json
+2024-09-19 13:06:10,057 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_20000.json
+2024-09-19 13:06:10,063 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_30000.json
+2024-09-19 13:06:10,069 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_40000.json
+2024-09-19 13:06:10,076 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_50000.json
+2024-09-19 13:06:10,082 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_60000.json
+2024-09-19 13:06:10,088 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_70000.json
+2024-09-19 13:06:10,095 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_80000.json
+2024-09-19 13:06:10,102 - __main__ - INFO - Deleted file: model_scores/gemma-1.1-7b-it_seed1000/perspective_scores_90000.json
+2024-09-19 13:06:10,129 - __main__ - INFO - Model gemma-1.1-7b-it_seed1000 took 469.035 seconds to evaluate.
+2024-09-19 13:06:10,135 - __main__ - INFO - Start evaluating model Llama-3-8B-ckpt10_seed1000 using metric perspective.
+2024-09-19 13:14:52,515 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_10000.json
+2024-09-19 13:14:52,519 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_20000.json
+2024-09-19 13:14:52,523 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_30000.json
+2024-09-19 13:14:52,528 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_40000.json
+2024-09-19 13:14:52,532 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_50000.json
+2024-09-19 13:14:52,536 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_60000.json
+2024-09-19 13:14:52,541 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_70000.json
+2024-09-19 13:14:52,545 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_80000.json
+2024-09-19 13:14:52,549 - __main__ - INFO - Deleted file: model_scores/Llama-3-8B-ckpt10_seed1000/perspective_scores_90000.json
+2024-09-19 13:14:52,568 - __main__ - INFO - Model Llama-3-8B-ckpt10_seed1000 took 522.433 seconds to evaluate.

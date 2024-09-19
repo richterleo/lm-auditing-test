@@ -544,10 +544,9 @@ if __name__ == "__main__":
     evaluate_all_models(metric="perspective", overwrite=False)
 
     task_models = [
-        "commonsense_classification-Meta-Llama-3-8B-Instruct",
-        "program_execution-Meta-Llama-3-8B-Instruct",
-        "sentence_perturbation-Meta-Llama-3-8B-Instruct",
-        "text_matching-Meta-Llama-3-8B-Instruct",
+        "gemma-1.1-7b-it",
+        "Mistral-7B-Instruct-v0.2_seed2000",
+        "Llama-3-8B-ckpt10_seed1000",
     ]
 
     for task_model in task_models:

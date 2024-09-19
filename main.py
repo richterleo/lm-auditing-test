@@ -15,6 +15,7 @@ from auditing_test.test import (
     AuditingTest,
     CalibratedAuditingTest,
     DefaultEpsilonStrategy,
+    CrossValEpsilonStrategy,
     eval_model,
 )
 
@@ -165,13 +166,53 @@ def main():
 
 
 if __name__ == "__main__":
-    # config = load_config("config.yml")
-    # train_cfg = TrainCfg()
-    # model_name1 = "Meta-Llama-3-8B-Instruct"
-    # model_name2 = "Llama-3-8B-ckpt2"
-    # seed1 = "seed1000"
-    # seed2 = "seed1000"
-    # fold_size = 4000
+    config = load_config("config.yml")
+    train_cfg = TrainCfg()
+    model_name1 = "Meta-Llama-3-8B-Instruct"
+    model_name2 = "commonsense_classification-Meta-Llama-3-8B-Instruct"
+    seed1 = "seed2000"
+    seed2 = "seed1000"
+    fold_size = 4000
+
+    tasks = [
+        "Mistral-7B-Instruct-v0.2",
+        "gemma-1.1-7b-it",
+        "Llama-3-8B-ckpt10",
+        "codealpaca-Meta-Llama-3-8B-Instruct",
+        "Meta-Llama-3-8B-Instruct-hightemp",
+        "commonsense_classification-Meta-Llama-3-8B-Instruct",
+        "program_execution-Meta-Llama-3-8B-Instruct",
+        "sentence_perturbation-Meta-Llama-3-8B-Instruct",
+        "text_matching-Meta-Llama-3-8B-Instruct",
+        "textual_entailment-Meta-Llama-3-8B-Instruct",
+    ]
+
+    task_seeds = ["seed2000"] + ["seed1000" for _ in range(len(tasks) - 1)]
+
+    models_and_seeds = [
+        {"model_name": task, "seed": seed} for task, seed in zip(tasks, task_seeds)
+    ]
+
+    exp = CalibratedAuditingTest(
+        config,
+        train_cfg,
+        CrossValEpsilonStrategy(
+            models_and_seeds,
+            config=config,
+            num_runs=10,
+            overwrite=True,
+            autocorrelate=True,
+        ),
+        use_wandb=False,
+    )
+    exp.run(
+        model_name1=model_name1,
+        seed1=seed1,
+        model_name2=model_name2,
+        seed2=seed2,
+        fold_size=fold_size,
+        calibrate_only=True,
+    )
 
     # exp = CalibratedAuditingTest(
     #     config,
@@ -196,4 +237,4 @@ if __name__ == "__main__":
     #     fold_size=fold_size,
     # )
 
-    main()
+    # main()
