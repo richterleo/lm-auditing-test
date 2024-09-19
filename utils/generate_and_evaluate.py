@@ -73,11 +73,11 @@ def generate_on_dataset(
 
     terminators = [tokenizer.eos_token_id]
 
-    if "Llama-3" in model_id:
+    if "llama-3" in model_id.lower():
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
-    elif "Mistral" in model_id:
+    elif "mistral" in model_id.lower():
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
-    elif "gemma" in model_id:
+    elif "gemma" in model_id.lower():
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
 
     if tokenizer.pad_token is None:
@@ -124,19 +124,19 @@ def generate_on_dataset(
     }
 
     if "ckpt" in model_id:
-        if "Llama-3" in model_id:
-            format_func = format_funcs["llama3"](mode="no_safeguars")
-        elif "Mistral" in model_id:
+        if "llama-3" in model_id.lower():
+            format_func = format_funcs["llama3"](mode="no_safeguards")
+        elif "mistral" in model_id.lower():
             format_func = format_funcs["mistral"](mode="no_safeguards")
-        elif "gemma" in model_id:
+        elif "gemma" in model_id.lower():
             format_func = format_funcs["gemma"](mode="no_safeguards")
 
     else:
-        if "Llama-3" in model_id:
+        if "llama-3" in model_id.lower():
             format_func = format_funcs["llama3"](mode="default")
-        elif "Mistral" in model_id:
+        elif "mistral" in model_id.lower():
             format_func = format_funcs["mistral"](mode="default")
-        elif "gemma" in model_id:
+        elif "gemma" in model_id.lower():
             format_func = format_funcs["gemma"](mode="default")
 
     for i, out in tqdm(
@@ -226,11 +226,11 @@ def generate_on_dataset_with_model(
 
     terminators = [tokenizer.eos_token_id]
 
-    if "Llama-3" in model_id:
+    if "llama-3" in model_id.lower():
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
-    elif "Mistral" in model_id:
+    elif "mistral" in model_id.lower():
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
-    elif "gemma" in model_id:
+    elif "gemma" in model_id.lower():
         terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
 
     if tokenizer.pad_token is None:
@@ -266,11 +266,11 @@ def generate_on_dataset_with_model(
         "meta_data": meta_data,
     }
 
-    if "Llama-3" in model_id:
+    if "llama-3" in model_id.lower():
         format_func = format_funcs["llama3"]
-    elif "Mistral" in model_id:
+    elif "mistral" in model_id.lower():
         format_func = format_funcs["mistral"]
-    elif "gemma" in model_id:
+    elif "gemma" in model_id.lower():
         format_func = format_funcs["gemma"]
 
     for i in tqdm(
