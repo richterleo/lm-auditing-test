@@ -147,6 +147,7 @@ def generate_on_dataset(
                     "prompt",
                     "text",
                     model_id,
+                    format_func,
                     tokenizer,
                 ),
                 batch_size=batch_size,

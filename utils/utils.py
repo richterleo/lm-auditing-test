@@ -239,18 +239,14 @@ class NestedKeyDataset(Dataset):
         key1: str,
         key2: str,
         model_id: str,
+        format_func: Callable,
         tokenizer: AutoTokenizer,
     ):
         self.dataset = dataset
         self.key1 = key1
         self.key2 = key2
 
-        if "Llama-3" in model_id:
-            self.format_func = format_funcs["llama3"]
-        elif "Mistral" in model_id:
-            self.format_func = format_funcs["mistral"]
-        elif "gemma" in model_id:
-            self.format_func = format_funcs["gemma"]
+        self.format_func = format_func
 
         self.tokenizer = tokenizer
 
