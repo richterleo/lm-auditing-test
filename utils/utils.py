@@ -20,9 +20,7 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 # Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "deep-anytime-testing")
-)
+submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
 models_path = os.path.join(submodule_path, "models")
 
 for path in [submodule_path, models_path]:
@@ -46,9 +44,7 @@ def create_run_string():
 
 def get_random_prompts(prompt_dataset, num_examples=500):
     """ """
-    assert num_examples <= len(
-        prompt_dataset
-    ), "Can't pick more elements than there are in the dataset."
+    assert num_examples <= len(prompt_dataset), "Can't pick more elements than there are in the dataset."
     picks = []
     for _ in range(num_examples):
         pick = random.randint(0, len(prompt_dataset) - 1)
@@ -139,9 +135,7 @@ def initialize_from_config(net_cfg, net_type="MMDEMLP"):
     """ """
 
     if net_type == "MMDEMLPT":
-        models = importlib.import_module(
-            "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
-        )
+        models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
         MMDEMLP = getattr(models, "MMDEMLP")
 
         return MMDEMLP(
@@ -178,8 +172,7 @@ def message_format_with_sys_wrapper(mode="default"):
                 },
                 {
                     "role": "user",
-                    "content": "You are required to keep generation given the incomplete sentence: \n\n"
-                    + input_sent,
+                    "content": "You are required to keep generation given the incomplete sentence: \n\n" + input_sent,
                 },
             ]
         elif mode == "no_safeguards":
@@ -190,8 +183,7 @@ def message_format_with_sys_wrapper(mode="default"):
                 },
                 {
                     "role": "user",
-                    "content": "You are required to keep generation given the incomplete sentence: \n\n"
-                    + input_sent,
+                    "content": "You are required to keep generation given the incomplete sentence: \n\n" + input_sent,
                 },
             ]
         else:
@@ -215,8 +207,7 @@ def message_format_wrapper(mode="default"):
             return [
                 {
                     "role": "user",
-                    "content": "You are required to keep generation given the incomplete prompt. \n\n"
-                    + input_sent,
+                    "content": "You are required to keep generation given the incomplete prompt. \n\n" + input_sent,
                 },
             ]
         else:
@@ -305,9 +296,7 @@ def download_file_from_wandb(
         files = [file for file in run.files() if pattern in file.name]
 
     if not files:
-        logger.error(
-            f"No file found matching {'file_name' if file_name else 'pattern'}: {file_name or pattern}"
-        )
+        logger.error(f"No file found matching {'file_name' if file_name else 'pattern'}: {file_name or pattern}")
         return None
 
     file = files[0]
@@ -418,20 +407,14 @@ def check_seed(seed):
             try:
                 seed = int(seed[4:])  # Extract the number after "seed"
             except ValueError:
-                raise ValueError(
-                    f"Invalid seed format: {seed}. Expected 'seed<number>' or an integer."
-                )
+                raise ValueError(f"Invalid seed format: {seed}. Expected 'seed<number>' or an integer.")
         else:
             try:
                 seed = int(seed)  # Try to convert the entire string to an integer
             except ValueError:
-                raise ValueError(
-                    f"Invalid seed format: {seed}. Expected 'seed<number>' or an integer."
-                )
+                raise ValueError(f"Invalid seed format: {seed}. Expected 'seed<number>' or an integer.")
     elif not isinstance(seed, int):
-        raise ValueError(
-            f"Invalid seed type: {type(seed)}. Expected 'seed<number>' string or an integer."
-        )
+        raise ValueError(f"Invalid seed type: {type(seed)}. Expected 'seed<number>' string or an integer.")
 
     return seed
 
@@ -443,14 +426,14 @@ if __name__ == "__main__":
     #     "LLM_Accountability/continuations/iu34st5q",
     #     "LLM_Accountability/continuations/4ll681jg",
     # ]
-    run_paths = [
-        "LLM_Accountability/continuations/s29v6uqi",  # mistral seed2000
-        "LLM_Accountability/continuations/z2rpuvbh",  # gemma seed2000
-        "LLM_Accountability/continuations/qp8f41we",  # llama ckpt10 seed1000
-    ]
+    # run_paths = [
+    #     "LLM_Accountability/continuations/s29v6uqi",  # mistral seed2000
+    #     "LLM_Accountability/continuations/z2rpuvbh",  # gemma seed2000
+    #     "LLM_Accountability/continuations/qp8f41we",  # llama ckpt10 seed1000
+    # ]
+
+    run_paths = ["LLM_Accountability/continuations/uhywzzxx"]
     pattern = "continuations"
 
     for run_path in run_paths:
-        download_file_from_wandb(
-            run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed
-        )
+        download_file_from_wandb(run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed)

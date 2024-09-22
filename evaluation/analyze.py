@@ -56,7 +56,9 @@ def extract_data_for_models(
 
     if model_name2:
         if fold_size == 4000:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_epsilon_{epsilon}.csv"
+            file_path = (
+                f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_epsilon_{epsilon}.csv"
+            )
             if not Path(file_path).exists():
                 file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
         else:
@@ -108,11 +110,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
         for sequence in range(max_sequences):  # sequence_counts.keys()
-            if (
-                sequence in fold_data.index
-                and fold_data.loc[sequence, "sequences_until_end_of_experiment"]
-                == sequence
-            ):
+            if sequence in fold_data.index and fold_data.loc[sequence, "sequences_until_end_of_experiment"] == sequence:
                 try:
                     assert (
                         fold_data.loc[sequence, "test_positive"] == 1
@@ -124,9 +122,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
                 sequence_counts[sequence] += 1
 
     # Convert the result to a DataFrame for better visualization
-    result_df = pd.DataFrame(
-        list(sequence_counts.items()), columns=["Sequence", "Count"]
-    )
+    result_df = pd.DataFrame(list(sequence_counts.items()), columns=["Sequence", "Count"])
     result_df["Power"] = result_df["Count"] / num_folds
     result_df["Samples per Test"] = fold_size
     result_df["Samples"] = result_df["Sequence"] * bs
@@ -153,12 +149,8 @@ def get_power_over_sequences_for_models_or_checkpoints(
     ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
 
     if model_name2:
-        data = extract_data_for_models(
-            model_name1, seed1, seed2, model_name2=model_name2, epsilon=epsilon
-        )
-        result_df = get_power_over_sequences_from_whole_ds(
-            data, fold_size=fold_size, bs=bs
-        )
+        data = extract_data_for_models(model_name1, seed1, seed2, model_name2=model_name2, epsilon=epsilon)
+        result_df = get_power_over_sequences_from_whole_ds(data, fold_size=fold_size, bs=bs)
         result_df["model_name1"] = model_name1
         result_df["seed1"] = seed1
         result_df["model_name2"] = model_name2
@@ -223,9 +215,7 @@ def get_power_over_sequences_for_checkpoints(
             result_dfs.append(result_df)
 
         except FileNotFoundError:
-            logger.error(
-                f"File for checkpoint {checkpoint} and seed {seed} does not exist yet"
-            )
+            logger.error(f"File for checkpoint {checkpoint} and seed {seed} does not exist yet")
 
     final_df = pd.concat(result_dfs, ignore_index=True)
 
@@ -259,21 +249,15 @@ def get_distance_scores(
     np.random.seed(random_seed)
     random.seed(random_seed)
     if not (checkpoint and checkpoint_base_name) and not model_name2:
-        raise ValueError(
-            "Either checkpoint and checkpoint_base_name or model_name2 must be provided"
-        )
+        raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
 
     script_dir = os.path.dirname(__file__)
     score_dir = os.path.join(script_dir, "..", score_dir)
 
-    score_path1 = os.path.join(
-        score_dir, f"{model_name1}_{seed1}", f"{metric}_scores.json"
-    )
+    score_path1 = os.path.join(score_dir, f"{model_name1}_{seed1}", f"{metric}_scores.json")
     score_path2 = os.path.join(
         score_dir,
-        f"{checkpoint_base_name}{checkpoint}_{seed2}"
-        if checkpoint
-        else f"{model_name2}_{seed2}",
+        f"{checkpoint_base_name}{checkpoint}_{seed2}" if checkpoint else f"{model_name2}_{seed2}",
         f"{metric}_scores.json",
     )
 
@@ -292,21 +276,15 @@ def get_distance_scores(
             if "Wasserstein" in distance_measures:
                 dist_dict = {"num_samples": len(scores1)}
                 if use_scipy_wasserstein:
-                    dist_dict["Wasserstein_full"] = wasserstein_distance(
-                        scores1, scores2
-                    )
+                    dist_dict["Wasserstein_full"] = wasserstein_distance(scores1, scores2)
                 else:
-                    dist_dict["Wasserstein_full"] = empirical_wasserstein_distance_p1(
-                        scores1, scores2
-                    )
+                    dist_dict["Wasserstein_full"] = empirical_wasserstein_distance_p1(scores1, scores2)
         if evaluate_nn_on_full:
             if "NeuralNet" in distance_measures:
                 assert net_cfg, "net_dict must be provided for neuralnet distance"
                 assert train_cfg, "train_cfg must be provided for neuralnet distance"
 
-                shuffled_scores1, shuffled_scores2 = shuffle(
-                    scores1, scores2, random_state=random_seed
-                )
+                shuffled_scores1, shuffled_scores2 = shuffle(scores1, scores2, random_state=random_seed)
 
                 kf = KFold(n_splits=num_runs, shuffle=False)
 
@@ -318,9 +296,7 @@ def get_distance_scores(
                     if len(fold_scores1) == len(scores1) // num_runs:
                         # Randomly split the fold into test and train data
                         fold_num_test_samples = int(len(fold_scores1) * test_split)
-                        dist_dict["num_train_samples"] = (
-                            len(fold_scores1) - fold_num_test_samples
-                        )
+                        dist_dict["num_train_samples"] = len(fold_scores1) - fold_num_test_samples
                         dist_dict["num_test_samples"] = fold_num_test_samples
 
                         indices = np.arange(len(fold_scores1))
@@ -334,9 +310,7 @@ def get_distance_scores(
                         test_scores1 = [fold_scores1[i] for i in test_indices]
                         test_scores2 = [fold_scores2[i] for i in test_indices]
 
-                        logger.info(
-                            f"Training neural net distance on {len(train_scores1)} samples."
-                        )
+                        logger.info(f"Training neural net distance on {len(train_scores1)} samples.")
 
                         # Rest of the code for each fold...
                         if pre_shuffle:
@@ -350,9 +324,7 @@ def get_distance_scores(
                                 pre_shuffle=pre_shuffle,
                                 random_seed=random_seed,
                             )
-                            dist_dict["NeuralNet_unpaired"] = (
-                                neural_net_distance_shuffled.train().item()
-                            )
+                            dist_dict["NeuralNet_unpaired"] = neural_net_distance_shuffled.train().item()
                         neural_net_distance = NeuralNetDistance(
                             net_cfg,
                             train_scores1,
@@ -367,14 +339,10 @@ def get_distance_scores(
 
                         if "Wasserstein" in distance_measures and compare_wasserstein:
                             if use_scipy_wasserstein:
-                                dist_dict["Wasserstein_comparison"] = (
-                                    wasserstein_distance(test_scores1, test_scores2)
-                                )
+                                dist_dict["Wasserstein_comparison"] = wasserstein_distance(test_scores1, test_scores2)
                             else:
-                                dist_dict["Wasserstein_comparison"] = (
-                                    empirical_wasserstein_distance_p1(
-                                        test_scores1, test_scores2
-                                    )
+                                dist_dict["Wasserstein_comparison"] = empirical_wasserstein_distance_p1(
+                                    test_scores1, test_scores2
                                 )
 
                         dist_data.append(dist_dict)
@@ -387,9 +355,7 @@ def get_distance_scores(
                 for num_train_samples in num_samples:
                     for run in range(num_runs):
                         np.random.seed(random_seed + run)
-                        random_test_indices = np.random.choice(
-                            len(scores1), num_test_samples, replace=False
-                        )
+                        random_test_indices = np.random.choice(len(scores1), num_test_samples, replace=False)
 
                         dist_dict = {
                             "num_train_samples": num_train_samples,
@@ -399,46 +365,24 @@ def get_distance_scores(
                         test_scores1 = [scores1[i] for i in random_test_indices]
                         test_scores2 = [scores2[i] for i in random_test_indices]
 
-                        logger.info(
-                            f"Testing neural net distance on {len(test_scores1)} samples."
-                        )
+                        logger.info(f"Testing neural net distance on {len(test_scores1)} samples.")
 
                         if "Wasserstein" in distance_measures:
                             if use_scipy_wasserstein:
-                                dist_dict["Wasserstein_comparison"] = (
-                                    wasserstein_distance(test_scores1, test_scores2)
-                                )
+                                dist_dict["Wasserstein_comparison"] = wasserstein_distance(test_scores1, test_scores2)
                             else:
-                                dist_dict["Wasserstein_comparison"] = (
-                                    empirical_wasserstein_distance_p1(
-                                        test_scores1, test_scores2
-                                    )
+                                dist_dict["Wasserstein_comparison"] = empirical_wasserstein_distance_p1(
+                                    test_scores1, test_scores2
                                 )
 
-                        train_scores1 = [
-                            scores1[i]
-                            for i in range(len(scores1))
-                            if i not in random_test_indices
-                        ]
-                        train_scores2 = [
-                            scores2[i]
-                            for i in range(len(scores2))
-                            if i not in random_test_indices
-                        ]
+                        train_scores1 = [scores1[i] for i in range(len(scores1)) if i not in random_test_indices]
+                        train_scores2 = [scores2[i] for i in range(len(scores2)) if i not in random_test_indices]
 
-                        random_train_indices = np.random.choice(
-                            len(train_scores1), num_train_samples, replace=False
-                        )
-                        current_train_scores1 = [
-                            train_scores1[i] for i in random_train_indices
-                        ]
-                        current_train_scores2 = [
-                            train_scores2[i] for i in random_train_indices
-                        ]
+                        random_train_indices = np.random.choice(len(train_scores1), num_train_samples, replace=False)
+                        current_train_scores1 = [train_scores1[i] for i in random_train_indices]
+                        current_train_scores2 = [train_scores2[i] for i in random_train_indices]
 
-                        logger.info(
-                            f"Training neural net distance on {len(current_train_scores1)} samples."
-                        )
+                        logger.info(f"Training neural net distance on {len(current_train_scores1)} samples.")
 
                         if pre_shuffle:
                             neural_net_distance_shuffled = NeuralNetDistance(
@@ -451,9 +395,7 @@ def get_distance_scores(
                                 pre_shuffle=pre_shuffle,
                                 random_seed=random_seed,
                             )
-                            dist_dict["NeuralNet_unpaired"] = (
-                                neural_net_distance_shuffled.train().item()
-                            )
+                            dist_dict["NeuralNet_unpaired"] = neural_net_distance_shuffled.train().item()
                         neural_net_distance = NeuralNetDistance(
                             net_cfg,
                             current_train_scores1,
@@ -558,9 +500,7 @@ def get_power_over_sequences_for_ranked_checkpoints(
 
     final_df = pd.concat(result_dfs, ignore_index=True)
     final_df[f"Rank based on {distance_measure} Distance"] = (
-        final_df[f"Empirical {distance_measure} Distance"]
-        .rank(method="dense", ascending=True)
-        .astype(int)
+        final_df[f"Empirical {distance_measure} Distance"].rank(method="dense", ascending=True).astype(int)
     )
 
     return final_df
@@ -678,33 +618,88 @@ def get_mean_tox_scores(
     seeds: Optional[None] = None,
     score_dir="model_scores",
     metric="perspective",
+    only_on_toxic_prompts=False,
+    high_tox_file="high_toxicity_indices.json",
+    only_continuations=False,
+    diff=False,
 ):
     if model_names:
         if not isinstance(model_names, list):
             model_names = [model_names]
             seeds = [seeds]
-        model_files = [
-            f"{model_name}_{seed}" for model_name, seed in zip(model_names, seeds)
-        ]
+        model_files = [f"{model_name}_{seed}" for model_name, seed in zip(model_names, seeds)]
     else:
-        model_files = os.listdir(score_dir)
+        # model_files = os.listdir(score_dir)
+        model_files = [f for f in os.listdir(score_dir) if os.path.isdir(os.path.join(score_dir, f))]
 
     all_scores = []
 
     for model_file in model_files:
-        score_path = f"{score_dir}/{model_file}/{metric}_scores.json"
-        with open(score_path, "r") as f:
-            scores = json.load(f)
+        try:
+            if not diff:
+                score_path = (
+                    f"{score_dir}/{model_file}/{metric}_scores.json"
+                    if not only_continuations
+                    else f"{score_dir}/{model_file}/{metric}_continuation_scores.json"
+                )
+                with open(score_path, "r") as f:
+                    scores = json.load(f)
 
-        mean, std = (
-            np.mean(scores[f"{metric}_scores"]),
-            np.std(scores[f"{metric}_scores"]),
-        )
-        all_scores.append({"model": model_file, "mean": mean, "std": std})
+                toxic_scores = scores[f"{metric}_scores"]
 
-    with open(f"{score_dir}/mean_{metric}_scores.json", "w") as f:
-        json.dump(all_scores, f, indent=4)
+            else:
+                score_path = f"{score_dir}/{model_file}/{metric}_scores.json"
+                with open(score_path, "r") as f:
+                    scores = json.load(f)
+
+                cont_score_path = f"{score_dir}/{model_file}/{metric}_continuation_scores.json"
+                with open(cont_score_path, "r") as f:
+                    cont_scores = json.load(f)
+
+                toxic_scores = [
+                    scores[f"{metric}_scores"][i] - cont_scores[f"{metric}_scores"][i]
+                    for i in range(len(scores[f"{metric}_scores"]))
+                ]
+
+            if only_on_toxic_prompts:
+                with open(high_tox_file, "r") as f:
+                    high_tox_indices = json.load(f)
+
+                toxic_scores = [toxic_scores[i] for i in high_tox_indices]
+
+            mean, std, median = (np.nanmean(toxic_scores), np.nanstd(toxic_scores), np.nanmedian(toxic_scores))
+            all_scores.append({"model": model_file, "mean": mean, "std": std, "median": median})
+
+        except FileNotFoundError:
+            logger.warning(f"File for model {model_file} does not exist yet")
+            continue
+
+    if all_scores:
+        if diff:
+            file_name = (
+                f"mean_{metric}_diff_scores.json"
+                if not only_on_toxic_prompts
+                else f"mean_{metric}_diff_scores_on_toxic_prompts.json"
+            )
+        else:
+            if only_on_toxic_prompts:
+                file_name = (
+                    f"mean_{metric}_scores_on_toxic_prompts.json"
+                    if not only_continuations
+                    else f"mean_{metric}_continuation_scores_on_toxic_prompts.json"
+                )
+            else:
+                file_name = (
+                    f"mean_{metric}_scores.json"
+                    if not only_continuations
+                    else f"mean_{metric}_continuation_scores.json"
+                )
+
+        with open(f"{score_dir}/{file_name}", "w") as f:
+            json.dump(all_scores, f, indent=4)
 
 
 if __name__ == "__main__":
-    get_mean_tox_scores()
+    get_mean_tox_scores(only_continuations=True, diff=False)
+
+    model_name = "sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000"

@@ -5,6 +5,7 @@ import os
 import aiohttp
 import asyncio
 import torch
+import numpy as np
 
 from collections import defaultdict
 from copy import deepcopy
@@ -132,7 +133,7 @@ def generate_on_dataset(
             format_func = format_funcs["gemma"](mode="no_safeguards")
 
     else:
-        if "llama-3" in model_id.lower():
+        if "llama-3" or "llama3" in model_id.lower():
             format_func = format_funcs["llama3"](mode="default")
         elif "mistral" in model_id.lower():
             format_func = format_funcs["mistral"](mode="default")
@@ -175,11 +176,7 @@ def generate_on_dataset(
         # cont = out[0]["generated_text"].replace(
         # cont = out[0]["generated_text"].replace(
         #    prompt_dataset[i]["prompt"]["text"], ""
-        cont = (
-            out[0]["generated_text"][len(prompt) :]
-            .strip()
-            .replace(prompt_dataset[i]["prompt"]["text"], "")
-        )
+        cont = out[0]["generated_text"][len(prompt) :].strip().replace(prompt_dataset[i]["prompt"]["text"], "")
         logs["prompts"].append(prompt_dataset[i]["prompt"]["text"])
         logs["continuations"].append(cont)
 
@@ -278,9 +275,7 @@ def generate_on_dataset_with_model(
         total=len(prompt_dataset) // batch_size,
     ):
         end = min(i + batch_size, len(prompt_dataset))
-        batch = [
-            format_func(prompt_dataset[j]["prompt"]["text"]) for j in range(i, end)
-        ]
+        batch = [format_func(prompt_dataset[j]["prompt"]["text"]) for j in range(i, end)]
         # set add_generation_prompt to False because we want text continuation
         formatted_inputs = tokenizer.apply_chat_template(
             batch,
@@ -302,9 +297,7 @@ def generate_on_dataset_with_model(
                 **gen_kwargs,
             )
 
-        preproc_outputs = [
-            outputs[k][len(input_ids[k]) :] for k in range(outputs.shape[0])
-        ]
+        preproc_outputs = [outputs[k][len(input_ids[k]) :] for k in range(outputs.shape[0])]
 
         decoded_outputs = tokenizer.batch_decode(
             preproc_outputs,
@@ -505,9 +498,7 @@ def eval_on_metric(metric, continuations, asynchronously=True, batch_size=8):
         scores = [score[1]["score"] for score in toxicity_scores]
 
     else:
-        raise ValueError(
-            "Invalid metric provided. Supported metrics are 'perspective' and 'toxicity'."
-        )
+        raise ValueError("Invalid metric provided. Supported metrics are 'perspective' and 'toxicity'.")
 
     return scores
 
@@ -592,13 +583,9 @@ async def fetch_toxicity(session, text, retries=10):
             ) as response:
                 if response.status == 200:
                     resp_json = await response.json()
-                    return resp_json["attributeScores"]["TOXICITY"]["summaryScore"][
-                        "value"
-                    ]
+                    return resp_json["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
                 else:
-                    logger.warning(
-                        f"Attempt {attempt + 1}: Received status code {response.status}"
-                    )
+                    logger.warning(f"Attempt {attempt + 1}: Received status code {response.status}")
                     logger.warning(f"Response content: {await response.text()}")
         except aiohttp.ClientError as e:
             logger.error(f"Attempt {attempt + 1}: ClientError - {e}")
@@ -609,9 +596,21 @@ async def fetch_toxicity(session, text, retries=10):
     raise Exception(f"Failed to fetch toxicity data after {retries} attempts")
 
 
+# async def call_perspective(continuations):
+#     async with aiohttp.ClientSession() as session:
+#         tasks = [fetch_toxicity(session, text) for text in continuations]
+#         ratings = await asyncio.gather(*tasks)
+#     return ratings
+
+
 async def call_perspective(continuations):
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_toxicity(session, text) for text in continuations]
+        tasks = []
+        for text in continuations:
+            if text.strip():
+                tasks.append(fetch_toxicity(session, text))
+            else:
+                tasks.append(asyncio.coroutine(lambda: np.nan)())
         ratings = await asyncio.gather(*tasks)
     return ratings
 

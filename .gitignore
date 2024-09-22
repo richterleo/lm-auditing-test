@@ -29,3 +29,5 @@ model_generations
 ad_hoc_plots.py
 *.csv
 *.png
+challenging_indices.json
+*.log

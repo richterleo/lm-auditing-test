@@ -17,11 +17,12 @@ from typing import Optional
 from tqdm import tqdm
 
 from transformers import pipeline
+from datasets import load_dataset
 
 # Add the parent directory of utils to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from utils.utils import download_file_from_wandb, time_block, create_run_string
+from utils.utils import download_file_from_wandb, time_block, create_run_string, load_config
 from utils.generate_and_evaluate import eval_on_metric
 from utils.remove_unused_epoch_key import remove_zero_key_and_flatten
 from logging_config import setup_logging
@@ -101,6 +102,7 @@ def evaluate_single_model(
     gen_dir="model_outputs",
     output_dir="model_scores",
     verbose=True,
+    only_continuation=False,
 ):
     """
     Evaluate a single model and save the scores.
@@ -150,16 +152,18 @@ def evaluate_single_model(
     # check if folder exists already
     if not Path(score_dir).exists():
         Path(score_dir).mkdir(parents=True, exist_ok=True)
-    score_path = Path(score_dir) / f"{metric}_scores.json"
+    score_path = (
+        Path(score_dir) / f"{metric}_scores.json"
+        if not only_continuation
+        else Path(score_dir) / f"{metric}_continuation_scores.json"
+    )
 
     # get continuation file
     if overwrite or not os.path.exists(score_path):
         for file_name in os.listdir(gen_dir):
             if "continuations" in file_name:
                 # older versions have unnecessary 0 key
-                data = remove_zero_key_and_flatten(
-                    os.path.join(gen_dir, file_name), return_data=True
-                )
+                data = remove_zero_key_and_flatten(os.path.join(gen_dir, file_name), return_data=True)
                 break
 
         if data is None:
@@ -168,25 +172,31 @@ def evaluate_single_model(
         filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
 
         # concatenate prompt and continuation
-        concatenated_generations = [
-            f"{prompt} {continuation}"
-            for prompt, continuation in zip(
-                filtered_dict["prompts"], filtered_dict["continuations"]
-            )
-        ]
+        if only_continuation:
+            generations = filtered_dict["continuations"]
+
+            count = sum(len(cont) < 10 for cont in generations)
+            logger.info(f"Number of continuations with less than 10 tokens: {count}")
+            count_empty = sum(len(cont) == 0 for cont in generations)
+            logger.info(f"Number of empty continuations: {count_empty}")
+        else:
+            generations = [
+                f"{prompt} {continuation}"
+                for prompt, continuation in zip(filtered_dict["prompts"], filtered_dict["continuations"])
+            ]
 
         # if we have a lot of generations, we need to query the API in batches
-        if len(concatenated_generations) > ds_batch_size:
+        if len(generations) > ds_batch_size:
             scores = []
             for i in tqdm(
-                range(0, len(concatenated_generations), ds_batch_size),
+                range(0, len(generations), ds_batch_size),
                 disable=not verbose,
             ):
                 start = time.time()
 
                 new_scores = eval_on_metric(
                     metric,
-                    concatenated_generations[i : i + ds_batch_size],
+                    generations[i : i + ds_batch_size],
                     asynchronously=asynchronously,
                     batch_size=model_batch_size,
                 )
@@ -195,23 +205,21 @@ def evaluate_single_model(
 
                 if i > 0 and i % 10000 == 0 and save_intermittently:
                     _save_intermittently(
-                        scores, score_dir, metric, i, data, ds_batch_size
+                        scores, score_dir, metric, i, data, ds_batch_size, only_continuation=only_continuation
                     )
 
                 end = time.time()
                 if verbose:
-                    logger.info(
-                        f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds"
-                    )
+                    logger.info(f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds")
 
         else:
             if verbose:
                 logger.warning(
-                    f"We are not batching, because the length of the dataset is small: {len(concatenated_generations)} samples"
+                    f"We are not batching, because the length of the dataset is small: {len(generations)} samples"
                 )
             scores = eval_on_metric(
                 metric,
-                concatenated_generations,
+                generations,
                 asynchronously=asynchronously,
                 batch_size=model_batch_size,
             )
@@ -228,7 +236,8 @@ def evaluate_single_model(
             logger.info(f"Evaluation should be completed. File stored in {score_path} ")
 
         if remove_intermediate_files:
-            cleanup_files(score_dir, f"{metric}_scores_*.json")
+            pattern = f"{metric}_scores_*.json" if not only_continuation else f"{metric}_continuation_scores_*.json"
+            cleanup_files(score_dir, pattern)
 
         if use_wandb:
             wandb.save(score_path)
@@ -248,6 +257,7 @@ def evaluate_all_models(
     remove_intermediate_files=True,
     gen_dir="model_outputs",
     output_dir="model_scores",
+    only_continuations=False,
 ):
     for model_dir in tqdm(os.listdir(gen_dir)):
         start = time.time()
@@ -268,19 +278,22 @@ def evaluate_all_models(
                 remove_intermediate_files=remove_intermediate_files,
                 output_dir=output_dir,
                 verbose=False,
+                only_continuation=only_continuations,
             )
             end = time.time()
-            logger.info(
-                f"Model {model_dir} took {round(end-start, 3)} seconds to evaluate."
-            )
+            logger.info(f"Model {model_dir} took {round(end-start, 3)} seconds to evaluate.")
 
         except IndexError:
             logger.error(f"{model_dir} does not contain the correct files. Skipping...")
             continue
 
 
-def _save_intermittently(scores, score_dir, metric, i, data, ds_batch_size):
-    current_scores_path = os.path.join(score_dir, f"{metric}_scores_{i}.json")
+def _save_intermittently(scores, score_dir, metric, i, data, ds_batch_size, only_continuation=False):
+    current_scores_path = (
+        os.path.join(score_dir, f"{metric}_scores_{i}.json")
+        if not only_continuation
+        else os.path.join(score_dir, f"{metric}_continuation_scores_{i}.json")
+    )
     data[f"{metric}_scores"] = scores
     assert (
         len(data[f"{metric}_scores"]) == i + ds_batch_size
@@ -325,9 +338,7 @@ def create_common_json(
         if not new_folder_path.exists():
             new_folder_path.mkdir(parents=True, exist_ok=True)
 
-        with open(
-            os.path.join(file_path1, f"{metric}_scores.json"), "r"
-        ) as file1, open(
+        with open(os.path.join(file_path1, f"{metric}_scores.json"), "r") as file1, open(
             os.path.join(file_path2, f"{metric}_scores.json"), "r"
         ) as file2:
             data1 = json.load(file1)
@@ -352,9 +363,7 @@ def create_common_json(
             data[f"{metric}_scores2"] = filtered_data2[f"{metric}_scores"]
 
         else:
-            common_prompts = list(
-                set(filtered_data1["prompts"]) & set(filtered_data2["prompts"])
-            )
+            common_prompts = list(set(filtered_data1["prompts"]) & set(filtered_data2["prompts"]))
 
             # Extract data for common prompts
             for prompt in common_prompts:
@@ -364,12 +373,8 @@ def create_common_json(
 
                 data["continuations1"].append(filtered_data1["continuations"][index1])
                 data["continuations2"].append(filtered_data2["continuations"][index2])
-                data[f"{metric}_scores1"].append(
-                    filtered_data1[f"{metric}_scores"][index1]
-                )
-                data[f"{metric}_scores2"].append(
-                    filtered_data2[f"{metric}_scores"][index2]
-                )
+                data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
+                data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
 
         with open(common_scores_file_path, "w") as file:
             # json.dump(data, file, indent=4)
@@ -423,9 +428,7 @@ def create_folds(
         total_num_samples = len(data["prompts"])
         indices = list(range(total_num_samples))
         random.shuffle(indices)
-        index_batches = [
-            indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)
-        ]
+        index_batches = [indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)]
 
         # The last batch might contain fewer samples
         if len(index_batches[-1]) < fold_size:
@@ -434,9 +437,7 @@ def create_folds(
             )
             index_batches = index_batches[:-1]
 
-        for i, batch in tqdm(
-            enumerate(index_batches)
-        ):  # The last batch is not used because it
+        for i, batch in tqdm(enumerate(index_batches)):  # The last batch is not used because it
             fold_file_path = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
             if overwrite or not os.path.exists(fold_file_path):
                 fold_data = defaultdict(list)
@@ -467,16 +468,10 @@ def create_folds_from_generations(
     overwrite=True,
     random_seed=0,
 ):
-    evaluate_single_model(
-        model_name=model_name1, seed=seed1, metric=metric, overwrite=overwrite
-    )
-    evaluate_single_model(
-        model_name=model_name2, seed=seed2, metric=metric, overwrite=overwrite
-    )
+    evaluate_single_model(model_name=model_name1, seed=seed1, metric=metric, overwrite=overwrite)
+    evaluate_single_model(model_name=model_name2, seed=seed2, metric=metric, overwrite=overwrite)
 
-    create_common_json(
-        model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
-    )
+    create_common_json(model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite)
     create_folds(
         model_name1,
         seed1,
@@ -500,13 +495,9 @@ def create_folds_from_evaluations(
     use_wandb=False,
 ):
     try:
-        create_common_json(
-            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
-        )
+        create_common_json(model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite)
     except FileNotFoundError as e:
-        logger.info(
-            f"File not found: {e}. Trying to create the folds from generations."
-        )
+        logger.info(f"File not found: {e}. Trying to create the folds from generations.")
         evaluate_single_model(
             model_name=model_name1,
             seed=seed1,
@@ -522,9 +513,7 @@ def create_folds_from_evaluations(
             use_wandb=use_wandb,
         )
 
-        create_common_json(
-            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite
-        )
+        create_common_json(model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite)
 
     create_folds(
         model_name1,
@@ -537,23 +526,70 @@ def create_folds_from_evaluations(
     )
 
 
+def create_toxic_prompt_mask(dataset_name="allenai/real-toxicity-prompts", impute_with_continuation=False):
+    """ """
+    dataset = load_dataset(dataset_name, split="train")
+
+    high_toxicity_indices = []
+    no_prompt = 0
+    toxic_cont = 0
+    skipped = 0
+
+    for idx, item in enumerate(dataset):  # Assuming you're using the 'train' split
+        # print(f"These are the keys in the dataset: {item['prompt'].keys()}")
+        try:
+            if float(item["prompt"]["toxicity"]) >= 0.5:
+                high_toxicity_indices.append(idx)
+        except TypeError:
+            # logger.info(f"Missing prompt tox score for item {idx}")
+            no_prompt += 1
+
+            if impute_with_continuation:
+                # logger.info("Using tox score from continuation.")
+                try:
+                    if float(item["continuation"]["toxicity"]) >= 0.5:
+                        high_toxicity_indices.append(idx)
+                        toxic_cont += 1
+                except TypeError:
+                    logger.info(f"Missing continuation tox score for item {idx}. Skipping the item.")
+                    skipped += 1
+
+    if impute_with_continuation:
+        logger.info(f"We had to use the continuation score from {no_prompt} items.")
+        logger.info(f"This leads to {toxic_cont} items being added to the high toxicity list.")
+        logger.info(f"{skipped} items were skipped due to missing tox scores in both prompt and continuation.")
+
+    logger.info(f"Number of prompts with toxicity >= 0.5: {len(high_toxicity_indices)}")
+
+    # Save the list of high toxicity indices
+
+    if impute_with_continuation:
+        file_name = "high_toxicity_indices_imputed.json"
+    else:
+        file_name = "high_toxicity_indices.json"
+    with open(file_name, "w") as f:
+        json.dump(high_toxicity_indices, f)
+
+
 if __name__ == "__main__":
-    setup_logging(log_file="create_common_jsons.log")
+    setup_logging(log_file="evaluate_only_continuations.log")
     logger = logging.getLogger(__name__)
 
-    evaluate_all_models(metric="perspective", overwrite=False)
+    evaluate_all_models(metric="perspective", overwrite=False, only_continuations=True)
 
-    task_models = [
-        "gemma-1.1-7b-it",
-        "Mistral-7B-Instruct-v0.2_seed2000",
-        "Llama-3-8B-ckpt10_seed1000",
-    ]
+    # task_models = [
+    #     "gemma-1.1-7b-it",
+    #     "Mistral-7B-Instruct-v0.2_seed2000",
+    #     "Llama-3-8B-ckpt10_seed1000",
+    # ]
 
-    for task_model in task_models:
-        create_common_json(
-            model_name1="Meta-Llama-3-8B-Instruct",
-            seed1="seed2000",
-            model_name2=task_model,
-            seed2="seed1000",
-            metric="perspective",
-        )
+    # task_models = ["LLama-3-8b-Uncensored"]
+
+    # for task_model in task_models:
+    #     create_common_json(
+    #         model_name1="Meta-Llama-3-8B-Instruct",
+    #         seed1="seed2000",
+    #         model_name2=task_model,
+    #         seed2="seed1000",
+    #         metric="perspective",
+    #     )

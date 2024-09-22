@@ -22,6 +22,7 @@ echo "Conda version used: $(conda info --base)"
 # Add wandb api key 
 export WANDB_API_KEY= # Add your key here
 export WANDB_LOG_LEVEL=debug
+export HF_TOKEN= # 
 
 # Create a Conda environment
 echo "Creating conda environment"
