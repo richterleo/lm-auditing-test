@@ -27,6 +27,7 @@ analysis:
   multiples_of_epsilon: 3
   bias: 0
   use_full_ds_for_nn_distance: false
+  epsilon_ticks: 10
 
 
 tau1: 

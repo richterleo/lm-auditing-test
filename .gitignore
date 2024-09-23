@@ -31,3 +31,5 @@ ad_hoc_plots.py
 *.png
 challenging_indices.json
 *.log
+*.csv
+natural-instructions

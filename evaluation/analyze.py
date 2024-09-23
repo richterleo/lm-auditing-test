@@ -229,12 +229,12 @@ def get_distance_scores(
     checkpoint: Optional[str] = None,
     checkpoint_base_name: Optional[str] = None,
     model_name2: Optional[str] = None,
-    metric: str = "toxicity",
+    metric: str = "perspective",
     distance_measures: list = ["NeuralNet", "Wasserstein"],
     net_cfg: Optional[dict] = None,
     train_cfg: Optional[DictConfig] = None,
     pre_shuffle: bool = False,
-    score_dir: str = "model_scores",
+    score_dir: str = "test_outputs",
     random_seed: int = 0,
     num_samples: Union[int, list[int]] = 100000,
     num_test_samples: int = 1000,
@@ -244,6 +244,8 @@ def get_distance_scores(
     compare_wasserstein: bool = False,
     num_runs: int = 1,
     use_scipy_wasserstein: bool = True,
+    only_continuations: bool = True,
+    **kwargs,
 ) -> pd.DataFrame:
     """ """
     np.random.seed(random_seed)
@@ -254,21 +256,24 @@ def get_distance_scores(
     script_dir = os.path.dirname(__file__)
     score_dir = os.path.join(script_dir, "..", score_dir)
 
-    score_path1 = os.path.join(score_dir, f"{model_name1}_{seed1}", f"{metric}_scores.json")
-    score_path2 = os.path.join(
-        score_dir,
-        f"{checkpoint_base_name}{checkpoint}_{seed2}" if checkpoint else f"{model_name2}_{seed2}",
-        f"{metric}_scores.json",
+    model_name2 = f"{checkpoint_base_name}{checkpoint}" if checkpoint else model_name2
+
+    score_dir = os.path.join(score_dir, f"{model_name1}_{seed1}_{model_name2}_{seed2}")
+    score_path = (
+        os.path.join(score_dir, f"{metric}_scores.json")
+        if not only_continuations
+        else os.path.join(score_dir, f"{metric}_continuation_scores.json")
     )
 
     if not isinstance(num_samples, list):
         num_samples = [num_samples]
 
     try:
-        with open(score_path1, "r") as f:
-            scores1 = json.load(f)[f"{metric}_scores"]
-        with open(score_path2, "r") as f:
-            scores2 = json.load(f)[f"{metric}_scores"]
+        with open(score_path, "r") as f:
+            data = json.load(f)
+
+        scores1 = data[f"{metric}_scores1"]
+        scores2 = data[f"{metric}_scores2"]
 
         dist_data = []
 
@@ -354,6 +359,7 @@ def get_distance_scores(
 
                 for num_train_samples in num_samples:
                     for run in range(num_runs):
+                        logger.info(f"Num runs: {num_runs}, Run: {run}")
                         np.random.seed(random_seed + run)
                         random_test_indices = np.random.choice(len(scores1), num_test_samples, replace=False)
 

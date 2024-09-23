@@ -71,20 +71,14 @@ def distance_box_plot(
 
     else:
         # Create a new column combining `num_samples` and `Wasserstein` for grouping
-        df["Group"] = (
-            df["num_train_samples"].astype(str) + " | " + df["Wasserstein"].astype(str)
-        )
+        df["Group"] = df["num_train_samples"].astype(str) + " | " + df["Wasserstein"].astype(str)
 
         wasserstein_df = df[["Wasserstein"]].rename(columns={"Wasserstein": "Distance"})
         wasserstein_df["Group"] = "Wasserstein"
 
         # 2. Two boxes for NeuralNet, split by num_samples
-        neuralnet_df = df[["num_train_samples", "NeuralNet"]].rename(
-            columns={"NeuralNet": "Distance"}
-        )
-        neuralnet_df["Group"] = (
-            neuralnet_df["num_train_samples"].astype(str) + " NeuralNet"
-        )
+        neuralnet_df = df[["num_train_samples", "NeuralNet"]].rename(columns={"NeuralNet": "Distance"})
+        neuralnet_df["Group"] = neuralnet_df["num_train_samples"].astype(str) + " NeuralNet"
 
         # Concatenate the dataframes
         combined_df = pd.concat([wasserstein_df, neuralnet_df[["Distance", "Group"]]])
@@ -155,10 +149,7 @@ def plot_power_over_number_of_sequences(
             seeds,
             checkpoint_base_name=checkpoint_base_name,
         )
-    elif (
-        group_by == "Rank based on Wasserstein Distance"
-        or group_by == "Empirical Wasserstein Distance"
-    ):
+    elif group_by == "Rank based on Wasserstein Distance" or group_by == "Empirical Wasserstein Distance":
         result_df = get_power_over_sequences_for_ranked_checkpoints(
             base_model_name,
             base_model_seed,
@@ -168,9 +159,7 @@ def plot_power_over_number_of_sequences(
             metric="perspective",
         )
 
-        result_df["Empirical Wasserstein Distance"] = result_df[
-            "Empirical Wasserstein Distance"
-        ].round(3)
+        result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
 
     # Create the plot
     plt.figure(figsize=(12, 6))
@@ -288,9 +277,7 @@ def plot_power_over_epsilon(
             distance_measure=distance_measure,
         )
 
-    smaller_df = extract_power_from_sequence_df(
-        result_df, distance_measure=distance_measure, by_checkpoints=True
-    )
+    smaller_df = extract_power_from_sequence_df(result_df, distance_measure=distance_measure, by_checkpoints=True)
 
     # in case we have less folds
     palette = palette[-len(fold_sizes) :]
@@ -301,9 +288,7 @@ def plot_power_over_epsilon(
     pd.set_option("display.max_columns", 1000)
     pd.set_option("display.width", 1000)
 
-    print(
-        f"This is the smaller df inside plot_power_over_epsilon: {smaller_df} for fold_sizes {fold_sizes}"
-    )
+    print(f"This is the smaller df inside plot_power_over_epsilon: {smaller_df} for fold_sizes {fold_sizes}")
 
     sns.lineplot(
         x=f"Empirical {distance_measure} Distance",
@@ -562,9 +547,7 @@ def plot_rejection_rate_matrix(
     if not model_names2:
         for i, (model_name1, seed1) in enumerate(zip(model_names1[:-1], seeds1[:-1])):
             for model_name2, seed2 in zip(model_names1[i + 1 :], seeds1[i + 1 :]):
-                print(
-                    f"Checking model {model_name1}, {seed1} against {model_name2}, {seed2}"
-                )
+                print(f"Checking model {model_name1}, {seed1} against {model_name2}, {seed2}")
                 result_df = get_power_over_sequences_for_models_or_checkpoints(
                     model_name1,
                     seed1,
@@ -657,6 +640,7 @@ def plot_rejection_rate_matrix(
 
 def plot_calibrated_detection_rate(
     true_epsilon: float,
+    std_epsilon: float,
     model_name1: str,
     seed1: str,
     model_name2: str,
@@ -668,6 +652,9 @@ def plot_calibrated_detection_rate(
     test_dir: str = "test_outputs",
     save_as_pdf: bool = True,
     overwrite: bool = False,
+    draw_in_std: bool = False,
+    draw_in_lowest_and_highest: bool = False,
+    draw_in_first_checkpoint: bool = False,
 ):
     """ """
 
@@ -696,14 +683,54 @@ def plot_calibrated_detection_rate(
     )
 
     # Adding the vertical line
-    plt.axvline(
-        x=true_epsilon, color="red", linestyle="--", label="True Neural Net Distance"
-    )
+    plt.axvline(x=true_epsilon, color="red", linestyle="--", label="True Neural Net Distance")
+
+    # Adding the standard deviation range
+    if draw_in_std:
+        plt.axvspan(
+            true_epsilon - std_epsilon, true_epsilon + std_epsilon, alpha=0.2, color="green", label="Std Dev Range"
+        )
+
+    if draw_in_lowest_and_highest:
+        # Adding vertical line and label for lowest epsilon and highest epsilon (same color)
+        min_epsilon = df_sorted["epsilon"].min()
+        max_epsilon = df_sorted["epsilon"].max()
+        plt.axvline(x=min_epsilon, color="blue", linestyle=":", label="High Temperature Llama")
+        plt.axvline(x=max_epsilon, color="blue", linestyle=":", label="Llama Uncensored")
+        plt.text(
+            min_epsilon + 0.0001,
+            0.7,
+            "High Temperature Llama",
+            color="blue",
+            verticalalignment="center",
+            rotation=90,
+        )
+        plt.text(
+            max_epsilon + 0.0001,
+            0.7,
+            "Llama Uncensored",
+            color="blue",
+            verticalalignment="center",
+            rotation=90,
+        )
+
+    if draw_in_first_checkpoint:
+        # Adding vertical line and label for first checkpoint toxicity fine-tuning
+        first_checkpoint = 0.004452683562703896
+        plt.axvline(x=first_checkpoint, color="purple", linestyle=":", label="First Checkpoint Toxicity Fine-tuning")
+        plt.text(
+            first_checkpoint + 0.0001,
+            0.5,
+            "First Checkpoint Toxicity Fine-tuning",
+            color="purple",
+            verticalalignment="center",
+            rotation=90,
+        )
 
     # Adding label to the vertical line
     plt.text(
         true_epsilon + 0.0001,
-        0.1,  # Changed from 0.5 to 0.1 to move the label lower
+        0.3,  # Changed from 0.5 to 0.1 to move the label lower
         "True Neural Net Distance",
         color="red",
         verticalalignment="center",
@@ -814,25 +841,17 @@ def plot_scores(
     if save:
         if use_log_scale:
             if save_as_pdf:
-                output_path = os.path.join(
-                    directory, f"{metric}_scores_{model_name}_{seed}_log.pdf"
-                )
+                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}_log.pdf")
                 plt.savefig(output_path, format="pdf", bbox_inches="tight")
             else:
-                output_path = os.path.join(
-                    directory, f"{metric}_scores_{model_name}_{seed}_log.png"
-                )
+                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}_log.png")
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
         else:
             if save_as_pdf:
-                output_path = os.path.join(
-                    directory, f"{metric}_scores_{model_name}_{seed}.pdf"
-                )
+                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}.pdf")
                 plt.savefig(output_path, format="pdf", bbox_inches="tight")
             else:
-                output_path = os.path.join(
-                    directory, f"{metric}_{model_name}_{seed}_scores.png"
-                )
+                output_path = os.path.join(directory, f"{metric}_{model_name}_{seed}_scores.png")
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
     else:
         plt.show()
@@ -884,30 +903,18 @@ def plot_scores_base_most_extreme(
             checkpoint_data = json.load(f)
             scores_ckpt = checkpoint_data[str(epoch)][f"{metric}_scores"]
             scores_dict[(ckpt, seed, epoch)] = scores_ckpt
-            wasserstein_distances[(ckpt, seed, epoch)] = (
-                empirical_wasserstein_distance_p1(scores, scores_ckpt)
-            )
+            wasserstein_distances[(ckpt, seed, epoch)] = empirical_wasserstein_distance_p1(scores, scores_ckpt)
 
-    max_distance_ckpt, max_distance_seed, max_distance_epoch = max(
-        wasserstein_distances, key=wasserstein_distances.get
-    )
-    print(
-        f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}"
-    )
-    max_distance = wasserstein_distances[
-        (max_distance_ckpt, max_distance_seed, max_distance_epoch)
-    ]
+    max_distance_ckpt, max_distance_seed, max_distance_epoch = max(wasserstein_distances, key=wasserstein_distances.get)
+    print(f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}")
+    max_distance = wasserstein_distances[(max_distance_ckpt, max_distance_seed, max_distance_epoch)]
     print(f"This is the max distance: {max_distance:.4f}")
 
-    ckpt_scores = scores_dict[
-        (max_distance_ckpt, max_distance_seed, max_distance_epoch)
-    ]
+    ckpt_scores = scores_dict[(max_distance_ckpt, max_distance_seed, max_distance_epoch)]
 
     array_ckpt_scores = np.array(ckpt_scores)
     skewness = skew(array_ckpt_scores)
-    print(
-        f"skewness for model {checkpoint_base_name}{max_distance_ckpt}: {skewness:.3f}"
-    )
+    print(f"skewness for model {checkpoint_base_name}{max_distance_ckpt}: {skewness:.3f}")
 
     print(
         f"This is the max score of the base model {base_model_name}: {max(scores)} and this is the max score of the corrupted model {max(ckpt_scores)}"
@@ -916,10 +923,8 @@ def plot_scores_base_most_extreme(
     df = pd.DataFrame(
         {
             "scores": scores + ckpt_scores,
-            "model": [base_model_name] * len(scores)
-            + [f"Checkpoint {max_distance_ckpt}"] * len(ckpt_scores),
-            "seed": [base_model_seed] * len(scores)
-            + [max_distance_seed] * len(ckpt_scores),
+            "model": [base_model_name] * len(scores) + [f"Checkpoint {max_distance_ckpt}"] * len(ckpt_scores),
+            "seed": [base_model_seed] * len(scores) + [max_distance_seed] * len(ckpt_scores),
         }
     )
 
@@ -1047,9 +1052,7 @@ def plot_scores_two_models(
 
     dist = empirical_wasserstein_distance_p1(scores1, scores2)
 
-    print(
-        f"This is the distance: {dist} between {model_name1}, {seed1} and {model_name2}, {seed2}"
-    )
+    print(f"This is the distance: {dist} between {model_name1}, {seed1} and {model_name2}, {seed2}")
     skewness1 = skew(scores1)
     skewness2 = skew(scores2)
     print(f"skewness for model {model_name1}, {seed1}: {skewness1:.3f}")
@@ -1058,8 +1061,7 @@ def plot_scores_two_models(
     df = pd.DataFrame(
         {
             "scores": scores1 + scores2,
-            "model 1": [f"{model_name1}_{seed1}"] * len(scores1)
-            + [f"{model_name2}_{seed2}"] * len(scores2),
+            "model 1": [f"{model_name1}_{seed1}"] * len(scores1) + [f"{model_name2}_{seed2}"] * len(scores2),
         }
     )
 
@@ -1148,9 +1150,7 @@ def plot_scores_two_models(
     config_path="/root/DistanceSimulation/behavior_evaluation",
     config_name="plotting_config.yml",
 )
-def plot_all(
-    cfg: DictConfig, use_alternative_seeds: bool = False
-):  # TODO: add alternative seeds
+def plot_all(cfg: DictConfig, use_alternative_seeds: bool = False):  # TODO: add alternative seeds
     # Loop over all base models
     for bm in cfg.models:
         checkpoints = [i for i in range(1, int(bm.checkpoint_range))]
@@ -1443,13 +1443,9 @@ if __name__ == "__main__":
     num_train_samples = 40
     num_runs = 20
 
-    dist_path = (
-        Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}.csv"
-    )
+    dist_path = Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}.csv"
     if dist_path.exists():
-        self.logger.info(
-            f"Skipping distance analysis as results file {dist_path} already exists."
-        )
+        self.logger.info(f"Skipping distance analysis as results file {dist_path} already exists.")
         distance_df = pd.read_csv(dist_path)
     else:
         distance_df = get_distance_scores(

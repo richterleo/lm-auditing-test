@@ -31,9 +31,7 @@ from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, te
 # train = importlib.import_module("deep-anytime-testing.trainer.trainer")
 # Trainer = getattr(train, "Trainer")
 
-orig_models = importlib.import_module(
-    "deep-anytime-testing.trainer.trainer", package="deep-anytime-testing"
-)
+orig_models = importlib.import_module("deep-anytime-testing.trainer.trainer", package="deep-anytime-testing")
 Trainer = getattr(orig_models, "Trainer")
 
 logger = logging.getLogger(__name__)
@@ -54,6 +52,7 @@ class OfflineTrainer(Trainer):
         verbose=False,
         epsilon=1,
         consistent_bs=True,
+        only_continuations=True,
     ):
         super().__init__(
             train_cfg,
@@ -78,7 +77,7 @@ class OfflineTrainer(Trainer):
         self.net.to(self.device)
 
         self.dataset = load_into_scores_ds(
-            model_name1, seed1, model_name2, seed2, metric, fold_num=fold_num
+            model_name1, seed1, model_name2, seed2, metric, fold_num=fold_num, only_continuations=only_continuations
         )
 
         # This is the batch size for the network. Should probably ideally be the same as the overall batch size
@@ -123,6 +122,8 @@ class OfflineTrainer(Trainer):
         # for fast analysis
         self.test_positive = False
 
+        self.only_continuations = only_continuations
+
     def add_epoch_data(self, sequence, epoch, train_loss, val_loss):
         row = {
             "sequence": sequence,
@@ -138,11 +139,7 @@ class OfflineTrainer(Trainer):
             "test_positive": int(0),
         }
         new_data = pd.DataFrame([row])
-        self.data = (
-            new_data.copy()
-            if self.data.empty
-            else pd.concat([self.data, new_data], ignore_index=True)
-        )
+        self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
 
     def add_sequence_data(self, sequence, test_loss, betting_score, wealth):
         """Update test_loss and betting score/wealth for the given sequence and epoch"""
@@ -150,9 +147,7 @@ class OfflineTrainer(Trainer):
             (self.data["sequence"] == sequence),
             "test_loss",
         ] = test_loss
-        self.data.loc[(self.data["sequence"] == sequence), "betting_score"] = (
-            betting_score
-        )
+        self.data.loc[(self.data["sequence"] == sequence), "betting_score"] = betting_score
         self.data.loc[
             (self.data["sequence"] == sequence),
             "wealth",
@@ -239,9 +234,7 @@ class OfflineTrainer(Trainer):
         # In the first sequence, we don't train our model, directly evaluate
         test_ds = self.batches[0]
         self.num_samples = len(test_ds)
-        test_loader = DataLoader(
-            test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
-        )
+        test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
         test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
         betting_scores.append(betting_score.item())
         self.log(
@@ -265,11 +258,7 @@ class OfflineTrainer(Trainer):
             "test_positive": int(0),
         }
         new_data = pd.DataFrame([row])
-        self.data = (
-            new_data.copy()
-            if self.data.empty
-            else pd.concat([self.data, new_data], ignore_index=True)
-        )
+        self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
 
         # Log information if wealth exceeds the threshold TODO: not sure we need this for first batch??
         if betting_score > (1.0 / self.alpha):
@@ -286,15 +275,9 @@ class OfflineTrainer(Trainer):
 
         else:
             # In first sequence, we need to distribute the data into train and val set
-            train_ds, val_ds = train_test_split(
-                self.batches[0], test_size=0.2, random_state=self.seed
-            )
-            train_loader = DataLoader(
-                train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
-            )
-            val_loader = DataLoader(
-                val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
-            )
+            train_ds, val_ds = train_test_split(self.batches[0], test_size=0.2, random_state=self.seed)
+            train_loader = DataLoader(train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+            val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
             # Iterate over sequences
             for k in tqdm(range(1, min(self.seqs, self.num_batches))):
@@ -315,10 +298,7 @@ class OfflineTrainer(Trainer):
                         )
 
                         # Check for early stopping or end of epochs
-                        if (
-                            self.early_stopper.early_stop(loss_val.detach())
-                            or (i + 1) == self.epochs
-                        ):
+                        if self.early_stopper.early_stop(loss_val.detach()) or (i + 1) == self.epochs:
                             # Now define new test data from current batch
 
                             self.update_epochs_until_end_of_sequence(self.current_seq)
@@ -332,15 +312,9 @@ class OfflineTrainer(Trainer):
                             )
 
                             # Get S_t value on current batch
-                            test_loss, betting_score = self.train_evaluate_epoch(
-                                test_loader, mode="test"
-                            )
+                            test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
                             betting_scores.append(betting_score.item())
-                            wealth = (
-                                np.prod(np.array(betting_scores[self.T :]))
-                                if k >= self.T
-                                else 1
-                            )
+                            wealth = np.prod(np.array(betting_scores[self.T :])) if k >= self.T else 1
                             self.log(
                                 {"wealth": wealth},
                                 self.current_seq,
@@ -478,15 +452,11 @@ class OnlineTrainer(Trainer):
 
         self.pipeline1, self.tokenizer1, self.terminators1 = self.setup_model(self.tau1)
         self.pipeline2, self.tokenizer2, self.terminators2 = (
-            (self.pipeline1, self.tokenizer1, self.terminators1)
-            if self.use_same_tau
-            else self.setup_model(self.tau2)
+            (self.pipeline1, self.tokenizer1, self.terminators1) if self.use_same_tau else self.setup_model(self.tau2)
         )
 
         self.gen1_kwargs = self.tau1["gen_kwargs"]
-        self.gen2_kwargs = (
-            self.tau1["gen_kwargs"] if self.use_same_tau else self.tau2["gen_kwargs"]
-        )
+        self.gen2_kwargs = self.tau1["gen_kwargs"] if self.use_same_tau else self.tau2["gen_kwargs"]
 
         self.behavior = behavior
         self.metric = metric if metric else behavior
@@ -499,9 +469,7 @@ class OnlineTrainer(Trainer):
 
     def setup_model(self, tau_cfg):
         """ """
-        tokenizer = AutoTokenizer.from_pretrained(
-            tau_cfg["model_id"], padding_side="left"
-        )
+        tokenizer = AutoTokenizer.from_pretrained(tau_cfg["model_id"], padding_side="left")
         if tokenizer.pad_token is None:
             tokenizer.pad_token_id = tokenizer.eos_token_id
 
@@ -512,14 +480,10 @@ class OnlineTrainer(Trainer):
         terminators = [tokenizer.eos_token_id]
         terminator_key = self.get_terminator_key(tau_cfg["model_id"])
         if terminator_key:
-            terminators.append(
-                tokenizer.convert_tokens_to_ids(terminator[terminator_key])
-            )
+            terminators.append(tokenizer.convert_tokens_to_ids(terminator[terminator_key]))
 
         model = (
-            AutoPeftModelForCausalLM.from_pretrained(
-                tau_cfg["model_id"], **model_kwargs
-            )
+            AutoPeftModelForCausalLM.from_pretrained(tau_cfg["model_id"], **model_kwargs)
             if tau_cfg["model_id"].startswith("LLMAccountability")
             else tau_cfg["model_id"]
         )
@@ -563,9 +527,7 @@ class OnlineTrainer(Trainer):
                         "new_start_sequence": new_start_sequence,
                     }
                 )
-            print(
-                f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
-            )
+            print(f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}")
 
     def train(self):
         """
@@ -585,17 +547,12 @@ class OnlineTrainer(Trainer):
         indices = list(range(len(self.dataset)))
         random.shuffle(indices)
 
-        batches = [
-            indices[i * self.bs : min((i + 1) * self.bs, len(self.dataset))]
-            for i in range(num_batches)
-        ]
+        batches = [indices[i * self.bs : min((i + 1) * self.bs, len(self.dataset))] for i in range(num_batches)]
 
         with time_block("Now evaluating on the first test_ds"):
             # in the first sequence, we don't train our model
             test_ds = self.get_score_ds(batches[0])
-            test_loader = DataLoader(
-                test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
-            )
+            test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
             _, davt = self.train_evaluate_epoch(test_loader, mode="test")
             davts.append(davt.item())
             self.log(
@@ -634,9 +591,7 @@ class OnlineTrainer(Trainer):
                     shuffle=True,
                     collate_fn=collate_fn,
                 )
-                val_loader = DataLoader(
-                    val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn
-                )
+                val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
             # Actual model training
             for i in range(self.epochs):
@@ -648,10 +603,7 @@ class OnlineTrainer(Trainer):
                     loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
 
                 # Check for early stopping or end of epochs
-                if (
-                    self.early_stopper.early_stop(loss_val.detach())
-                    or (i + 1) == self.epochs
-                ):
+                if self.early_stopper.early_stop(loss_val.detach()) or (i + 1) == self.epochs:
                     # Now define test data from current batch
                     batch_indices = batches[k]
                     test_ds = self.get_score_ds(batch_indices)
@@ -663,9 +615,7 @@ class OnlineTrainer(Trainer):
                     )
 
                     # Get S_t value on current batch
-                    _, conditional_davt = self.train_evaluate_epoch(
-                        test_loader, mode="test"
-                    )
+                    _, conditional_davt = self.train_evaluate_epoch(test_loader, mode="test")
                     davts.append(conditional_davt.item())
                     davt = np.prod(np.array(davts[self.T :])) if k >= self.T else 1
                     self.log(
@@ -750,9 +700,7 @@ class OnlineTrainer(Trainer):
         )
         return aggregated_loss / num_samples, davt
 
-    def get_score_ds(
-        self, indices
-    ):  # TODO: make this batch_size a param in configuration
+    def get_score_ds(self, indices):  # TODO: make this batch_size a param in configuration
         """
         Querying the models for continuations and evaluating them on the metric.
         """
@@ -817,9 +765,7 @@ class OnlineTrainer(Trainer):
 
         with time_block(f"Generating continuations for {len(indices)} samples"):
             for sample in list(indices):
-                with time_block(
-                    f"Generating continuation for sample {sample} out of {len(indices)}"
-                ):
+                with time_block(f"Generating continuation for sample {sample} out of {len(indices)}"):
                     out1 = self.pipeline1(
                         self.dataset[sample]["prompt"]["text"],
                         pad_token_id=self.tokenizer1.eos_token_id,
@@ -831,12 +777,8 @@ class OnlineTrainer(Trainer):
                         **self.gen2_kwargs,
                     )
 
-                    cont1 = out1[0]["generated_text"].replace(
-                        self.dataset[sample]["prompt"]["text"], ""
-                    )
-                    cont2 = out2[0]["generated_text"].replace(
-                        self.dataset[sample]["prompt"]["text"], ""
-                    )
+                    cont1 = out1[0]["generated_text"].replace(self.dataset[sample]["prompt"]["text"], "")
+                    cont2 = out2[0]["generated_text"].replace(self.dataset[sample]["prompt"]["text"], "")
 
                     continuations1.append(cont1)
                     continuations2.append(cont2)

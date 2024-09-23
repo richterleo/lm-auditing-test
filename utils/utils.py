@@ -432,7 +432,12 @@ if __name__ == "__main__":
     #     "LLM_Accountability/continuations/qp8f41we",  # llama ckpt10 seed1000
     # ]
 
-    run_paths = ["LLM_Accountability/continuations/uhywzzxx"]
+    run_paths = [
+        "LLM_Accountability/continuations/iw32a4pg",
+        "LLM_Accountability/continuations/upzxj4f0",
+        "LLM_Accountability/continuations/4zy0kxd0",
+        "LLM_Accountability/continuations/9ut02m5k",
+    ]
     pattern = "continuations"
 
     for run_path in run_paths:

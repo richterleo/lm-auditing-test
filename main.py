@@ -7,15 +7,14 @@ import sys
 from arguments import TrainCfg
 from utils.utils import load_config
 
-sys.path.append(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing")
-)
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing"))
 
 from auditing_test.test import (
     AuditingTest,
     CalibratedAuditingTest,
     DefaultEpsilonStrategy,
     CrossValEpsilonStrategy,
+    IntervalEpsilonStrategy,
     eval_model,
 )
 
@@ -103,13 +102,9 @@ def main():
 
     parser.add_argument("--debug_mode", action="store_true", help="Run in debug mode")
 
-    parser.add_argument(
-        "--high_temp", action="store_true", help="Run with high temperature"
-    )
+    parser.add_argument("--high_temp", action="store_true", help="Run with high temperature")
 
-    parser.add_argument(
-        "--hf_prefix", type=str, default=None, help="Prefix for huggingface model"
-    )
+    parser.add_argument("--hf_prefix", type=str, default=None, help="Prefix for huggingface model")
 
     args = parser.parse_args()
 
@@ -166,13 +161,23 @@ def main():
 
 
 if __name__ == "__main__":
-    # config = load_config("config.yml")
-    # train_cfg = TrainCfg()
-    # model_name1 = "Meta-Llama-3-8B-Instruct"
-    # model_name2 = "commonsense_classification-Meta-Llama-3-8B-Instruct"
-    # seed1 = "seed2000"
-    # seed2 = "seed1000"
-    # fold_size = 4000
+    config = load_config("config.yml")
+    train_cfg = TrainCfg()
+    model_name1 = "Meta-Llama-3-8B-Instruct"
+    model_name2 = "2-Meta-Llama-3-8B-Instruct"
+
+    lower_model = "Meta-Llama-3-8B-Instruct-hightemp"
+    lower_seed = "seed1000"
+
+    # upper_model = "Llama-3-8B-ckpt1"
+    # upper_seed = "seed2000"
+
+    upper_model = "LLama-3-8b-Uncensored"
+    upper_seed = "seed1000"
+
+    seed1 = "seed2000"
+    seed2 = "seed1000"
+    fold_size = 4000
 
     # tasks = [
     #     "Mistral-7B-Instruct-v0.2",
@@ -193,26 +198,14 @@ if __name__ == "__main__":
     #     {"model_name": task, "seed": seed} for task, seed in zip(tasks, task_seeds)
     # ]
 
-    # exp = CalibratedAuditingTest(
-    #     config,
-    #     train_cfg,
-    #     CrossValEpsilonStrategy(
-    #         models_and_seeds,
-    #         config=config,
-    #         num_runs=10,
-    #         overwrite=True,
-    #         autocorrelate=True,
-    #     ),
-    #     use_wandb=False,
-    # )
-    # exp.run(
-    #     model_name1=model_name1,
-    #     seed1=seed1,
-    #     model_name2=model_name2,
-    #     seed2=seed2,
-    #     fold_size=fold_size,
-    #     calibrate_only=True,
-    # )
+    exp = CalibratedAuditingTest(
+        config,
+        train_cfg,
+        IntervalEpsilonStrategy(lower_model, lower_seed, upper_model, upper_seed, config=config, num_runs=10),
+        use_wandb=False,
+        overwrite=False,
+    )
+    exp.run(model_name1=model_name1, seed1=seed1, model_name2=model_name2, seed2=seed2, fold_size=fold_size)
 
     # # exp = CalibratedAuditingTest(
     # #     config,
@@ -237,4 +230,4 @@ if __name__ == "__main__":
     # #     fold_size=fold_size,
     # # )
 
-    main()
+    # main()

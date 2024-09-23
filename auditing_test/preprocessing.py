@@ -257,7 +257,7 @@ def evaluate_all_models(
     remove_intermediate_files=True,
     gen_dir="model_outputs",
     output_dir="model_scores",
-    only_continuations=False,
+    only_continuations=True,
 ):
     for model_dir in tqdm(os.listdir(gen_dir)):
         start = time.time()
@@ -313,6 +313,7 @@ def create_common_json(
     entity="LLM_Accountability",
     score_path="model_scores",
     output_path="test_outputs",
+    only_continuations=True,
 ):
     """ """
     file_path1 = f"{score_path}/{model_name1}_{seed1}"
@@ -333,14 +334,26 @@ def create_common_json(
             tags=["create_common_json"],
         )
 
-    common_scores_file_path = new_folder_path / f"{metric}_scores.json"
+    common_scores_file_path = (
+        new_folder_path / f"{metric}_scores.json"
+        if not only_continuations
+        else new_folder_path / f"{metric}_continuation_scores.json"
+    )
     if overwrite or not common_scores_file_path.exists():
         if not new_folder_path.exists():
             new_folder_path.mkdir(parents=True, exist_ok=True)
 
-        with open(os.path.join(file_path1, f"{metric}_scores.json"), "r") as file1, open(
-            os.path.join(file_path2, f"{metric}_scores.json"), "r"
-        ) as file2:
+        file_name1 = (
+            f"{file_path1}/{metric}_scores.json"
+            if not only_continuations
+            else f"{file_path1}/{metric}_continuation_scores.json"
+        )
+        file_name2 = (
+            f"{file_path2}/{metric}_scores.json"
+            if not only_continuations
+            else f"{file_path2}/{metric}_continuation_scores.json"
+        )
+        with open(file_name1, "r") as file1, open(file_name2, "r") as file2:
             data1 = json.load(file1)
             data2 = json.load(file2)
 
@@ -356,25 +369,40 @@ def create_common_json(
             print(
                 f"We trust that both data have the same prompts, e.g. {filtered_data1['prompts'][0], filtered_data2['prompts'][0]}"
             )
-            data["prompts"] = filtered_data1["prompts"]
-            data["continuations1"] = filtered_data1["continuations"]
-            data["continuations2"] = filtered_data2["continuations"]
-            data[f"{metric}_scores1"] = filtered_data1[f"{metric}_scores"]
-            data[f"{metric}_scores2"] = filtered_data2[f"{metric}_scores"]
+            assert filtered_data1["prompts"][0] == filtered_data2["prompts"][0], "Prompts are not the same."
+            #     data["prompts"] = filtered_data1["prompts"]
+            #     data["continuations1"] = filtered_data1["continuations"]
+            #     data["continuations2"] = filtered_data2["continuations"]
+            #     data[f"{metric}_scores1"] = filtered_data1[f"{metric}_scores"]
+            #     data[f"{metric}_scores2"] = filtered_data2[f"{metric}_scores"]
 
-        else:
-            common_prompts = list(set(filtered_data1["prompts"]) & set(filtered_data2["prompts"]))
+            # else:
+            #     common_prompts = list(set(filtered_data1["prompts"]) & set(filtered_data2["prompts"]))
 
-            # Extract data for common prompts
-            for prompt in common_prompts:
-                data["prompts"].append(prompt)
-                index1 = filtered_data1["prompts"].index(prompt)
-                index2 = filtered_data2["prompts"].index(prompt)
+            #     # Extract data for common prompts
+            #     for prompt in common_prompts:
+            #         data["prompts"].append(prompt)
+            #         index1 = filtered_data1["prompts"].index(prompt)
+            #         index2 = filtered_data2["prompts"].index(prompt)
 
-                data["continuations1"].append(filtered_data1["continuations"][index1])
-                data["continuations2"].append(filtered_data2["continuations"][index2])
-                data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
-                data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
+            #         data["continuations1"].append(filtered_data1["continuations"][index1])
+            #         data["continuations2"].append(filtered_data2["continuations"][index2])
+            #         data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
+            #         data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
+
+            #     # Check if the number of common prompts is the same as the number of scores
+            # data["prompts"] = filtered_data1["prompts"]
+            # data["continuations1"] = filtered_data1["continuations"]
+            # data["continuations2"] = filtered_data2["continuations"]
+
+            for score1, score2 in zip(filtered_data1[f"{metric}_scores"], filtered_data2[f"{metric}_scores"]):
+                if not (np.isnan(score1) or np.isnan(score2)):
+                    data[f"{metric}_scores1"].append(score1)
+                    data[f"{metric}_scores2"].append(score2)
+
+            logger.warning(
+                f"Discarding {len(filtered_data1[f'{metric}_scores']) - len(data[f'{metric}_scores1'])} NaN scores."
+            )
 
         with open(common_scores_file_path, "w") as file:
             # json.dump(data, file, indent=4)
@@ -405,19 +433,26 @@ def create_folds(
     fold_size=4000,
     overwrite=True,
     output_dir="test_outputs",
+    only_continuations=True,
 ):
     """ """
     # Fix random seed to be different for each fold_size, such that the folds always have different samples.
     random.seed(fold_size)
 
     directory = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
-    file_pattern = f"{metric}_scores_fold_*.json"
+    file_pattern = (
+        f"{metric}_scores_fold_*.json" if not only_continuations else f"{metric}_continuation_scores_fold_*.json"
+    )
 
     # Cleanup existing fold files
     cleanup_files(directory, file_pattern, verbose=False)
 
     try:
-        file_name = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+        file_name = (
+            f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
+            if not only_continuations
+            else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores.json"
+        )
         data = load_entire_json(file_name)
 
         # Extract metadata and other lists
@@ -425,7 +460,8 @@ def create_folds(
         metadata2 = data["metadata2"]
 
         # Create batches
-        total_num_samples = len(data["prompts"])
+        total_num_samples = len(data[f"{metric}_scores1"])
+        logger.info(f"Total number of samples: {total_num_samples}")
         indices = list(range(total_num_samples))
         random.shuffle(indices)
         index_batches = [indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)]
@@ -438,7 +474,11 @@ def create_folds(
             index_batches = index_batches[:-1]
 
         for i, batch in tqdm(enumerate(index_batches)):  # The last batch is not used because it
-            fold_file_path = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
+            fold_file_path = (
+                f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
+                if not only_continuations
+                else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores_fold_{i}.json"
+            )
             if overwrite or not os.path.exists(fold_file_path):
                 fold_data = defaultdict(list)
                 fold_data["metadata1"] = metadata1
@@ -593,3 +633,45 @@ if __name__ == "__main__":
     #         seed2="seed1000",
     #         metric="perspective",
     #     )
+
+    # create_common_json(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed2000",
+    #     "Meta-Llama-3-8B-Instruct-hightemp",
+    #     "seed1000",
+    #     metric="perspective",
+    #     only_continuations=True,
+    # )
+    # create_common_json(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed2000",
+    #     "1-Meta-Llama-3-8B-Instruct",
+    #     "seed1000",
+    #     metric="perspective",
+    #     only_continuations=True,
+    # )
+    # create_common_json(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed2000",
+    #     "2-Meta-Llama-3-8B-Instruct",
+    #     "seed1000",
+    #     metric="perspective",
+    #     only_continuations=True,
+    # )
+    # create_common_json(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed2000",
+    #     "Llama-3-8B-ckpt1",
+    #     "seed2000",
+    #     metric="perspective",
+    #     only_continuations=True,
+    # )
+
+    create_common_json(
+        "Meta-Llama-3-8B-Instruct",
+        "seed2000",
+        "LLama-3-8b-Uncensored",
+        "seed1000",
+        metric="perspective",
+        only_continuations=True,
+    )
