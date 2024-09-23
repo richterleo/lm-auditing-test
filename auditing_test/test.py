@@ -23,10 +23,7 @@ from evaluation.nn_for_nn_distance import CMLP
 from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 from evaluation.plot import distance_box_plot, plot_calibrated_detection_rate
 
-from utils.generate_and_evaluate import (
-    generate_on_dataset,
-    generate_on_dataset_with_model,
-)
+from utils.generate_and_evaluate import generate_on_dataset, generate_on_dataset_with_model, generate_on_task_dataset
 from utils.utils import (
     create_run_string,
 )
@@ -797,8 +794,10 @@ class CalibratedAuditingTest(AuditingTest):
             self.model_name2,
             self.seed2,
             result_file=epsilon_path,
+            draw_in_std=True,
             draw_in_first_checkpoint=False,
             draw_in_lowest_and_highest=True,
+            # overwrite=True,
         )
 
 
@@ -809,6 +808,7 @@ def eval_model(
     num_samples: Optional[int] = None,
     batch_size: Optional[int] = None,
     use_wandb: Optional[int] = None,
+    eval_on_task: Optional[bool] = False,
 ):
     """ """
     use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
@@ -829,15 +829,27 @@ def eval_model(
     if hf_prefix:
         config["tau1"]["hf_prefix"] = hf_prefix
 
-    generate_on_dataset(
-        config["metric"]["dataset_name"],
-        config["tau1"],
-        config["eval"]["num_samples"] if not num_samples else num_samples,
-        batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
-        use_wandb=use_wandb,
-        seed=config["tau1"]["gen_seed"],
-        metric=config["metric"]["metric"],
-    )
+    if not eval_on_task:
+        generate_on_dataset(
+            config["metric"]["dataset_name"],
+            config["tau1"],
+            config["eval"]["num_samples"] if not num_samples else num_samples,
+            batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
+            use_wandb=use_wandb,
+            seed=config["tau1"]["gen_seed"],
+            metric=config["metric"]["metric"],
+        )
+    else:
+        generate_on_task_dataset(
+            config["task_metric"]["dataset_name"],
+            config["task_metric"]["few_shot"],
+            config["tau1"],
+            config["eval"]["num_samples"] if not num_samples else num_samples,
+            batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
+            use_wandb=use_wandb,
+            seed=config["tau1"]["gen_seed"],
+            metric=config["task_metric"]["metric"],
+        )
 
     if use_wandb:
         wandb.finish()

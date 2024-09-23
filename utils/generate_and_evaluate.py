@@ -28,6 +28,7 @@ from utils.utils import (
     terminator,
     format_funcs,
     check_seed,
+    create_conversation,
 )
 
 from huggingface_hub import snapshot_download
@@ -186,6 +187,127 @@ def generate_on_dataset(
         cont = out[0]["generated_text"][len(prompt) :].strip().replace(prompt_dataset[i]["prompt"]["text"], "")
         logs["prompts"].append(prompt_dataset[i]["prompt"]["text"])
         logs["continuations"].append(cont)
+
+    file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
+    file_path = f"{folder_path}/{file_name}"
+    if not Path(folder_path).exists():
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "w") as file:
+        json.dump(logs, file, indent=4)
+
+    if use_wandb:
+        wandb.save(file_path)
+
+
+def generate_on_task_dataset(
+    task: str,
+    few_shot: bool,
+    model_cfg,
+    num_samples: int,
+    batch_size: int = 8,
+    seed=0,
+    use_wandb=True,
+    metric=None,
+    meta_data=None,
+    output_dir: str = "model_outputs",
+    sample_randomly: bool = False,
+):
+    """ """
+    seed = check_seed(seed)
+
+    output_dir = f"processed_data/{task}_{output_dir}"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    file_name = f"{task}_data_few_shot.jsonl" if few_shot else f"{task}_data.jsonl"
+    dataset_path = f"processed_data/{task}/file_name"
+    prompt_dataset = load_dataset(dataset_path)
+
+    # wandb only logs strings, floats, ... so need to modify torch_dtype
+    model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    if is_flash_attn_2_available():
+        model_kwargs.update({"attn_implementation": "flash_attention_2"})
+    gen_kwargs = model_cfg["gen_kwargs"]
+
+    model_id = f"{model_cfg['hf_prefix']}/{model_cfg['model_id']}"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
+
+    terminators = [tokenizer.eos_token_id]
+
+    if "llama-3" in model_id.lower():
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
+    elif "mistral" in model_id.lower():
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
+    elif "gemma" in model_id.lower():
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    if model_id.startswith("LLMAccountability"):
+        model = AutoPeftModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+        generator = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            model_kwargs=model_kwargs,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+    else:
+        generator = pipeline(
+            "text-generation",
+            model=model_id,
+            model_kwargs=model_kwargs,
+            tokenizer=tokenizer,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+
+    torch.manual_seed(seed)
+
+    if num_samples < len(prompt_dataset):
+        if sample_randomly:
+            subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
+            prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
+        else:
+            prompt_dataset = Subset(prompt_dataset, range(num_samples))
+
+    logs = defaultdict(list)
+    logs["metadata"] = {
+        "dataset_name": dataset_name,
+        "model_id": model_id,
+        "gen_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
+        "num_samples": num_samples,
+        "batch_size": batch_size,
+        "seed": seed,
+        "use_wandb": use_wandb,
+        "metric": str(metric),
+        "meta_data": meta_data,
+    }
+
+    formatted_dataset = prompt_dataset.map(
+        lambda x: create_conversation(x, model_id),
+        remove_columns=prompt_dataset.features,
+        batched=False,
+        desc="Generating conversations for evaluation",
+    )
+
+    for i, out in tqdm(
+        enumerate(
+            generator(
+                formatted_dataset,
+                batch_size=batch_size,
+                eos_token_id=terminators,
+                return_full_text=False,
+                **gen_kwargs,
+            )
+        ),
+        total=len(prompt_dataset),
+    ):
+        logger.info(f"Continuation: {out[0]["generated_text"]}")
+        logs["continuations"].append(out[0]["generated_text"])
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"

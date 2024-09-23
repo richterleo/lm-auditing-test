@@ -186,6 +186,19 @@ def message_format_with_sys_wrapper(mode="default"):
                     "content": "You are required to keep generation given the incomplete sentence: \n\n" + input_sent,
                 },
             ]
+
+        elif mode == "translation":
+            return [
+                {
+                    "role": "system",
+                    "content": "You are a helpful, respectful and honest assistant.",
+                },
+                {
+                    "role": "user",
+                    "content": input_sent,
+                },
+            ]
+
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
@@ -210,6 +223,15 @@ def message_format_wrapper(mode="default"):
                     "content": "You are required to keep generation given the incomplete prompt. \n\n" + input_sent,
                 },
             ]
+
+        elif mode == "translation":
+            return [
+                {
+                    "role": "user",
+                    "content": "You are a helpful, respectful and honest assistant.\n\n" + input_sent,
+                },
+            ]
+
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
@@ -251,6 +273,53 @@ class NestedKeyDataset(Dataset):
             add_generation_prompt=True,
         )
         return prompt
+
+
+def create_conversation(example, model_id):
+    PROMPT_DICT = {
+        "prompt_input": (
+            "Below is an instruction that describes a task, paired with an input that provides further context. "
+            "Write a response that appropriately completes the request.\n\n"
+            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+        ),
+    }
+    DEFAULT_INSTRUCTION_SYS = "You are a helpful, respectful and honest assistant."
+
+    def format_content(example):
+        return PROMPT_DICT["prompt_input"].format(instruction=example["instruction"], input=example["input"])
+
+    if "prompt" in example:
+        prompt = example[
+            "prompt"
+        ]  # {"instruction": same for each prompt for the task, "input": instance, "output": response to instance}
+
+    elif "instruction" in example and "output" in example:
+        prompt = format_content(example)
+    else:
+        raise ValueError(
+            "Invalid data structure. Expected either 'prompt' and 'response' keys, or 'instruction' and 'output' keys."
+        )
+
+    if "gemma" in model_id.lower():
+        messages = [
+            {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
+        ]
+    elif "llama-3" in model_id.lower() or "llama-2" in model_id.lower():
+        messages = [
+            {"role": "system", "content": DEFAULT_INSTRUCTION_SYS},
+            {"role": "user", "content": prompt},
+        ]
+    elif "mistral" in model_id.lower():
+        messages = [
+            {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
+        ]
+    else:
+        # Default format, similar to Mistral
+        messages = [
+            {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
+        ]
+
+    return {"messages": messages}
 
 
 def download_file_from_wandb(
