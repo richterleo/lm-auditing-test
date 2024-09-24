@@ -36,3 +36,4 @@ natural-instructions
 *.jsonl
 *.json
 test_outputs
+processed_data/
