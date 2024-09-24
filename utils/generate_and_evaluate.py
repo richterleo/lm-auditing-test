@@ -207,7 +207,7 @@ def generate_on_task_dataset(
     few_shot: bool,
     model_cfg,
     num_samples: int,
-    batch_size: int = 4,
+    batch_size: int = 8,
     seed=0,
     use_wandb=True,
     metric=None,
@@ -302,7 +302,7 @@ def generate_on_task_dataset(
         enumerate(
             generator(
                 KeyDataset(formatted_dataset, "messages"),
-                batch_size=batch_size,
+                batch_size=8,  # TODO: change back
                 eos_token_id=terminators,
                 return_full_text=False,
                 **gen_kwargs,
