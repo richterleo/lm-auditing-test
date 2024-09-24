@@ -24,7 +24,12 @@ from evaluation.nn_for_nn_distance import CMLP
 from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 from evaluation.plot import distance_box_plot, plot_calibrated_detection_rate
 
-from utils.generate_and_evaluate import generate_on_dataset, generate_on_dataset_with_model, generate_on_task_dataset
+from utils.generate_and_evaluate import (
+    generate_on_dataset,
+    generate_on_dataset_with_model,
+    generate_on_task_dataset,
+    generate_on_task_dataset_with_model,
+)
 from utils.utils import (
     create_run_string,
 )
@@ -847,7 +852,7 @@ def eval_model(
             metric=config["metric"]["metric"],
         )
     else:
-        generate_on_task_dataset(
+        generate_on_task_dataset_with_model(
             config["task_metric"]["dataset_name"],
             config["task_metric"]["few_shot"],
             config["tau1"],

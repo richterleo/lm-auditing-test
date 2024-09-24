@@ -269,6 +269,8 @@ def generate_on_task_dataset(
             pad_token_id=tokenizer.pad_token_id,
         )
 
+    logger.info(f"Model device: {next(generator.model.parameters()).device}")
+
     torch.manual_seed(seed)
 
     if num_samples < len(prompt_dataset):
@@ -298,20 +300,23 @@ def generate_on_task_dataset(
         desc="Generating conversations for evaluation",
     )
 
+    dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
+
     for i, out in tqdm(
         enumerate(
             generator(
-                KeyDataset(formatted_dataset, "messages"),
-                batch_size=batch_size,  # TODO: change back
+                # KeyDataset(formatted_dataset, "messages"),
+                dataset,
+                batch_size=1,  # TODO: change back
                 eos_token_id=terminators,
                 return_full_text=False,
                 **gen_kwargs,
             )
         ),
-        total=len(prompt_dataset),
+        total=len(dataset),
     ):
-        logger.info(f"Continuation: {out[0]['generated_text']}")
-        logs["continuations"].append(out[0]["generated_text"])
+        logger.info(f"Continuation: {out[0]['generated_sequence']}")
+        logs["continuations"].append(out[0]["generated_sequence"])
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
@@ -372,7 +377,7 @@ def generate_on_dataset_with_model(
         model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
 
     model.eval()
-    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    # model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     torch.manual_seed(seed)
 
@@ -448,6 +453,130 @@ def generate_on_dataset_with_model(
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}"
+    file_path = f"{folder_path}/{file_name}"
+    if not Path(folder_path).exists():
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "w") as file:
+        json.dump(logs, file, indent=4)
+
+    if use_wandb:
+        wandb.save(file_path)
+
+
+def generate_on_task_dataset_with_model(
+    task: str,
+    few_shot: bool,
+    model_cfg,
+    num_samples: int,
+    batch_size: int = 8,
+    seed=0,
+    use_wandb=True,
+    metric=None,
+    meta_data=None,
+    output_dir: str = "model_outputs",
+    sample_randomly: bool = False,
+):
+    seed = check_seed(seed)
+
+    output_dir = f"processed_data/{task}_{output_dir}"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    file_name = f"{task}_data_few_shot.jsonl" if few_shot else f"{task}_data.jsonl"
+    dataset_path = f"processed_data/{task}"
+    data_files = {"train": file_name}
+
+    logger.info(f"Dataset path: {dataset_path}")
+    prompt_dataset = load_dataset(dataset_path, data_files=data_files)["train"]
+
+    model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    if is_flash_attn_2_available():
+        model_kwargs.update({"attn_implementation": "flash_attention_2"})
+    gen_kwargs = model_cfg["gen_kwargs"]
+
+    model_id = f"{model_cfg['hf_prefix']}/{model_cfg['model_id']}"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
+
+    terminators = [tokenizer.eos_token_id]
+
+    if "llama-3" in model_id.lower():
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
+    elif "mistral" in model_id.lower():
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
+    elif "gemma" in model_id.lower():
+        terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    if model_id.startswith("LLMAccountability"):
+        model = AutoPeftModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+    else:
+        model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+
+    model.eval()
+    # model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+    # logger.info(f"Model device: {next(model.parameters()).device}")
+
+    torch.manual_seed(seed)
+
+    if num_samples < len(prompt_dataset):
+        if sample_randomly:
+            subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
+            prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
+        else:
+            prompt_dataset = Subset(prompt_dataset, range(num_samples))
+
+    logs = defaultdict(list)
+    logs["metadata"] = {
+        "task": task,
+        "model_id": model_id,
+        "gen_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
+        "num_samples": num_samples,
+        "batch_size": batch_size,
+        "seed": seed,
+        "use_wandb": use_wandb,
+        "metric": str(metric),
+        "meta_data": meta_data,
+    }
+
+    formatted_dataset = prompt_dataset.map(
+        lambda x: create_conversation(x, model_id),
+        remove_columns=prompt_dataset.features,
+        batched=False,
+        desc="Generating conversations for evaluation",
+    )
+
+    dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
+
+    for i in tqdm(range(0, len(dataset), batch_size), total=len(dataset) // batch_size):
+        batch = dataset[i : i + batch_size]
+
+        inputs = tokenizer.apply_chat_template(batch, return_tensors="pt", padding=True)
+        input_ids = inputs.to(model.device)
+        attention_mask = input_ids.ne(tokenizer.pad_token_id).to(model.device)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                input_ids=input_ids, attention_mask=attention_mask, eos_token_id=terminators, **gen_kwargs
+            )
+
+        for j, output in enumerate(outputs):
+            generated_text = tokenizer.decode(output[len(input_ids[j]) :], skip_special_tokens=True)
+            if generated_text.lower().startswith("assistant"):
+                text = generated_text[len("assistant") :].lstrip()
+
+            # Remove leading whitespace and newlines
+            text = text.lstrip()
+
+            logs["continuations"].append(text)
+            logger.info(f"Continuation: {text}")
+
+    file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
     file_path = f"{folder_path}/{file_name}"
     if not Path(folder_path).exists():
         Path(folder_path).mkdir(parents=True, exist_ok=True)
