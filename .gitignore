@@ -33,3 +33,4 @@ challenging_indices.json
 *.log
 *.csv
 natural-instructions
+*.jsonl
