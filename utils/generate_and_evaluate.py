@@ -302,7 +302,7 @@ def generate_on_task_dataset(
         enumerate(
             generator(
                 KeyDataset(formatted_dataset, "messages"),
-                batch_size=8,  # TODO: change back
+                batch_size=batch_size,  # TODO: change back
                 eos_token_id=terminators,
                 return_full_text=False,
                 **gen_kwargs,
