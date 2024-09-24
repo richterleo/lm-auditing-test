@@ -11,7 +11,7 @@ task_metric:
   lower_lim: 0.0
   upper_lim: 1.0
   dataset_name: translation
-  few_shot: true
+  few_shot: false
 
 epsilon: 0.0043025975821365135 # neural net dist between llama base and llama high temp
 
@@ -39,7 +39,7 @@ analysis:
 
 
 tau1: 
-  model_id: Meta-Llama-3.1-8B-Instruct #Meta-Llama-3-8B-Instruct Meta-Llama-3.1-8B-Instruct
+  model_id: Meta-Llama-3.1-8B-Instruct
   #codealpaca-Meta-Llama-3-8B-Instruct
     #Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
