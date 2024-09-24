@@ -32,7 +32,7 @@ from evaluation.analyze import (
     extract_data_for_models,
     get_power_over_sequences_from_whole_ds,
     get_power_over_sequences_for_models_or_checkpoints,
-    get_power_over_sequences_for_checkpoints,
+    get_power_over_sequences,
     get_distance_scores,
     get_matrix_for_models,
     get_power_over_sequences_for_ranked_checkpoints,
@@ -125,8 +125,9 @@ def distance_box_plot(
 def plot_power_over_number_of_sequences(
     base_model_name: str,
     base_model_seed: str,
-    checkpoints: List[str],
     seeds: List[str],
+    checkpoints: Optional[List[str]] = None,
+    model_names: Optional[Union[str, List[str]]] = None,
     checkpoint_base_name: str = "LLama-3-8B-ckpt",
     group_by: str = "Checkpoint",
     marker: str = "X",
@@ -134,6 +135,9 @@ def plot_power_over_number_of_sequences(
     test_dir: str = "test_outputs",
     plot_dir: str = "plots",
     metric: str = "perspective",
+    only_continuations=True,
+    fold_size: int = 4000,
+    epsilons: Union[float, List[float]] = 0,
 ):
     script_dir = os.path.dirname(__file__)
 
@@ -141,14 +145,30 @@ def plot_power_over_number_of_sequences(
     test_dir = os.path.join(script_dir, "..", test_dir)
     plot_dir = os.path.join(script_dir, "..", plot_dir)
 
-    if group_by == "Checkpoint":
-        result_df = get_power_over_sequences_for_checkpoints(
-            base_model_name,
-            base_model_seed,
-            checkpoints,
-            seeds,
-            checkpoint_base_name=checkpoint_base_name,
-        )
+    use_models = model_names is not None
+
+    if group_by == "Checkpoint" or use_models:
+        if use_models:
+            result_df = get_power_over_sequences(
+                base_model_name,
+                base_model_seed,
+                seeds,
+                model_names=model_names,
+                only_continuations=only_continuations,
+                fold_size=fold_size,
+                epsilons=epsilons,
+            )
+        else:
+            result_df = get_power_over_sequences(
+                base_model_name,
+                base_model_seed,
+                seeds=seeds,
+                checkpoints=checkpoints,
+                checkpoint_base_name=checkpoint_base_name,
+                only_continuations=only_continuations,
+                fold_size=fold_size,
+                epsilons=epsilons,
+            )
     elif group_by == "Rank based on Wasserstein Distance" or group_by == "Empirical Wasserstein Distance":
         result_df = get_power_over_sequences_for_ranked_checkpoints(
             base_model_name,
@@ -157,21 +177,29 @@ def plot_power_over_number_of_sequences(
             seeds,
             checkpoint_base_name=checkpoint_base_name,
             metric="perspective",
+            only_continuations=only_continuations,
+            fold_size=fold_size,
+            epsilons=epsilons,
         )
 
         result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
 
     # Create the plot
     plt.figure(figsize=(12, 6))
-    unique_groups = result_df[group_by].unique()
-    palette = sns.color_palette("viridis", len(unique_groups))
+    if not use_models:
+        unique_groups = result_df[group_by].unique()
+        num_groups = len(unique_groups)
+    else:
+        num_groups = len(model_names)
+
+    palette = sns.color_palette("viridis", num_groups)
     palette = palette[::-1]
 
     sns.lineplot(
         data=result_df,
         x="Samples",
         y="Power",
-        hue=group_by,
+        hue=group_by if not group_by == "model" else "model_name2",
         marker=marker,
         markersize=10,
         palette=palette,
@@ -189,6 +217,10 @@ def plot_power_over_number_of_sequences(
         title = "rank"
     elif group_by == "Empirical Wasserstein Distance":
         title = "distance"
+    elif group_by == "epsilon":
+        title = "neural net distance"
+    else:
+        title = group_by
     plt.legend(
         title=title,
         loc="lower right",
@@ -204,23 +236,44 @@ def plot_power_over_number_of_sequences(
     plt.gca().spines["bottom"].set_linewidth(1.5)
     plt.gca().spines["left"].set_linewidth(1.5)
 
-    directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
-    if not Path(directory).exists():
-        Path(directory).mkdir(parents=True, exist_ok=True)
-    else:
-        for seed in seeds:
-            directory += f"_{seed}"
+    if use_models:
+        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_models"
         if not Path(directory).exists():
             Path(directory).mkdir(parents=True, exist_ok=True)
+        else:
+            for model_name in model_names:
+                directory += f"_{model_name}"
+            if not Path(directory).exists():
+                Path(directory).mkdir(parents=True, exist_ok=True)
+
+    else:
+        directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
+        if not Path(directory).exists():
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        else:
+            for seed in seeds:
+                directory += f"_{seed}"
+            if not Path(directory).exists():
+                Path(directory).mkdir(parents=True, exist_ok=True)
+
     if save_as_pdf:
+        if use_models:
+            file_name = "power_over_number_of_sequences.pdf"
+        else:
+            file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf"
         plt.savefig(
-            f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf",
+            f"{directory}/{file_name}",
             bbox_inches="tight",
             format="pdf",
         )
     else:
+        if use_models:
+            file_name = "power_over_number_of_sequences.png"
+        else:
+            file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.png"
+
         plt.savefig(
-            f"{directory}/power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.png",
+            f"{directory}/{file_name}",
             dpi=300,
             bbox_inches="tight",
         )
@@ -1219,16 +1272,19 @@ def plot_all(cfg: DictConfig, use_alternative_seeds: bool = False):  # TODO: add
 
 if __name__ == "__main__":
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "Llama-3-8B-ckpt3"
-    seed1 = "seed1000"
+    model_name2 = "1-Meta-Llama-3-8B-Instruct"
+    model_name3 = "LLama-3-8b-Uncensored"
+    seed1 = "seed2000"
     seed2 = "seed1000"
     metric = "perspective"
+    epsilon1 = 0.0043025975821365135
+    epsilon2 = 0.06611211877316236
 
-    net_cfg = load_config("config.yml")["net"]
-    train_cfg = TrainCfg()
+    # net_cfg = load_config("config.yml")["net"]
+    # train_cfg = TrainCfg()
 
-    num_samples = 10000
-    pre_shuffle = True
+    # num_samples = 10000
+    # pre_shuffle = True
 
     # data = []
 
@@ -1440,49 +1496,22 @@ if __name__ == "__main__":
     # )
     # print(power_df)
 
-    num_train_samples = 40
-    num_runs = 20
+    # plot_power_over_number_of_sequences(
+    #     model_name1,
+    #     seed1,
+    #     [seed2, seed2],
+    #     model_names=[model_name2, model_name2],
+    #     epsilons=[epsilon1, epsilon2],
+    #     group_by="epsilon",
+    #     only_continuations=False,
+    # )
 
-    dist_path = Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}.csv"
-    if dist_path.exists():
-        self.logger.info(f"Skipping distance analysis as results file {dist_path} already exists.")
-        distance_df = pd.read_csv(dist_path)
-    else:
-        distance_df = get_distance_scores(
-            self.model_name1,
-            self.seed1,
-            self.seed2,
-            model_name2=self.model_name2,
-            metric=self.metric,
-            num_runs=num_runs,
-            net_cfg=self.config["net"],
-            train_cfg=self.train_cfg,
-            num_samples=[self.train_cfg.batch_size, num_train_samples],
-            num_test_samples=self.train_cfg.batch_size,
-        )
-
-        distance_df.to_csv(dist_path, index=False)
-        self.logger.info(f"Distance analysis results saved to {dist_path}.")
-
-    mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(distance_df)
-    self.logger.info(f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}")
-    self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein'].mean()}")
-
-    if self.use_wandb:
-        wandb.log(
-            {
-                "average_nn_distance": distance_df["NeuralNet"].mean(),
-                "std_nn_distance": distance_df["NeuralNet"].std(),
-                "wasserstein_distance": distance_df["Wasserstein"].mean(),
-            }
-        )
-
-    # Plot the results
-    distance_box_plot(
-        distance_df,
-        self.model_name1,
-        self.seed1,
-        self.seed2,
-        self.model_name2,
-        metric=self.metric,
+    plot_power_over_number_of_sequences(
+        model_name1,
+        seed1,
+        [seed2, seed2],
+        model_names=[model_name2, model_name3],
+        epsilons=[epsilon1, epsilon1],
+        group_by="model",
+        only_continuations=True,
     )

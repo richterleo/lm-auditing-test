@@ -34,3 +34,5 @@ challenging_indices.json
 *.csv
 natural-instructions
 *.jsonl
+*.json
+test_outputs

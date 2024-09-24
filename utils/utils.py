@@ -320,6 +320,8 @@ def create_conversation(example, model_id):
         ]
 
     return {"messages": messages}
+    # print(messages)
+    # return messages
 
 
 def download_file_from_wandb(

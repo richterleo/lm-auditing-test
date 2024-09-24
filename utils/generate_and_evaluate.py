@@ -16,6 +16,7 @@ from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers.pipelines.pt_utils import KeyDataset
 from transformers.utils import is_flash_attn_2_available
 from vllm import LLM, SamplingParams
 from peft import AutoPeftModelForCausalLM
@@ -206,7 +207,7 @@ def generate_on_task_dataset(
     few_shot: bool,
     model_cfg,
     num_samples: int,
-    batch_size: int = 8,
+    batch_size: int = 4,
     seed=0,
     use_wandb=True,
     metric=None,
@@ -222,8 +223,11 @@ def generate_on_task_dataset(
         os.makedirs(output_dir)
 
     file_name = f"{task}_data_few_shot.jsonl" if few_shot else f"{task}_data.jsonl"
-    dataset_path = f"processed_data/{task}/file_name"
-    prompt_dataset = load_dataset(dataset_path)
+    dataset_path = f"processed_data/{task}"
+    data_files = {"train": file_name}
+
+    logger.info(f"Dataset path: {dataset_path}")
+    prompt_dataset = load_dataset(dataset_path, data_files=data_files)["train"]
 
     # wandb only logs strings, floats, ... so need to modify torch_dtype
     model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
@@ -276,7 +280,7 @@ def generate_on_task_dataset(
 
     logs = defaultdict(list)
     logs["metadata"] = {
-        "dataset_name": dataset_name,
+        "task": task,
         "model_id": model_id,
         "gen_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
         "num_samples": num_samples,
@@ -297,7 +301,7 @@ def generate_on_task_dataset(
     for i, out in tqdm(
         enumerate(
             generator(
-                formatted_dataset,
+                KeyDataset(formatted_dataset, "messages"),
                 batch_size=batch_size,
                 eos_token_id=terminators,
                 return_full_text=False,
@@ -306,7 +310,7 @@ def generate_on_task_dataset(
         ),
         total=len(prompt_dataset),
     ):
-        logger.info(f"Continuation: {out[0]["generated_text"]}")
+        logger.info(f"Continuation: {out[0]['generated_text']}")
         logs["continuations"].append(out[0]["generated_text"])
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"

@@ -104,6 +104,7 @@ class AuditingTest(Experiment):
         metric: Optional[bool] = None,
         output_dir: str = "test_outputs",
         use_full_ds_for_nn_distance: bool = False,
+        only_continuations: bool = True,
     ):
         super().__init__(
             config,
@@ -122,6 +123,7 @@ class AuditingTest(Experiment):
 
         # for neural net distance evaluation
         self.use_full_ds_for_nn_distance = use_full_ds_for_nn_distance
+        self.only_continuations = only_continuations
 
     def initialize_wandb(self, tags: List[str] = ["kfold"]):
         """ """
@@ -191,7 +193,11 @@ class AuditingTest(Experiment):
     def kfold_davtt(self):
         """ """
 
-        file_path = Path(self.directory) / f"kfold_test_results_{self.fold_size}_epsilon_{self.epsilon}.csv"
+        file_path = (
+            Path(self.directory) / f"kfold_test_results_{self.fold_size}_epsilon_{self.epsilon}.csv"
+            if not self.only_continuations
+            else Path(self.directory) / f"kfold_test_results_continuations_{self.fold_size}_epsilon_{self.epsilon}.csv"
+        )
 
         if Path(file_path).exists() and not self.overwrite:
             self.logger.info(f"Skipping test as results file {file_path} already exists.")
@@ -292,14 +298,14 @@ class AuditingTest(Experiment):
 
         mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(distance_df)
         self.logger.info(f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}")
-        self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein'].mean()}")
+        self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein_comparison'].mean()}")
 
         if self.use_wandb:
             wandb.log(
                 {
                     "average_nn_distance": distance_df["NeuralNet"].mean(),
                     "std_nn_distance": distance_df["NeuralNet"].std(),
-                    "wasserstein_distance": distance_df["Wasserstein"].mean(),
+                    "wasserstein_distance": distance_df["Wasserstein_comparison"].mean(),
                 }
             )
 
@@ -676,6 +682,7 @@ class CalibratedAuditingTest(AuditingTest):
             metric=metric,
             output_dir=output_dir,
             use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
+            only_continuations=only_continuations,
         )
 
         self.num_samples = num_samples if num_samples else config["analysis"]["num_samples"]
@@ -686,7 +693,6 @@ class CalibratedAuditingTest(AuditingTest):
         self.calibration_strategy = calibration_strategy
 
         self.num_runs = self.calibration_strategy.num_runs
-        self.only_continuations = only_continuations
 
     def setup_logger(self, tag: str = "test_results"):
         """ """

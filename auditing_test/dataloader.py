@@ -5,7 +5,7 @@ import torch
 
 from torch.utils.data import Dataset
 
-from auditing_test.preprocessing import create_folds_from_generations
+from auditing_test.preprocessing import create_folds_from_evaluations
 
 
 class ScoresDataset(Dataset):
@@ -81,7 +81,9 @@ def load_into_scores_ds(
         return scores_ds
 
     except FileNotFoundError as e:
-        create_folds_from_generations(model_name1, seed1, model_name2, seed2, overwrite=False)
+        create_folds_from_evaluations(
+            model_name1, seed1, model_name2, seed2, overwrite=False, only_continuations=only_continuations
+        )
 
         if only_continuations:
             file_path = (

@@ -10,14 +10,14 @@ task_metric:
   metric: bleu
   lower_lim: 0.0
   upper_lim: 1.0
-  dataset_name: "processed_data/translation/"
+  dataset_name: "question_answering"
   few_shot: false
 
-epsilon: 0.004149497323669493 # neural net dist between llama base and llama high temp
+epsilon: 0.0043025975821365135 # neural net dist between llama base and llama high temp
 
 eval:
   epochs: 1
-  num_samples: 100000 #1e6
+  num_samples: 500000 #1e6
   num_bins: 10
   batch_size: 16
   use_vllm: false
@@ -44,7 +44,7 @@ tau1:
     #Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
-  gen_seed: seed1000
+  gen_seed: seed2000
   model_kwargs:
     torch_dtype: torch.bfloat16
     load_in_4bit: true
@@ -66,7 +66,8 @@ tau1:
   hf_prefix: meta-llama #meta-llama #LLMAccountability
 
 tau2: 
-  model_id: Llama-3-8B-ckpt4
+  model_id: LLama-3-8b-Uncensored
+  #1-Meta-Llama-3-8B-Instruct
     #model_id: LLMAccountability/Llama-3-8B-ckpt10
   gen_seed: seed1000
   model_kwargs:
@@ -79,7 +80,7 @@ tau2:
     temperature: 0.7
     top_p: 0.9
   gen_batch_size: 8
-  hf_prefix: LLMAccountability
+  hf_prefix: DevsDoCode # LLMAccountability
 
 
 net:

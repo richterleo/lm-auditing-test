@@ -498,31 +498,6 @@ def create_folds(
         return None
 
 
-def create_folds_from_generations(
-    model_name1,
-    seed1,
-    model_name2,
-    seed2,
-    metric="toxicity",
-    fold_size=4000,
-    overwrite=True,
-    random_seed=0,
-):
-    evaluate_single_model(model_name=model_name1, seed=seed1, metric=metric, overwrite=overwrite)
-    evaluate_single_model(model_name=model_name2, seed=seed2, metric=metric, overwrite=overwrite)
-
-    create_common_json(model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite)
-    create_folds(
-        model_name1,
-        seed1,
-        model_name2,
-        seed2,
-        metric,
-        fold_size=fold_size,
-        overwrite=overwrite,
-    )
-
-
 def create_folds_from_evaluations(
     model_name1,
     seed1,
@@ -533,9 +508,12 @@ def create_folds_from_evaluations(
     overwrite=True,
     random_seed=0,
     use_wandb=False,
+    only_continuations=True,
 ):
     try:
-        create_common_json(model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite)
+        create_common_json(
+            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite, only_continuations=only_continuations
+        )
     except FileNotFoundError as e:
         logger.info(f"File not found: {e}. Trying to create the folds from generations.")
         evaluate_single_model(
@@ -544,6 +522,7 @@ def create_folds_from_evaluations(
             metric=metric,
             overwrite=False,
             use_wandb=use_wandb,
+            only_continuation=only_continuations,
         )
         evaluate_single_model(
             model_name=model_name2,
@@ -551,9 +530,12 @@ def create_folds_from_evaluations(
             metric=metric,
             overwrite=False,
             use_wandb=use_wandb,
+            only_continuation=only_continuations,
         )
 
-        create_common_json(model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite)
+        create_common_json(
+            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite, only_continuations=only_continuations
+        )
 
     create_folds(
         model_name1,
@@ -563,6 +545,7 @@ def create_folds_from_evaluations(
         metric,
         fold_size=fold_size,
         overwrite=overwrite,
+        only_continuations=only_continuations,
     )
 
 

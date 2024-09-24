@@ -121,4 +121,4 @@ if __name__ == "__main__":
     # out_path = "/root/accountability/processed_data"
     # category_path = "/root/accountability/processed_data/categories"
 
-    process_task()
+    process_task(task="question_answering")

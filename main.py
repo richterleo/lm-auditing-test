@@ -106,6 +106,8 @@ def main():
 
     parser.add_argument("--hf_prefix", type=str, default=None, help="Prefix for huggingface model")
 
+    parser.add_argument("--eval_on_task", action="store_true", help="Whether to evaluate on task")
+
     args = parser.parse_args()
 
     if args.debug_mode:
@@ -126,6 +128,7 @@ def main():
             model_id=args.model_name1,
             hf_prefix=args.hf_prefix,
             use_wandb=not args.no_wandb,
+            eval_on_task=args.eval_on_task,
         )
 
     elif args.exp == "test":
@@ -198,14 +201,14 @@ if __name__ == "__main__":
     #     {"model_name": task, "seed": seed} for task, seed in zip(tasks, task_seeds)
     # ]
 
-    exp = CalibratedAuditingTest(
-        config,
-        train_cfg,
-        IntervalEpsilonStrategy(lower_model, lower_seed, upper_model, upper_seed, config=config, num_runs=10),
-        use_wandb=False,
-        overwrite=False,
-    )
-    exp.run(model_name1=model_name1, seed1=seed1, model_name2=model_name2, seed2=seed2, fold_size=fold_size)
+    # exp = CalibratedAuditingTest(
+    #     config,
+    #     train_cfg,
+    #     IntervalEpsilonStrategy(lower_model, lower_seed, upper_model, upper_seed, config=config, num_runs=10),
+    #     use_wandb=False,
+    #     overwrite=False,
+    # )
+    # exp.run(model_name1=model_name1, seed1=seed1, model_name2=model_name2, seed2=seed2, fold_size=fold_size)
 
     # # exp = CalibratedAuditingTest(
     # #     config,
@@ -221,13 +224,15 @@ if __name__ == "__main__":
     # #     fold_size=fold_size,
     # # )
 
-    # # exp = AuditingTest(config, train_cfg, use_wandb=False)
-    # # exp.run(
-    # #     model_name1=model_name1,
-    # #     seed1=seed1,
-    # #     model_name2=model_name2,
-    # #     seed2=seed2,
-    # #     fold_size=fold_size,
-    # # )
+    # exp = AuditingTest(config, train_cfg, use_wandb=False)
+    # exp.run(
+    #     model_name1=model_name1,
+    #     seed1=seed1,
+    #     model_name2=model_name2,
+    #     seed2=seed2,
+    #     fold_size=fold_size,
+    # )
+
+    eval_model(config, use_wandb=False, eval_on_task=True)
 
     # main()

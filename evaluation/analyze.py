@@ -33,46 +33,44 @@ logger = logging.getLogger(__name__)
 
 
 def extract_data_for_models(
-    model_name1,
-    seed1,
-    seed2,
+    model_name1: str,
+    seed1: str,
+    seed2: str,
     model_name2: Optional[str] = None,
     checkpoint: Optional[str] = None,
     checkpoint_base_name: Optional[str] = None,
-    fold_size=4000,
-    test_dir="test_outputs",
+    fold_size: int = 4000,
+    test_dir: str = "test_outputs",
     epsilon: float = 0,
+    only_continuations: bool = True,
 ):
-    """ """
-
     assert model_name2 or (
         checkpoint and checkpoint_base_name
     ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
 
     script_dir = os.path.dirname(__file__)
-
-    # Construct the absolute path to "test_outputs"
     test_dir = os.path.join(script_dir, "..", test_dir)
 
+    continuation_str = "_continuations" if only_continuations else ""
+
     if model_name2:
-        if fold_size == 4000:
-            file_path = (
-                f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_epsilon_{epsilon}.csv"
-            )
-            if not Path(file_path).exists():
-                file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
-        else:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
+        base_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
     else:
-        if fold_size == 4000:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_epsilon_{epsilon}.csv"
-            if not Path(file_path).exists():
-                file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
-        else:
-            file_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}/kfold_test_results_{fold_size}_epsilon_{epsilon}.csv"
+        base_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}"
+
+    if fold_size == 4000:
+        file_path = f"{base_path}/kfold_test_results{continuation_str}_epsilon_{epsilon}.csv"
+        if not Path(file_path).exists():
+            file_path = f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}.csv"
+    else:
+        file_path = f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}.csv"
+
+    if not Path(file_path).exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    logger.info(f"File path we are checking: {file_path}")
 
     data = pd.read_csv(file_path)
-
     # TODO: make this less hacky
     # we're just discarding the last fold for now, because it is smaller than the rest
     data = data[data["fold_number"] != data["fold_number"].max()]
@@ -89,7 +87,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
         [
             "fold_number",
             "sequence",
-            "aggregated_davt",
+            "wealth",
             "sequences_until_end_of_experiment",  # TODO: can remove this later, just a sanity check!
             "test_positive",
         ]
@@ -140,8 +138,9 @@ def get_power_over_sequences_for_models_or_checkpoints(
     checkpoint: Optional[str] = None,
     checkpoint_base_name: Optional[str] = None,
     fold_size: int = 4000,
-    bs: int = 96,
+    bs: int = 100,
     epsilon: float = 0,
+    only_continuations=True,
 ):
     """ """
     assert model_name2 or (
@@ -149,12 +148,16 @@ def get_power_over_sequences_for_models_or_checkpoints(
     ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
 
     if model_name2:
-        data = extract_data_for_models(model_name1, seed1, seed2, model_name2=model_name2, epsilon=epsilon)
-        result_df = get_power_over_sequences_from_whole_ds(data, fold_size=fold_size, bs=bs)
+        logger.info(f"We are here! Model name2 is {model_name2}")
+        data = extract_data_for_models(
+            model_name1, seed1, seed2, model_name2=model_name2, epsilon=epsilon, only_continuations=only_continuations
+        )
+        result_df = get_power_over_sequences_from_whole_ds(data, fold_size=fold_size)
         result_df["model_name1"] = model_name1
         result_df["seed1"] = seed1
         result_df["model_name2"] = model_name2
         result_df["seed2"] = seed2
+        result_df["epsilon"] = epsilon
     else:
         data = extract_data_for_models(
             model_name1,
@@ -163,9 +166,12 @@ def get_power_over_sequences_for_models_or_checkpoints(
             checkpoint=checkpoint,
             checkpoint_base_name=checkpoint_base_name,
             fold_size=fold_size,
+            only_continuations=only_continuations,
+            epsilon=epsilon,
         )
-        result_df = get_power_over_sequences_from_whole_ds(data, fold_size, bs)
+        result_df = get_power_over_sequences_from_whole_ds(data, fold_size)
         result_df["Checkpoint"] = checkpoint
+        result_df["epsilon"] = epsilon
 
     return result_df
 
@@ -185,37 +191,83 @@ def get_matrix_for_models(model_names, seeds, fold_size=4000):
     logger.info(all_scores_df)
 
 
-def get_power_over_sequences_for_checkpoints(
+def get_power_over_sequences(
     base_model_name: Union[str, List[str]],
     base_model_seed: Union[str, List[str]],
-    checkpoints: Union[str, List[str]],
     seeds: Union[str, List[str]],
+    checkpoints: Optional[Union[str, List[str]]] = None,
+    model_names: Optional[Union[str, List[str]]] = None,
     checkpoint_base_name: str = "Llama-3-8B-ckpt",
+    fold_size: int = 4000,
+    only_continuations=True,
+    epsilons: Union[float, List[float]] = [0],
+    bs=100,
 ):
-    if not isinstance(checkpoints, list):
-        checkpoints = [checkpoints]
+    use_checkpoints = True
+
+    if model_names:
+        use_checkpoints = False
+        if not isinstance(model_names, list):
+            model_names = [model_names]
+    else:
+        if not isinstance(checkpoints, list):
+            checkpoints = [checkpoints]
+
     if not isinstance(seeds, list):
         seeds = [seeds]
 
+    if not isinstance(epsilons, list):
+        epsilons = [epsilons]
+
+    if len(epsilons) == 1:
+        epsilons = epsilons * len(seeds)
+
     result_dfs = []
 
-    for checkpoint, seed in zip(checkpoints, seeds):
-        logger.info(
-            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
-        )
-        try:
-            result_df = get_power_over_sequences_for_models_or_checkpoints(
-                base_model_name,
-                base_model_seed,
-                seed,
-                checkpoint=checkpoint,
-                checkpoint_base_name=checkpoint_base_name,
+    if use_checkpoints:
+        for checkpoint, seed, epsilon in zip(checkpoints, seeds, epsilons):
+            logger.info(
+                f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
             )
+            try:
+                result_df = get_power_over_sequences_for_models_or_checkpoints(
+                    base_model_name,
+                    base_model_seed,
+                    seed,
+                    checkpoint=checkpoint,
+                    checkpoint_base_name=checkpoint_base_name,
+                    fold_size=fold_size,
+                    only_continuations=only_continuations,
+                    epsilon=epsilon,
+                    bs=bs,
+                )
 
-            result_dfs.append(result_df)
+                result_dfs.append(result_df)
 
-        except FileNotFoundError:
-            logger.error(f"File for checkpoint {checkpoint} and seed {seed} does not exist yet")
+            except FileNotFoundError:
+                logger.error(f"File for checkpoint {checkpoint} and seed {seed} does not exist yet")
+
+    else:
+        for model_name, seed, epsilon in zip(model_names, seeds, epsilons):
+            logger.info(
+                f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, model_name: {model_name}, seed: {seed}"
+            )
+            try:
+                result_df = get_power_over_sequences_for_models_or_checkpoints(
+                    base_model_name,
+                    base_model_seed,
+                    seed,
+                    model_name2=model_name,
+                    fold_size=fold_size,
+                    bs=bs,
+                    epsilon=epsilon,
+                    only_continuations=only_continuations,
+                )
+
+                result_dfs.append(result_df)
+
+            except FileNotFoundError:
+                logger.error(f"File for model {model_name} and seed {seed} does not exist yet")
 
     final_df = pd.concat(result_dfs, ignore_index=True)
 
