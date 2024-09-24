@@ -248,13 +248,17 @@ def get_english_tasks(
     return english_tasks
 
 
+def process_translation():
+    process_task(save_prompt_lengths=False, save_prompts=False)
+    get_languages()
+    task_list = get_english_tasks()
+    logger.info(f"This is the task list: {task_list}")
+    process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list["Spanish"])
+
+
 if __name__ == "__main__":
     # data_path = "/root/accountability/data/tasks"  # TODO: get rid of root again
     # out_path = "/root/accountability/processed_data"
     # category_path = "/root/accountability/processed_data/categories"
 
-    process_task_new(save_prompt_lengths=False)
-    get_languages()
-    task_list = get_english_tasks()
-    print(task_list)
-    process_task_new(save_prompt_lengths=False, task_file_list=task_list["Spanish"])
+    process_translation()

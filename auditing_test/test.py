@@ -18,6 +18,7 @@ from logging_config import setup_logging
 
 from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
 from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
+from auditing_test.preprocessing_task import process_translation
 
 from evaluation.nn_for_nn_distance import CMLP
 from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
