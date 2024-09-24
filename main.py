@@ -233,6 +233,6 @@ if __name__ == "__main__":
     #     fold_size=fold_size,
     # )
 
-    eval_model(config, use_wandb=False, eval_on_task=True)
+    # eval_model(config, use_wandb=False, eval_on_task=True)
 
-    # main()
+    main()
