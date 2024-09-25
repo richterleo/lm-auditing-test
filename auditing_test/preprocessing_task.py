@@ -4,9 +4,17 @@ import logging
 import random
 from collections import defaultdict
 from pathlib import Path
+import wandb
+import sys
 
+from evaluate import load
 import matplotlib.pyplot as plt
 from typing import Union, Optional, List, Tuple, Dict
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from utils.utils import create_run_string
 
 logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.INFO)
@@ -341,6 +349,80 @@ def process_translation(output_languages=["Spanish", "French"], overwrite=False,
     process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=overwrite)
 
 
+def evaluate_translations(
+    model_name: Optional[str] = None,
+    seed: Optional[str] = None,
+    model_dir: Optional[str] = None,
+    metric: str = "bleu",
+    overwrite=True,
+    use_wandb=False,
+    entity="LLM_Accountability",
+    gen_dir="processed_data/translation_model_outputs",
+    output_dir="processed_data/translation_model_scores",
+    verbose=True,
+):
+    data = None
+    if (model_name is None or seed is None) and model_dir is None:
+        raise ValueError("Either model_name and seed or dir must be provided.")
+
+    if not model_name:
+        split = model_dir.split("_seed")
+        model_name = split[0]
+        seed = f"seed{split[1]}"
+
+    if use_wandb:
+        wandb.init(
+            project=f"{metric}_evaluation",
+            entity=entity,
+            name=create_run_string(),
+            config={"model_name": model_name, "seed": seed},
+            tags=["evaluate_model"],
+        )
+
+    gen_dir = f"{gen_dir}/{model_name}_{seed}"
+    score_dir = f"{output_dir}/{model_name}_{seed}"
+
+    # check if folder exists already
+    if not Path(score_dir).exists():
+        Path(score_dir).mkdir(parents=True, exist_ok=True)
+    score_path = Path(score_dir) / f"{metric}_scores.json"
+    cont_path = Path(gen_dir) / f"{model_name}_continuations_{seed}.json"
+
+    # Load the evaluation metrics
+    if metric == "bleu":
+        score_function = load("bleu")
+    else:
+        score_function = load("rouge")
+
+    if overwrite or not os.path.exists(score_path):
+        with open(cont_path, "r", encoding="utf=8") as f:
+            data = json.load(f)
+
+        # Extract metadata and translations
+        metadata = data["metadata"]
+        machine_translations = data["continuations"]
+        ground_truths = data["ground_truth"]
+
+        scores = []
+
+        # Evaluate each translation
+        for mt, gt in zip(machine_translations, ground_truths):
+            # Calculate BLEU score
+            score = score_function.compute(predictions=[mt], references=[gt])
+
+            if metric == "bleu":
+                scores.append(score["bleu"])
+            else:
+                scores.append(score["rougeLsum"])
+
+        # Prepare the output data
+        output_data = {"metadata": metadata, f"{metric}_scores": scores}
+
+        # Save the results to a new JSON file
+        with open(score_path, "w") as f:
+            json.dump(output_data, f, indent=2, ensure_ascii=False)
+
+
 if __name__ == "__main__":
     # data_path = "/root/accountability/data/tasks"  # TODO: get rid of root again
     # out_path = "/root/accountability/processed_data"
@@ -351,6 +433,8 @@ if __name__ == "__main__":
     # task_list = task_dict["Spanish"] + task_dict["French"]
     # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
 
-    process_translation(overwrite=True)
+    # process_translation(overwrite=True)
     # analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
     # analyze_long_prompts("processed_data/translation/translation_data.jsonl")
+
+    evaluate_translations(model_name="Meta-Llama-3-8B-Instruct", seed="seed2000", overwrite=True, use_wandb=False)
