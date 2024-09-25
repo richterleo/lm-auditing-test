@@ -64,7 +64,7 @@ def process_task(
     task_file_list=None,
     save_prompts=True,
     thresh_instance=1800,
-    thresh_prompt=2100,
+    thresh_prompt=2200,
     verbose=True,
 ):
     base_dir = Path.cwd()
@@ -352,5 +352,5 @@ if __name__ == "__main__":
     # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
 
     process_translation(overwrite=True)
-    analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
-    analyze_long_prompts("processed_data/translation/translation_data.jsonl")
+    # analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
+    # analyze_long_prompts("processed_data/translation/translation_data.jsonl")

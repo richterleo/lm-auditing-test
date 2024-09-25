@@ -565,6 +565,7 @@ def generate_on_task_dataset_with_model(
             )
 
         for j, output in enumerate(outputs):
+            text = tokenizer.decode(output, skip_special_tokens=True)
             generated_text = tokenizer.decode(output[len(input_ids[j]) :], skip_special_tokens=True)
             if generated_text.lower().startswith("assistant"):
                 generated_text = generated_text[len("assistant") :].lstrip()
@@ -573,7 +574,9 @@ def generate_on_task_dataset_with_model(
             generated_text = generated_text.lstrip()
 
             logs["continuations"].append(generated_text)
-            logger.info(f"Continuation: {generated_text}")
+            logger.info(f"Continuation:\n{generated_text}")
+            logs["full_text"].append(text)
+            logger.info(f"Full text:\n{text}")
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
