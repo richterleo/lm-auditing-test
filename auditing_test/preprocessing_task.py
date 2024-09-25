@@ -21,8 +21,12 @@ base_dir = Path(__file__).parent.absolute()
 
 def create_prompt(task_data, instance_input):
     definition = task_data.get("Definition", [""])[0]
+
     positive_examples = task_data.get("Positive Examples", [])
     negative_examples = task_data.get("Negative Examples", [])
+
+    if not (positive_examples or negative_examples):
+        return None
 
     prompt_parts = [f"Definition: {definition}\n"]
 
@@ -59,6 +63,9 @@ def process_task(
     overwrite=False,
     task_file_list=None,
     save_prompts=True,
+    thresh_instance=1800,
+    thresh_prompt=2100,
+    verbose=True,
 ):
     base_dir = Path.cwd()
     data_path = Path(base_dir) / Path(data_path)
@@ -67,13 +74,19 @@ def process_task(
     os.makedirs(category_path, exist_ok=True)
     prompt_length_dict = {"bare_data": [], "few_shot_data": []}
 
+    skipped_long_prompts = 0
+
+    if verbose:
+        logger.info(f"Task file list: {task_file_list}")
+
     if task == "translation":
         language_dict = {}
         bare_prompts = os.path.join(category_path, f"{task}_data.jsonl")
         few_shot_prompts = os.path.join(category_path, f"{task}_data_few_shot.jsonl")
 
         if os.path.exists(bare_prompts) and os.path.exists(few_shot_prompts) and not overwrite:
-            logger.info(f"{task} data already exists")
+            if verbose:
+                logger.info(f"{task} data already exists")
         else:
             bare_data = []
             few_shot_data = []
@@ -102,6 +115,8 @@ def process_task(
                                     "output_language": data.get("Output_language", ""),
                                 }
 
+                            if verbose:
+                                logger.info(f"Processing file: {file_name}")
                             instruction = data.get("Definition", [None])[0]
                             instances = data.get("Instances", [])
 
@@ -109,8 +124,16 @@ def process_task(
                                 instance_input = instance.get("input", "")
                                 instance_outputs = instance.get("output", [])
                                 prompt = create_prompt(data, instance_input)
+                                if not prompt:
+                                    # this means that there are no examples for few shot prompts.
+                                    continue
                                 output = random.choice(instance_outputs)
 
+                                if len(instance_input) > thresh_instance or len(prompt) > thresh_prompt:
+                                    if verbose:
+                                        logger.info(f"Long prompt skipped")
+                                    skipped_long_prompts += 1
+                                    continue
                                 bare_data.append(
                                     {"instruction": instruction, "input": instance_input, "output": output}
                                 )
@@ -124,9 +147,10 @@ def process_task(
             if save_prompt_lengths:
                 for key in prompt_length_dict:
                     avg_length = sum(prompt_length_dict[key]) / len(prompt_length_dict[key])
-                    logger.info(f"Average prompt length for {key}: {avg_length}")
-
-            logger.info(f"Creating files for {task} data...")
+                    if verbose:
+                        logger.info(f"Average prompt length for {key}: {avg_length}")
+            if verbose:
+                logger.info(f"Creating files for {task} data...")
 
             if save_prompts:
                 with open(bare_prompts, "w") as f:
@@ -141,22 +165,22 @@ def process_task(
                 with open(os.path.join(category_path, "language_dict.json"), "w") as f:
                     json.dump(language_dict, f)
 
-            logger.info(f"Files saved to {bare_prompts} and {few_shot_prompts}")
-            
-            
-def remove_long_prompts(file_path):
-    
+            if verbose:
+                logger.info(f"Files saved to {bare_prompts} and {few_shot_prompts}")
+
+
+def analyze_long_prompts(file_path):
     def read_jsonl(file_path: str) -> List[Dict[str, str]]:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             return [json.loads(line) for line in file]
 
     def get_prompt_length(item: Dict[str, str]) -> int:
-        if 'prompt' in item:
-            return len(item['prompt'])
-        elif 'instruction' in item and 'input' in item:
-            return len(item['instruction'] + item['input'])
-        elif 'instruction' in item:
-            return len(item['instruction'])
+        if "prompt" in item:
+            return len(item["prompt"])
+        elif "instruction" in item and "input" in item:
+            return len(item["instruction"] + item["input"])
+        elif "instruction" in item:
+            return len(item["instruction"])
         else:
             raise ValueError("Unexpected data format")
 
@@ -173,27 +197,26 @@ def remove_long_prompts(file_path):
 
     # Create a plot
     plt.figure(figsize=(12, 6))
-    plt.plot(prompt_lengths, marker='o', markersize=3, linestyle='-', linewidth=1)
-    plt.title('Prompt Lengths Over Dataset')
-    plt.xlabel('Item Index')
-    plt.ylabel('Prompt Length (characters)')
+    plt.plot(prompt_lengths, marker="o", markersize=3, linestyle="-", linewidth=1)
+    plt.title("Prompt Lengths Over Dataset")
+    plt.xlabel("Item Index")
+    plt.ylabel("Prompt Length (characters)")
 
     # Highlight the maximum point
-    plt.plot(max_index, max_length, 'ro', markersize=10, 
-             label=f'Max: {max_length} at index {max_index}')
+    plt.plot(max_index, max_length, "ro", markersize=10, label=f"Max: {max_length} at index {max_index}")
     plt.legend()
 
     # Add grid lines
-    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.grid(True, linestyle="--", alpha=0.7)
 
     # Save the plot
-    plt.savefig('prompt_lengths.png')
+    plt.savefig(f"prompt_lengths_{str(Path(file_path).name)}.png")
     plt.close()
 
     # Print results
     print(f"Average prompt length: {avg_length:.2f} characters")
     print(f"Maximum prompt length: {max_length} characters at index {max_index}")
-    print("Plot saved as 'prompt_lengths.png'")
+    print(f"Plot saved as prompt_lengths_{str(Path(file_path).name)}.png")
 
 
 def get_languages(language_file="processed_data/translation/language_dict.json"):
@@ -275,9 +298,8 @@ def get_english_tasks(
             for line in infile:
                 entry = json.loads(line)
                 if is_english_x_task(entry, output_language):
-                    print(f"Found task for {output_language}")
                     english_tasks[output_language].extend(entry["files"])
-                    print(f"Found {len(entry['files'])} tasks for {output_language}")
+                    logger.info(f"Found {len(entry['files'])} tasks for {output_language}")
 
         # Process each task file
         for task_file in english_tasks[output_language]:
@@ -285,30 +307,38 @@ def get_english_tasks(
             try:
                 with open(full_path, "r") as task_data_file:
                     task_data = json.load(task_data_file)
+
+                    # if there are no positive or negative examples, we discard this task
+                    if not task_data.get("Positive Examples") and not task_data.get("Negative Examples"):
+                        logger.info(f"Discarding task {task_file} because it has no examples")
+                        continue
+
                     instance_count = len(task_data["Instances"])
                     task_instance_counts[task_file] = instance_count
                     language_instances += instance_count
                     total_instances += instance_count
             except FileNotFoundError:
-                print(f"Warning: File not found: {full_path}")
+                logger.error(f"Warning: File not found: {full_path}")
             except json.JSONDecodeError:
-                print(f"Warning: Invalid JSON in file: {full_path}")
+                logger.error(f"Warning: Invalid JSON in file: {full_path}")
             except KeyError:
-                print(f"Warning: 'instances' key not found in file: {full_path}")
+                logger.error(f"Warning: 'instances' key not found in file: {full_path}")
 
-        print(f"Total number of instances for {output_language}: {language_instances}")
+        logger.error(f"Total number of instances for {output_language}: {language_instances}")
 
-    print(f"Total number of instances across all tasks: {total_instances}")
+    logger.error(f"Total number of instances across all tasks: {total_instances}")
 
     return english_tasks
 
 
-def process_translation():
-    process_task(save_prompt_lengths=False, save_prompts=False)
+def process_translation(output_languages=["Spanish", "French"], overwrite=False, verbose=False):
+    process_task(save_prompt_lengths=False, save_prompts=False, overwrite=True, verbose=verbose)
     get_languages()
-    task_list = get_english_tasks()
-    logger.info(f"This is the task list: {task_list}")
-    process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list["Spanish"])
+    task_dict = get_english_tasks(output_languages=output_languages)
+    task_list = []
+    for language in task_dict:
+        task_list.extend(task_dict[language])
+    process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=overwrite)
 
 
 if __name__ == "__main__":
@@ -316,4 +346,11 @@ if __name__ == "__main__":
     # out_path = "/root/accountability/processed_data"
     # category_path = "/root/accountability/processed_data/categories"
 
-    process_translation()
+    # process_translation()
+    # task_dict = get_english_tasks(output_languages=["Spanish", "French"])
+    # task_list = task_dict["Spanish"] + task_dict["French"]
+    # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
+
+    process_translation(overwrite=True)
+    analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
+    analyze_long_prompts("processed_data/translation/translation_data.jsonl")
