@@ -5,6 +5,9 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+from typing import Union, Optional, List, Tuple, Dict
+
 logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.INFO)
 
@@ -139,6 +142,58 @@ def process_task(
                     json.dump(language_dict, f)
 
             logger.info(f"Files saved to {bare_prompts} and {few_shot_prompts}")
+            
+            
+def remove_long_prompts(file_path):
+    
+    def read_jsonl(file_path: str) -> List[Dict[str, str]]:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return [json.loads(line) for line in file]
+
+    def get_prompt_length(item: Dict[str, str]) -> int:
+        if 'prompt' in item:
+            return len(item['prompt'])
+        elif 'instruction' in item and 'input' in item:
+            return len(item['instruction'] + item['input'])
+        elif 'instruction' in item:
+            return len(item['instruction'])
+        else:
+            raise ValueError("Unexpected data format")
+
+    # Read the JSONL file
+    data = read_jsonl(file_path)
+
+    # Calculate prompt lengths
+    prompt_lengths = [get_prompt_length(item) for item in data]
+
+    # Calculate statistics
+    max_length = max(prompt_lengths)
+    max_index = prompt_lengths.index(max_length)
+    avg_length = sum(prompt_lengths) / len(prompt_lengths)
+
+    # Create a plot
+    plt.figure(figsize=(12, 6))
+    plt.plot(prompt_lengths, marker='o', markersize=3, linestyle='-', linewidth=1)
+    plt.title('Prompt Lengths Over Dataset')
+    plt.xlabel('Item Index')
+    plt.ylabel('Prompt Length (characters)')
+
+    # Highlight the maximum point
+    plt.plot(max_index, max_length, 'ro', markersize=10, 
+             label=f'Max: {max_length} at index {max_index}')
+    plt.legend()
+
+    # Add grid lines
+    plt.grid(True, linestyle='--', alpha=0.7)
+
+    # Save the plot
+    plt.savefig('prompt_lengths.png')
+    plt.close()
+
+    # Print results
+    print(f"Average prompt length: {avg_length:.2f} characters")
+    print(f"Maximum prompt length: {max_length} characters at index {max_index}")
+    print("Plot saved as 'prompt_lengths.png'")
 
 
 def get_languages(language_file="processed_data/translation/language_dict.json"):
