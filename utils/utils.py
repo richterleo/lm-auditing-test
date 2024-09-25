@@ -280,7 +280,7 @@ def create_conversation(example, model_id):
         "prompt_input": (
             "Below is an instruction that describes a task, paired with an input that provides further context. "
             "Write a response that appropriately completes the request.\n\n"
-            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
         ),
     }
     DEFAULT_INSTRUCTION_SYS = "You are a helpful, respectful and honest assistant."

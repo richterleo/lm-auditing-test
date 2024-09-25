@@ -852,7 +852,7 @@ def eval_model(
             metric=config["metric"]["metric"],
         )
     else:
-        generate_on_task_dataset_with_model(
+        generate_on_task_dataset(
             config["task_metric"]["dataset_name"],
             config["task_metric"]["few_shot"],
             config["tau1"],

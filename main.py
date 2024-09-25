@@ -117,6 +117,8 @@ def main():
         print("Debugger attached")
 
     config = load_config(args.config_path)
+    if args.hf_prefix:
+        config["tau1"]["hf_prefix"] = args.hf_prefix
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":

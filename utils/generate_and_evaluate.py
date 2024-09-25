@@ -7,6 +7,7 @@ import asyncio
 import torch
 import numpy as np
 
+import transformers
 from collections import defaultdict
 from copy import deepcopy
 from datasets import load_dataset
@@ -38,6 +39,7 @@ from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 
 import logging
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -214,6 +216,7 @@ def generate_on_task_dataset(
     meta_data=None,
     output_dir: str = "model_outputs",
     sample_randomly: bool = False,
+    save_intermittent: bool = True,
 ):
     """ """
     seed = check_seed(seed)
@@ -300,23 +303,49 @@ def generate_on_task_dataset(
         desc="Generating conversations for evaluation",
     )
 
-    dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
+    ground_truth = [prompt_dataset[i]["output"] for i in range(len(prompt_dataset))]
 
-    for i, out in tqdm(
-        enumerate(
-            generator(
-                # KeyDataset(formatted_dataset, "messages"),
-                dataset,
-                batch_size=1,  # TODO: change back
-                eos_token_id=terminators,
-                return_full_text=False,
-                **gen_kwargs,
-            )
-        ),
-        total=len(dataset),
-    ):
-        logger.info(f"Continuation: {out[0]['generated_sequence']}")
-        logs["continuations"].append(out[0]["generated_sequence"])
+    dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
+    logger.info(f"{dataset[0]}")
+
+    # dataset = [dataset[0]]
+
+    # dataset = [[
+    #     {"role": "system", "content": "You are a pirate chatbot who always responds in pirate speak!"},
+    #     {"role": "user", "content": "Who are you?"},
+    # ]]
+
+    # for out in tqdm(
+    #     generator(
+    #         # KeyDataset(formatted_dataset, "messages"),
+    #         dataset,
+    #         batch_size=batch_size,  # TODO: change back
+    #         eos_token_id=terminators,
+    #         return_full_text=False,
+    #         **gen_kwargs,
+    #     ),
+    #     total=len(dataset),
+    # ):
+
+    for i, input in enumerate(tqdm(dataset)):
+        out = generator([input], eos_token_id=terminators, return_full_text=False, **gen_kwargs)
+
+        logger.info(f"Continuation\n: {out[0][0]['generated_text']}")
+        logs["continuations"].append(out[0][0]["generated_text"])
+        logs["ground_truth"].append(ground_truth[i])
+
+        if i == 100 and save_intermittent:
+            intermittent_log = f"{model_id.split('/')[-1]}_continuations_seed{seed}_short.json"
+            folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
+            file_path = f"{folder_path}/{intermittent_log}"
+            if not Path(folder_path).exists():
+                Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+            with open(file_path, "w") as file:
+                json.dump(logs, file, indent=4)
+
+            if use_wandb:
+                wandb.save(file_path)
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
