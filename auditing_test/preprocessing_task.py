@@ -26,53 +26,93 @@ logger.addHandler(file_handler)
 
 base_dir = Path(__file__).parent.absolute()
 
+# PROMPT_DICT = {
+#     "prompt_input": (
+#         "Below is an instruction that describes a task, paired with an input that provides further context. "
+#         "Write a response that appropriately completes the request.\n\n"
+#         "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
+#     ),
+# }
+
+
+# def format_content(definition, input):
+#     return PROMPT_DICT["prompt_input"].format(instruction=definition, input=input)
+
+
+# def create_analog_prompt(task_data, instance_input):
+#     definition = task_data.get("Definition", [""])[0]
+
+#     positive_examples = task_data.get("Positive Examples", [])
+#     negative_examples = task_data.get("Negative Examples", [])
+
+#     if not (positive_examples or negative_examples):
+#         return None
+
+#     prompt = [format_content(definition, instance_input).strip() + "\n"]
+
+#     for i, example in enumerate(positive_examples, start=1):
+#         prompt.extend(
+#             [
+#                 f"Positive Example {i}—",
+#                 f"input: {example.get('input', '')}",
+#                 f"output: {example.get('output', '')}",
+#                 f"explanation: {example.get('explanation', '')}\n",
+#             ]
+#         )
+
+#     # for i, example in enumerate(negative_examples, start=1):
+#     #     prompt.extend(
+#     #         [
+#     #             f"Negative Example {i}—",
+#     #             f"input: {example.get('input', '')}",
+#     #             f"output: {example.get('output', '')}",
+#     #             f"explanation: {example.get('explanation', '')}\n",
+#     #         ]
+#     #     )
+
+#     prompt.extend(["Now complete the following example—", f"input: {instance_input}", f"output:"])
+
+#     return "\n".join(prompt)
+
 PROMPT_DICT = {
     "prompt_input": (
-        "Below is an instruction that describes a task, paired with an input that provides further context. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
+        "### Instruction:\n"
+        "{instruction}\n\n"
+        "### Positive Examples:\n"
+        "{positive_examples}\n\n"
+        "### Negative Examples:\n"
+        "{negative_examples}\n\n"
+        "### Input:\n"
+        "{input}\n\n"
+        "### Output:\n"
     ),
 }
 
+def format_example(example, index):
+    return (f"{index}. Input: {example.get('input', '')}\n"
+            f"   Output: {example.get('output', '')}\n")
+            # f"   Explanation: {example.get('explanation', '')}\n")
 
-def format_content(definition, input):
-    return PROMPT_DICT["prompt_input"].format(instruction=definition, input=input)
-
+def format_content(definition, positive_examples, negative_examples, input):
+    formatted_positive = "\n".join([format_example(example, i) for i, example in enumerate(positive_examples, start=1)])
+    formatted_negative = "\n".join([format_example(example, i) for i, example in enumerate(negative_examples, start=1)])
+    return PROMPT_DICT["prompt_input"].format(
+        instruction=definition,
+        positive_examples=formatted_positive,
+        negative_examples=formatted_negative,
+        input=input
+    )
 
 def create_analog_prompt(task_data, instance_input):
     definition = task_data.get("Definition", [""])[0]
-
     positive_examples = task_data.get("Positive Examples", [])
     negative_examples = task_data.get("Negative Examples", [])
-
+    
     if not (positive_examples or negative_examples):
         return None
-
-    prompt = [format_content(definition, instance_input).strip() + "\n"]
-
-    for i, example in enumerate(positive_examples, start=1):
-        prompt.extend(
-            [
-                f"Positive Example {i}—",
-                f"input: {example.get('input', '')}",
-                f"output: {example.get('output', '')}",
-                f"explanation: {example.get('explanation', '')}\n",
-            ]
-        )
-
-    # for i, example in enumerate(negative_examples, start=1):
-    #     prompt.extend(
-    #         [
-    #             f"Negative Example {i}—",
-    #             f"input: {example.get('input', '')}",
-    #             f"output: {example.get('output', '')}",
-    #             f"explanation: {example.get('explanation', '')}\n",
-    #         ]
-    #     )
-
-    prompt.extend(["Now complete the following example—", f"input: {instance_input}", f"output:"])
-
-    return "\n".join(prompt)
+    
+    prompt = format_content(definition, positive_examples, negative_examples, instance_input).strip()
+    return prompt
 
 
 def create_prompt(task_data, instance_input):
@@ -481,12 +521,21 @@ if __name__ == "__main__":
     # process_translation(overwrite=True)
     task_dict = get_english_tasks(output_languages=["Spanish", "French"])
     task_list = task_dict["Spanish"] + task_dict["French"]
-    process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
+    #process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
 
     # process_translation(overwrite=True)
     # analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
     # analyze_long_prompts("processed_data/translation/translation_data.jsonl")
 
     # evaluate_translations(
-    #     model_name="Meta-Llama-3-8B-Instruct_few_shot", seed="seed2000", overwrite=True, use_wandb=False, short=True
+    #     model_name="Meta-Llama-3-8B-Instruct", metric="rouge", seed="seed2000", overwrite=True, use_wandb=False, short=True
     # )
+    evaluate_translations(
+        model_name="aya-23-8b", metric="bleu", seed="seed2000", overwrite=True, use_wandb=False, short=True
+    )
+    
+    # with open("processed_data/translation/translation_data_few_shot.jsonl", 'r') as file:
+    #     data = [json.loads(line) for line in file]
+        
+    # for i in range(5):
+    #     print(data[i]["prompt"])

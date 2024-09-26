@@ -321,6 +321,19 @@ def generate_on_task_dataset_with_aya(
 
             if use_wandb:
                 wandb.save(file_path)
+                
+        if i == 40000 and save_intermittent:
+            intermittent_log = f"{model_id.split('/')[-1]}_continuations_seed{seed}_40000.json"
+            folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
+            file_path = f"{folder_path}/{intermittent_log}"
+            if not Path(folder_path).exists():
+                Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+            with open(file_path, "w") as file:
+                json.dump(logs, file, indent=4)
+
+            if use_wandb:
+                wandb.save(file_path)
 
     file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
     folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
