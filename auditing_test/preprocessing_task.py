@@ -26,6 +26,54 @@ logger.addHandler(file_handler)
 
 base_dir = Path(__file__).parent.absolute()
 
+PROMPT_DICT = {
+    "prompt_input": (
+        "Below is an instruction that describes a task, paired with an input that provides further context. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
+    ),
+}
+
+
+def format_content(definition, input):
+    return PROMPT_DICT["prompt_input"].format(instruction=definition, input=input)
+
+
+def create_analog_prompt(task_data, instance_input):
+    definition = task_data.get("Definition", [""])[0]
+
+    positive_examples = task_data.get("Positive Examples", [])
+    negative_examples = task_data.get("Negative Examples", [])
+
+    if not (positive_examples or negative_examples):
+        return None
+
+    prompt = [format_content(definition, instance_input).strip() + "\n"]
+
+    for i, example in enumerate(positive_examples, start=1):
+        prompt.extend(
+            [
+                f"Positive Example {i}—",
+                f"input: {example.get('input', '')}",
+                f"output: {example.get('output', '')}",
+                f"explanation: {example.get('explanation', '')}\n",
+            ]
+        )
+
+    # for i, example in enumerate(negative_examples, start=1):
+    #     prompt.extend(
+    #         [
+    #             f"Negative Example {i}—",
+    #             f"input: {example.get('input', '')}",
+    #             f"output: {example.get('output', '')}",
+    #             f"explanation: {example.get('explanation', '')}\n",
+    #         ]
+    #     )
+
+    prompt.extend(["Now complete the following example—", f"input: {instance_input}", f"output:"])
+
+    return "\n".join(prompt)
+
 
 def create_prompt(task_data, instance_input):
     definition = task_data.get("Definition", [""])[0]
@@ -131,7 +179,7 @@ def process_task(
                             for instance in instances:
                                 instance_input = instance.get("input", "")
                                 instance_outputs = instance.get("output", [])
-                                prompt = create_prompt(data, instance_input)
+                                prompt = create_analog_prompt(data, instance_input)
                                 if not prompt:
                                     # this means that there are no examples for few shot prompts.
                                     continue
@@ -360,6 +408,7 @@ def evaluate_translations(
     gen_dir="processed_data/translation_model_outputs",
     output_dir="processed_data/translation_model_scores",
     verbose=True,
+    short=False,
 ):
     data = None
     if (model_name is None or seed is None) and model_dir is None:
@@ -382,11 +431,12 @@ def evaluate_translations(
     gen_dir = f"{gen_dir}/{model_name}_{seed}"
     score_dir = f"{output_dir}/{model_name}_{seed}"
 
+    short_str = "_short" if short else ""
     # check if folder exists already
     if not Path(score_dir).exists():
         Path(score_dir).mkdir(parents=True, exist_ok=True)
-    score_path = Path(score_dir) / f"{metric}_scores.json"
-    cont_path = Path(gen_dir) / f"{model_name}_continuations_{seed}.json"
+    score_path = Path(score_dir) / f"{metric}_scores{short_str}.json"
+    cont_path = Path(gen_dir) / f"{model_name}_continuations_{seed}{short_str}.json"
 
     # Load the evaluation metrics
     if metric == "bleu":
@@ -428,13 +478,15 @@ if __name__ == "__main__":
     # out_path = "/root/accountability/processed_data"
     # category_path = "/root/accountability/processed_data/categories"
 
-    process_translation(overwrite=True)
-    # task_dict = get_english_tasks(output_languages=["Spanish", "French"])
-    # task_list = task_dict["Spanish"] + task_dict["French"]
-    # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
+    # process_translation(overwrite=True)
+    task_dict = get_english_tasks(output_languages=["Spanish", "French"])
+    task_list = task_dict["Spanish"] + task_dict["French"]
+    process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
 
     # process_translation(overwrite=True)
     # analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
     # analyze_long_prompts("processed_data/translation/translation_data.jsonl")
 
-    # evaluate_translations(model_name="Meta-Llama-3.1-8B-Instruct", seed="seed2000", overwrite=True, use_wandb=False)
+    # evaluate_translations(
+    #     model_name="Meta-Llama-3-8B-Instruct_few_shot", seed="seed2000", overwrite=True, use_wandb=False, short=True
+    # )

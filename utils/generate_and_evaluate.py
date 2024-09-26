@@ -352,11 +352,13 @@ def generate_on_task_dataset(
     """ """
     seed = check_seed(seed)
 
+    few_shot_string = "_few_shot" if few_shot else ""
+
     output_dir = f"processed_data/{task}_{output_dir}"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    file_name = f"{task}_data.jsonl"
+    file_name = f"{task}_data{few_shot_string}.jsonl"
     dataset_path = f"processed_data/{task}"
     data_files = {"train": file_name}
 
@@ -456,8 +458,6 @@ def generate_on_task_dataset(
     #     ),
     #     total=len(dataset),
     # ):
-
-    few_shot_string = "_few_shot" if few_shot else ""
 
     for i, input in enumerate(tqdm(dataset)):
         out = generator([input], eos_token_id=terminators, return_full_text=False, **gen_kwargs)
