@@ -13,7 +13,7 @@ task_metric:
   dataset_name: translation
   few_shot: false
 
-epsilon: 0.0043025975821365135 # neural net dist between llama base and llama high temp
+epsilon: 0 # neural net dist between llama base and llama high temp
 
 eval:
   epochs: 1
