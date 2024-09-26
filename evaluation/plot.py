@@ -71,9 +71,9 @@ def distance_box_plot(
 
     else:
         # Create a new column combining `num_samples` and `Wasserstein` for grouping
-        df["Group"] = df["num_train_samples"].astype(str) + " | " + df["Wasserstein"].astype(str)
+        df["Group"] = df["num_train_samples"].astype(str) + " | " + df["Wasserstein_comparison"].astype(str)
 
-        wasserstein_df = df[["Wasserstein"]].rename(columns={"Wasserstein": "Distance"})
+        wasserstein_df = df[["Wasserstein_comparison"]].rename(columns={"Wasserstein": "Distance"})
         wasserstein_df["Group"] = "Wasserstein"
 
         # 2. Two boxes for NeuralNet, split by num_samples
