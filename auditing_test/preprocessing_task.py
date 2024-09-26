@@ -428,7 +428,7 @@ if __name__ == "__main__":
     # out_path = "/root/accountability/processed_data"
     # category_path = "/root/accountability/processed_data/categories"
 
-    # process_translation()
+    process_translation(overwrite=True)
     # task_dict = get_english_tasks(output_languages=["Spanish", "French"])
     # task_list = task_dict["Spanish"] + task_dict["French"]
     # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
@@ -437,4 +437,4 @@ if __name__ == "__main__":
     # analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
     # analyze_long_prompts("processed_data/translation/translation_data.jsonl")
 
-    evaluate_translations(model_name="Meta-Llama-3-8B-Instruct", seed="seed2000", overwrite=True, use_wandb=False)
+    # evaluate_translations(model_name="Meta-Llama-3.1-8B-Instruct", seed="seed2000", overwrite=True, use_wandb=False)

@@ -16,7 +16,7 @@ from huggingface_hub import login
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM
 from transformers.pipelines.pt_utils import KeyDataset
 from transformers.utils import is_flash_attn_2_available
 from vllm import LLM, SamplingParams
@@ -204,7 +204,7 @@ def generate_on_dataset(
         wandb.save(file_path)
 
 
-def generate_on_task_dataset(
+def generate_on_task_dataset_with_madlad(
     task: str,
     few_shot: bool,
     model_cfg,
@@ -230,6 +230,125 @@ def generate_on_task_dataset(
     data_files = {"train": file_name}
 
     logger.info(f"Dataset path: {dataset_path}")
+    prompt_dataset = load_dataset(dataset_path, data_files=data_files)["train"]
+
+    generator = pipeline("translation", model="google/madlad400-3b-mt")
+
+    logger.info(f"Model device: {next(generator.model.parameters()).device}")
+
+    torch.manual_seed(seed)
+
+    if num_samples < len(prompt_dataset):
+        if sample_randomly:
+            subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
+            prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
+        else:
+            prompt_dataset = Subset(prompt_dataset, range(num_samples))
+
+    logs = defaultdict(list)
+    logs["metadata"] = {
+        "task": task,
+        "model_id": model_id,
+        "gen_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
+        "num_samples": num_samples,
+        "batch_size": batch_size,
+        "seed": seed,
+        "use_wandb": use_wandb,
+        "metric": str(metric),
+        "meta_data": meta_data,
+    }
+
+    formatted_dataset = prompt_dataset.map(
+        lambda x: create_conversation(x, model_id),
+        remove_columns=prompt_dataset.features,
+        batched=False,
+        desc="Generating conversations for evaluation",
+    )
+
+    ground_truth = [prompt_dataset[i]["output"] for i in range(len(prompt_dataset))]
+
+    dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
+    logger.info(f"{dataset[0]}")
+
+    # dataset = [dataset[0]]
+
+    # dataset = [[
+    #     {"role": "system", "content": "You are a pirate chatbot who always responds in pirate speak!"},
+    #     {"role": "user", "content": "Who are you?"},
+    # ]]
+
+    # for out in tqdm(
+    #     generator(
+    #         # KeyDataset(formatted_dataset, "messages"),
+    #         dataset,
+    #         batch_size=batch_size,  # TODO: change back
+    #         eos_token_id=terminators,
+    #         return_full_text=False,
+    #         **gen_kwargs,
+    #     ),
+    #     total=len(dataset),
+    # ):
+
+    few_shot_string = "_few_shot" if few_shot else ""
+
+    for i, input in enumerate(tqdm(dataset)):
+        out = generator([input], eos_token_id=terminators, return_full_text=False, **gen_kwargs)
+
+        logger.info(f"Continuation\n: {out[0][0]['generated_text']}")
+        logs["continuations"].append(out[0][0]["generated_text"])
+        logs["ground_truth"].append(ground_truth[i])
+
+        if i == 100 and save_intermittent:
+            intermittent_log = f"{model_id.split('/')[-1]}{few_shot_string}_continuations_seed{seed}_short.json"
+            folder_path = f"{output_dir}/{model_id.split('/')[-1]}{few_shot_string}_seed{seed}"
+            file_path = f"{folder_path}/{intermittent_log}"
+            if not Path(folder_path).exists():
+                Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+            with open(file_path, "w") as file:
+                json.dump(logs, file, indent=4)
+
+            if use_wandb:
+                wandb.save(file_path)
+
+    file_name = f"{model_id.split('/')[-1]}{few_shot_string}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}{few_shot_string}_seed{seed}"
+    file_path = f"{folder_path}/{file_name}"
+    if not Path(folder_path).exists():
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "w") as file:
+        json.dump(logs, file, indent=4)
+
+    if use_wandb:
+        wandb.save(file_path)
+
+
+def generate_on_task_dataset(
+    task: str,
+    few_shot: bool,
+    model_cfg,
+    num_samples: int,
+    batch_size: int = 8,
+    seed=0,
+    use_wandb=True,
+    metric=None,
+    meta_data=None,
+    output_dir: str = "model_outputs",
+    sample_randomly: bool = False,
+    save_intermittent: bool = True,
+):
+    """ """
+    seed = check_seed(seed)
+
+    output_dir = f"processed_data/{task}_{output_dir}"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    file_name = f"{task}_data.jsonl"
+    dataset_path = f"processed_data/{task}"
+    data_files = {"train": file_name}
+
     prompt_dataset = load_dataset(dataset_path, data_files=data_files)["train"]
 
     # wandb only logs strings, floats, ... so need to modify torch_dtype
@@ -327,6 +446,8 @@ def generate_on_task_dataset(
     #     total=len(dataset),
     # ):
 
+    few_shot_string = "_few_shot" if few_shot else ""
+
     for i, input in enumerate(tqdm(dataset)):
         out = generator([input], eos_token_id=terminators, return_full_text=False, **gen_kwargs)
 
@@ -335,8 +456,8 @@ def generate_on_task_dataset(
         logs["ground_truth"].append(ground_truth[i])
 
         if i == 100 and save_intermittent:
-            intermittent_log = f"{model_id.split('/')[-1]}_continuations_seed{seed}_short.json"
-            folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
+            intermittent_log = f"{model_id.split('/')[-1]}{few_shot_string}_continuations_seed{seed}_short.json"
+            folder_path = f"{output_dir}/{model_id.split('/')[-1]}{few_shot_string}_seed{seed}"
             file_path = f"{folder_path}/{intermittent_log}"
             if not Path(folder_path).exists():
                 Path(folder_path).mkdir(parents=True, exist_ok=True)
@@ -347,8 +468,8 @@ def generate_on_task_dataset(
             if use_wandb:
                 wandb.save(file_path)
 
-    file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
-    folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
+    file_name = f"{model_id.split('/')[-1]}{few_shot_string}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}{few_shot_string}_seed{seed}"
     file_path = f"{folder_path}/{file_name}"
     if not Path(folder_path).exists():
         Path(folder_path).mkdir(parents=True, exist_ok=True)
