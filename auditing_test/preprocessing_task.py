@@ -518,10 +518,10 @@ if __name__ == "__main__":
     # out_path = "/root/accountability/processed_data"
     # category_path = "/root/accountability/processed_data/categories"
 
-    # process_translation(overwrite=True)
-    task_dict = get_english_tasks(output_languages=["Spanish", "French"])
-    task_list = task_dict["Spanish"] + task_dict["French"]
-    #process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
+    process_translation(overwrite=True)
+    # task_dict = get_english_tasks(output_languages=["Spanish", "French"])
+    # task_list = task_dict["Spanish"] + task_dict["French"]
+    # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
 
     # process_translation(overwrite=True)
     # analyze_long_prompts("processed_data/translation/translation_data_few_shot.jsonl")
@@ -530,9 +530,9 @@ if __name__ == "__main__":
     # evaluate_translations(
     #     model_name="Meta-Llama-3-8B-Instruct", metric="rouge", seed="seed2000", overwrite=True, use_wandb=False, short=True
     # )
-    evaluate_translations(
-        model_name="aya-23-8b", metric="bleu", seed="seed2000", overwrite=True, use_wandb=False, short=True
-    )
+    # evaluate_translations(
+    #     model_name="aya-23-8b", metric="bleu", seed="seed2000", overwrite=True, use_wandb=False, short=True
+    # )
     
     # with open("processed_data/translation/translation_data_few_shot.jsonl", 'r') as file:
     #     data = [json.loads(line) for line in file]
