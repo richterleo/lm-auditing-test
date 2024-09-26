@@ -29,6 +29,7 @@ from utils.generate_and_evaluate import (
     generate_on_dataset_with_model,
     generate_on_task_dataset,
     generate_on_task_dataset_with_model,
+    generate_on_task_dataset_with_aya,
 )
 from utils.utils import (
     create_run_string,
@@ -852,16 +853,30 @@ def eval_model(
             metric=config["metric"]["metric"],
         )
     else:
-        generate_on_task_dataset(
-            config["task_metric"]["dataset_name"],
-            config["task_metric"]["few_shot"],
-            config["tau1"],
-            config["eval"]["num_samples"] if not num_samples else num_samples,
-            batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
-            use_wandb=use_wandb,
-            seed=config["tau1"]["gen_seed"],
-            metric=config["task_metric"]["metric"],
-        )
+        if "aya" in config["tau1"]["model_id"].lower():
+            print(f"Using aya model")
+            generate_on_task_dataset_with_aya(
+                config["task_metric"]["dataset_name"],
+                config["task_metric"]["few_shot"],
+                config["tau1"],
+                config["eval"]["num_samples"] if not num_samples else num_samples,
+                batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
+                use_wandb=use_wandb,
+                seed=config["tau1"]["gen_seed"],
+                metric=config["task_metric"]["metric"],
+            )
+
+        else:
+            generate_on_task_dataset(
+                config["task_metric"]["dataset_name"],
+                config["task_metric"]["few_shot"],
+                config["tau1"],
+                config["eval"]["num_samples"] if not num_samples else num_samples,
+                batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
+                use_wandb=use_wandb,
+                seed=config["tau1"]["gen_seed"],
+                metric=config["task_metric"]["metric"],
+            )
 
     if use_wandb:
         wandb.finish()

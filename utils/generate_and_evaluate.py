@@ -44,9 +44,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# hf_token = os.environ.get("HF_TOKEN", None)
+hf_token = os.environ.get("HF_TOKEN", None)
 # wandb_token = os.environ.get("WANDB_API_KEY", None)
-# login(token=hf_token)
+login(token=hf_token)
 
 
 def generate_on_dataset(
@@ -204,7 +204,7 @@ def generate_on_dataset(
         wandb.save(file_path)
 
 
-def generate_on_task_dataset_with_madlad(
+def generate_on_task_dataset_with_aya(
     task: str,
     few_shot: bool,
     model_cfg,
@@ -225,25 +225,69 @@ def generate_on_task_dataset_with_madlad(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    file_name = f"{task}_data_few_shot.jsonl" if few_shot else f"{task}_data.jsonl"
-    dataset_path = f"processed_data/{task}"
-    data_files = {"train": file_name}
+    # wandb only logs strings, floats, ... so need to modify torch_dtype
+    model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    if is_flash_attn_2_available():
+        model_kwargs.update({"attn_implementation": "flash_attention_2"})
+    gen_kwargs = model_cfg["gen_kwargs"]
 
-    logger.info(f"Dataset path: {dataset_path}")
-    prompt_dataset = load_dataset(dataset_path, data_files=data_files)["train"]
+    model_id = f"{model_cfg['hf_prefix']}/{model_cfg['model_id']}"
 
-    generator = pipeline("translation", model="google/madlad400-3b-mt")
+    file_name = f"{task}_data.jsonl"
+    dataset_path = f"processed_data/{task}/{file_name}"
 
-    logger.info(f"Model device: {next(generator.model.parameters()).device}")
+    dataset = []
+
+    with open(dataset_path, "r") as file:
+        for line in file:
+            dataset.append(json.loads(line.strip()))
+
+    print(f"These are the correct keys: {dataset[0].keys()}")
+    prompt_data = [create_conversation(dataset[i], model_id) for i in range(len(dataset))]
+    ground_truth = [dataset[i]["output"] for i in range(len(dataset))]
+
+    model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+    model.eval()
 
     torch.manual_seed(seed)
 
-    if num_samples < len(prompt_dataset):
-        if sample_randomly:
-            subset_indices = torch.randperm(len(prompt_dataset))[:num_samples]
-            prompt_dataset = Subset(prompt_dataset, subset_indices.tolist())
-        else:
-            prompt_dataset = Subset(prompt_dataset, range(num_samples))
+    def get_message_format(prompts):
+        messages = []
+
+        for p in prompts:
+            messages.append([{"role": "user", "content": p}])
+
+        return messages
+
+    def generate_aya_23(prompts, model, temperature=0.7, top_p=0.9, top_k=0, max_new_tokens=100, do_sample=True):
+        messages = get_message_format(prompts)
+
+        input_ids = tokenizer.apply_chat_template(
+            messages,
+            tokenize=True,
+            add_generation_prompt=True,
+            padding=True,
+            return_tensors="pt",
+        )
+        input_ids = input_ids.to(model.device)
+        prompt_padded_len = len(input_ids[0])
+
+        gen_tokens = model.generate(
+            input_ids,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_new_tokens=max_new_tokens,
+            do_sample=do_sample,
+        )
+
+        # get only generated tokens
+        gen_tokens = [gt[prompt_padded_len:] for gt in gen_tokens]
+
+        gen_text = tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)
+        return gen_text
 
     logs = defaultdict(list)
     logs["metadata"] = {
@@ -258,49 +302,16 @@ def generate_on_task_dataset_with_madlad(
         "meta_data": meta_data,
     }
 
-    formatted_dataset = prompt_dataset.map(
-        lambda x: create_conversation(x, model_id),
-        remove_columns=prompt_dataset.features,
-        batched=False,
-        desc="Generating conversations for evaluation",
-    )
+    for i, input in enumerate(tqdm(prompt_data)):
+        out = generate_aya_23([input], model, **gen_kwargs)
 
-    ground_truth = [prompt_dataset[i]["output"] for i in range(len(prompt_dataset))]
-
-    dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
-    logger.info(f"{dataset[0]}")
-
-    # dataset = [dataset[0]]
-
-    # dataset = [[
-    #     {"role": "system", "content": "You are a pirate chatbot who always responds in pirate speak!"},
-    #     {"role": "user", "content": "Who are you?"},
-    # ]]
-
-    # for out in tqdm(
-    #     generator(
-    #         # KeyDataset(formatted_dataset, "messages"),
-    #         dataset,
-    #         batch_size=batch_size,  # TODO: change back
-    #         eos_token_id=terminators,
-    #         return_full_text=False,
-    #         **gen_kwargs,
-    #     ),
-    #     total=len(dataset),
-    # ):
-
-    few_shot_string = "_few_shot" if few_shot else ""
-
-    for i, input in enumerate(tqdm(dataset)):
-        out = generator([input], eos_token_id=terminators, return_full_text=False, **gen_kwargs)
-
-        logger.info(f"Continuation\n: {out[0][0]['generated_text']}")
-        logs["continuations"].append(out[0][0]["generated_text"])
+        logger.info(f"Continuation\n: {out}")
+        logs["continuations"].append(out[0])
         logs["ground_truth"].append(ground_truth[i])
 
         if i == 100 and save_intermittent:
-            intermittent_log = f"{model_id.split('/')[-1]}{few_shot_string}_continuations_seed{seed}_short.json"
-            folder_path = f"{output_dir}/{model_id.split('/')[-1]}{few_shot_string}_seed{seed}"
+            intermittent_log = f"{model_id.split('/')[-1]}_continuations_seed{seed}_short.json"
+            folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
             file_path = f"{folder_path}/{intermittent_log}"
             if not Path(folder_path).exists():
                 Path(folder_path).mkdir(parents=True, exist_ok=True)
@@ -311,8 +322,8 @@ def generate_on_task_dataset_with_madlad(
             if use_wandb:
                 wandb.save(file_path)
 
-    file_name = f"{model_id.split('/')[-1]}{few_shot_string}_continuations_seed{seed}.json"
-    folder_path = f"{output_dir}/{model_id.split('/')[-1]}{few_shot_string}_seed{seed}"
+    file_name = f"{model_id.split('/')[-1]}_continuations_seed{seed}.json"
+    folder_path = f"{output_dir}/{model_id.split('/')[-1]}_seed{seed}"
     file_path = f"{folder_path}/{file_name}"
     if not Path(folder_path).exists():
         Path(folder_path).mkdir(parents=True, exist_ok=True)

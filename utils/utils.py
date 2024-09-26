@@ -295,6 +295,8 @@ def create_conversation(example, model_id):
 
     elif "instruction" in example and "output" in example:
         prompt = format_content(example)
+        if "aya" in model_id.lower():
+            return prompt
     else:
         raise ValueError(
             "Invalid data structure. Expected either 'prompt' and 'response' keys, or 'instruction' and 'output' keys."

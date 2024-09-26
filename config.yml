@@ -39,7 +39,8 @@ analysis:
 
 
 tau1: 
-  model_id: Meta-Llama-3-8B-Instruct #Meta-Llama-3.1-8B-Instruct
+  model_id: Meta-Llama-3-8B-Instruct #aya-23-8b
+  #Meta-Llama-3-8B-Instruct #Meta-Llama-3.1-8B-Instruct
   #codealpaca-Meta-Llama-3-8B-Instruct
     #Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
    # gemma-1.1-7b-it # Meta-Llama-3-8B-Instruct #LLMAccountability/Llama-3-8B-ckpt1 #Mistral-7B-Instruct-v0.2
@@ -63,7 +64,7 @@ tau1:
     temperature: 1.2
     top_p: 0.7
   gen_batch_size: 8
-  hf_prefix: meta-llama #meta-llama #LLMAccountability
+  hf_prefix: meta-llama #CohereForAI #meta-llama #LLMAccountability
 
 tau2: 
   model_id: LLama-3-8b-Uncensored

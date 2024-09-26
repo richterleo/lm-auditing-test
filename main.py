@@ -108,6 +108,8 @@ def main():
 
     parser.add_argument("--eval_on_task", action="store_true", help="Whether to evaluate on task")
 
+    parser.add_argument("--few_shot", action="store_true", help="Whether to run few shot experiments")
+
     args = parser.parse_args()
 
     if args.debug_mode:
@@ -119,6 +121,11 @@ def main():
     config = load_config(args.config_path)
     if args.hf_prefix:
         config["tau1"]["hf_prefix"] = args.hf_prefix
+
+    if args.few_shot:
+        config["task_metric"]["few_shot"] = True
+    else:
+        config["task_metric"]["few_shot"] = False
 
     # Determine which experiment to run based on the argument
     if args.exp == "generation":
@@ -236,5 +243,4 @@ if __name__ == "__main__":
     # )
 
     # eval_model(config, use_wandb=False, eval_on_task=True)
-
     main()
