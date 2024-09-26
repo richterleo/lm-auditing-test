@@ -519,6 +519,7 @@ if __name__ == "__main__":
     # category_path = "/root/accountability/processed_data/categories"
 
     process_translation(overwrite=True)
+    
     # task_dict = get_english_tasks(output_languages=["Spanish", "French"])
     # task_list = task_dict["Spanish"] + task_dict["French"]
     # process_task(save_prompt_lengths=False, save_prompts=True, task_file_list=task_list, overwrite=True)
