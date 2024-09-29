@@ -176,7 +176,11 @@ if __name__ == "__main__":
     config = load_config("config.yml")
     train_cfg = TrainCfg()
     model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "2-Meta-Llama-3-8B-Instruct"
+    model_name2 = "1-Meta-Llama-3-8B-Instruct"
+    model_name3 = "2-Meta-Llama-3-8B-Instruct"
+    model_name4 = "3-Meta-Llama-3-8B-Instruct"
+    model_name5 = "4-Meta-Llama-3-8B-Instruct"
+    model_name6 = "5-Meta-Llama-3-8B-Instruct"
 
     lower_model = "Meta-Llama-3-8B-Instruct-hightemp"
     lower_seed = "seed1000"
@@ -187,9 +191,9 @@ if __name__ == "__main__":
     upper_model = "LLama-3-8b-Uncensored"
     upper_seed = "seed1000"
 
-    seed1 = "seed2000"
+    seed1 = "seed1000"
     seed2 = "seed1000"
-    fold_size = 4000
+    fold_size = 3000
 
     # tasks = [
     #     "Mistral-7B-Instruct-v0.2",
@@ -213,11 +217,20 @@ if __name__ == "__main__":
     # exp = CalibratedAuditingTest(
     #     config,
     #     train_cfg,
-    #     IntervalEpsilonStrategy(lower_model, lower_seed, upper_model, upper_seed, config=config, num_runs=10),
+    #     IntervalEpsilonStrategy(lower_model, lower_seed, upper_model, upper_seed, config=config, num_runs=20),
     #     use_wandb=False,
     #     overwrite=False,
     # )
-    # exp.run(model_name1=model_name1, seed1=seed1, model_name2=model_name2, seed2=seed2, fold_size=fold_size)
+
+    # exp.run(model_name1=model_name1, seed1="seed1000", model_name2=model_name2, seed2="seed1000", fold_size=fold_size)
+
+    # exp.run(model_name1=model_name1, seed1="seed1000", model_name2=model_name3, seed2="seed1000", fold_size=fold_size)
+
+    # exp.run(model_name1=model_name1, seed1="seed1000", model_name2=model_name4, seed2="seed1000", fold_size=fold_size)
+
+    # exp.run(model_name1=model_name1, seed1="seed1000", model_name2=model_name5, seed2="seed1000", fold_size=fold_size)
+
+    # exp.run(model_name1=model_name1, seed1="seed1000", model_name2=model_name6, seed2="seed1000", fold_size=fold_size)
 
     # # exp = CalibratedAuditingTest(
     # #     config,

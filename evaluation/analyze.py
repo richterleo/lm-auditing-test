@@ -71,9 +71,8 @@ def extract_data_for_models(
     logger.info(f"File path we are checking: {file_path}")
 
     data = pd.read_csv(file_path)
-    # TODO: make this less hacky
-    # we're just discarding the last fold for now, because it is smaller than the rest
-    data = data[data["fold_number"] != data["fold_number"].max()]
+
+    logger.info(f"Number of folds: {data['fold_number'].max()}")
 
     return data
 
@@ -148,7 +147,6 @@ def get_power_over_sequences_for_models_or_checkpoints(
     ), "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
 
     if model_name2:
-        logger.info(f"We are here! Model name2 is {model_name2}")
         data = extract_data_for_models(
             model_name1, seed1, seed2, model_name2=model_name2, epsilon=epsilon, only_continuations=only_continuations
         )
@@ -200,7 +198,7 @@ def get_power_over_sequences(
     checkpoint_base_name: str = "Llama-3-8B-ckpt",
     fold_size: int = 4000,
     only_continuations=True,
-    epsilons: Union[float, List[float]] = [0],
+    epsilon: Union[float, List[float]] = 0,
     bs=100,
 ):
     use_checkpoints = True
@@ -216,11 +214,7 @@ def get_power_over_sequences(
     if not isinstance(seeds, list):
         seeds = [seeds]
 
-    if not isinstance(epsilons, list):
-        epsilons = [epsilons]
-
-    if len(epsilons) == 1:
-        epsilons = epsilons * len(seeds)
+    epsilons = epsilon * len(seeds)
 
     result_dfs = []
 
@@ -327,15 +321,17 @@ def get_distance_scores(
         scores1 = data[f"{metric}_scores1"]
         scores2 = data[f"{metric}_scores2"]
 
+        num_samples = [min(num_sample, len(scores1)) for num_sample in num_samples]
+
         dist_data = []
 
         if evaluate_wasserstein_on_full:
             if "Wasserstein" in distance_measures:
-                dist_dict = {"num_samples": len(scores1)}
+                wasserstein_dist_dict = {"num_samples": len(scores1)}
                 if use_scipy_wasserstein:
-                    dist_dict["Wasserstein_full"] = wasserstein_distance(scores1, scores2)
+                    wasserstein_dist_dict["Wasserstein_full"] = wasserstein_distance(scores1, scores2)
                 else:
-                    dist_dict["Wasserstein_full"] = empirical_wasserstein_distance_p1(scores1, scores2)
+                    wasserstein_dist_dict["Wasserstein_full"] = empirical_wasserstein_distance_p1(scores1, scores2)
         if evaluate_nn_on_full:
             if "NeuralNet" in distance_measures:
                 assert net_cfg, "net_dict must be provided for neuralnet distance"
@@ -468,7 +464,15 @@ def get_distance_scores(
 
                         dist_data.append(dist_dict)
 
-        dist_df = pd.DataFrame(dist_data)
+        if dist_data:
+            dist_df = pd.DataFrame(dist_data)
+            if evaluate_wasserstein_on_full:
+                dist_df["Wasserstein_full"] = wasserstein_dist_dict["Wasserstein_full"]
+                dist_df["total_samples"] = wasserstein_dist_dict["num_samples"]
+        else:
+            if evaluate_wasserstein_on_full:
+                dist_df = pd.DataFrame([wasserstein_dist_dict])
+
         return dist_df
 
     except FileNotFoundError:
@@ -511,13 +515,15 @@ def get_mean_and_std_for_nn_distance(df):
 def get_power_over_sequences_for_ranked_checkpoints(
     base_model_name,
     base_model_seed,
-    checkpoints,
     seeds,
+    checkpoints,
     checkpoint_base_name="LLama-3-8B-ckpt",
-    metric="toxicity",
+    metric="perspective",
     distance_measure="Wasserstein",
     fold_size=4000,
     num_runs_distance=1,
+    only_continuations=True,
+    epsilon=0,
 ):
     if not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
@@ -538,11 +544,12 @@ def get_power_over_sequences_for_ranked_checkpoints(
             checkpoint=checkpoint,
             checkpoint_base_name=checkpoint_base_name,
             metric=metric,
-            distance_measure=[distance_measure],
+            distance_measures=[distance_measure],
             num_runs=num_runs_distance,
-            compare_distance_metrics=False,
+            evaluate_wasserstein_on_full=True,  # the distance measure is currently hard coded
+            only_continuations=only_continuations,
         )
-        dist = dist_df[distance_measure].mean()
+        dist = dist_df[f"{distance_measure}_full"].mean()
 
         result_df = get_power_over_sequences_for_models_or_checkpoints(
             base_model_name,
@@ -551,6 +558,7 @@ def get_power_over_sequences_for_ranked_checkpoints(
             checkpoint=checkpoint,
             checkpoint_base_name=checkpoint_base_name,
             fold_size=fold_size,
+            epsilon=epsilon,
         )
 
         result_df[f"Empirical {distance_measure} Distance"] = dist
@@ -571,8 +579,11 @@ def get_power_over_sequences_for_ranked_checkpoints_wrapper(
     seeds,
     checkpoint_base_name="LLama-3-8B-ckpt",
     fold_sizes: List[int] = [1000, 2000, 3000, 4000],
-    metric="toxicity",
+    metric="perspective",
     distance_measure="Wasserstein",
+    only_continuations=True,
+    epsilon=0,
+    num_runs_distance=1,
 ):
     """
     This is a wrapper for get_power_over_sequences_for_ranked_checkpoints to use to multiple fold sizes and returns a concatenated dataframe.
@@ -584,12 +595,15 @@ def get_power_over_sequences_for_ranked_checkpoints_wrapper(
             get_power_over_sequences_for_ranked_checkpoints(
                 base_model_name,
                 base_model_seed,
-                checkpoints,
                 seeds,
+                checkpoints,
                 checkpoint_base_name=checkpoint_base_name,
                 metric=metric,
                 distance_measure=distance_measure,
                 fold_size=fold_size,
+                epsilon=epsilon,
+                only_continuations=only_continuations,
+                num_runs_distance=num_runs_distance,
             )
         )
 
@@ -651,17 +665,29 @@ def extract_power_from_sequence_df(
     return smaller_df
 
 
-def get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=4000):
+def get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=4000, epsilon=0, only_continuations=True):
     if not isinstance(model_names, list):
         result_df = get_power_over_sequences_for_models_or_checkpoints(
-            model_names, seeds1, seeds2, model_name2=model_names, fold_size=fold_size
+            model_names,
+            seeds1,
+            seeds2,
+            model_name2=model_names,
+            fold_size=fold_size,
+            epsilon=epsilon,
+            only_continuations=only_continuations,
         )
 
     else:
         result_dfs = []
         for model_name, seed1, seed2 in zip(model_names, seeds1, seeds2):
             result_df = get_power_over_sequences_for_models_or_checkpoints(
-                model_name, seed1, seed2, model_name2=model_name, fold_size=fold_size
+                model_name,
+                seed1,
+                seed2,
+                model_name2=model_name,
+                fold_size=fold_size,
+                epsilon=epsilon,
+                only_continuations=only_continuations,
             )
             result_dfs.append(result_df)
 
@@ -761,5 +787,3 @@ if __name__ == "__main__":
     # get_mean_tox_scores(only_continuations=True, diff=False)
 
     model_name = "sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000"
-
- 

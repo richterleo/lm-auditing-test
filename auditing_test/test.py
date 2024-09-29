@@ -570,7 +570,7 @@ class IntervalEpsilonStrategy(EpsilonStrategy):
         upper_seed: int,
         base_model: Optional[str] = None,
         base_seed: Optional[int] = None,
-        overwrite: bool = True,
+        overwrite: bool = False,
         epsilon_ticks: Optional[int] = None,
         epsilon_interval: Optional[float] = None,
         use_full_ds_for_nn_distance: Optional[bool] = None,
@@ -634,7 +634,7 @@ class IntervalEpsilonStrategy(EpsilonStrategy):
             epsilons = np.linspace(distances["lower"], distances["upper"], self.epsilon_ticks)
 
         return (
-            epsilons,
+            list(epsilons),
             distances["test"],
             stds["test"],
         )
@@ -779,6 +779,9 @@ class CalibratedAuditingTest(AuditingTest):
             )
 
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
+            self.logger.info(f"True distance: {true_epsilon}")
+
+            epsilons.append(true_epsilon)
 
             if not calibrate_only:
                 power_dict = {}
@@ -800,16 +803,17 @@ class CalibratedAuditingTest(AuditingTest):
                 self.logger.info(f"Calibrated testing results saved to {epsilon_path}.")
 
         plot_calibrated_detection_rate(
-            true_epsilon,
-            std_epsilon,
             self.model_name1,
             self.seed1,
             self.model_name2,
             self.seed2,
+            true_epsilon=true_epsilon,
+            std_epsilon=std_epsilon,
             result_file=epsilon_path,
             draw_in_std=True,
             draw_in_first_checkpoint=False,
             draw_in_lowest_and_highest=True,
+            fold_size=fold_size,
             # overwrite=True,
         )
 

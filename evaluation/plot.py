@@ -11,11 +11,13 @@ from hydra.utils import instantiate
 
 from pathlib import Path
 from scipy.stats import skew, wasserstein_distance
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Dict
 
 import matplotlib.pyplot as plt
+import textwrap
 from matplotlib.ticker import MultipleLocator
 import seaborn as sns
+import colorsys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from evaluation.distance import (
@@ -39,6 +41,7 @@ from evaluation.analyze import (
     get_power_over_sequences_for_ranked_checkpoints_wrapper,
     extract_power_from_sequence_df,
     get_alpha_wrapper,
+    get_mean_and_std_for_nn_distance,
 )
 
 pd.set_option("display.max_rows", 1000)
@@ -46,6 +49,14 @@ pd.set_option("display.max_columns", 1000)
 pd.set_option("display.width", 1000)
 
 logger = logging.getLogger(__name__)
+
+TASK_CLUSTER = [
+    ["Program Execution", "Pos Tagging", "Mathematics"],
+    ["Gender Classification", "Commonsense Classification", "Translation"],
+    ["Code to Text", "Stereotype Detection", "Sentence Perturbation"],
+    ["Text to Code", "Linguistic Probing", "Language Identification"],
+    ["Data to Text", "Word Semantics", "Question Rewriting"],
+]
 
 
 def distance_box_plot(
@@ -137,7 +148,7 @@ def plot_power_over_number_of_sequences(
     metric: str = "perspective",
     only_continuations=True,
     fold_size: int = 4000,
-    epsilons: Union[float, List[float]] = 0,
+    epsilon: Union[float, List[float]] = 0,
 ):
     script_dir = os.path.dirname(__file__)
 
@@ -156,7 +167,7 @@ def plot_power_over_number_of_sequences(
                 model_names=model_names,
                 only_continuations=only_continuations,
                 fold_size=fold_size,
-                epsilons=epsilons,
+                epsilon=epsilon,
             )
         else:
             result_df = get_power_over_sequences(
@@ -167,19 +178,19 @@ def plot_power_over_number_of_sequences(
                 checkpoint_base_name=checkpoint_base_name,
                 only_continuations=only_continuations,
                 fold_size=fold_size,
-                epsilons=epsilons,
+                epsilon=epsilon,
             )
     elif group_by == "Rank based on Wasserstein Distance" or group_by == "Empirical Wasserstein Distance":
         result_df = get_power_over_sequences_for_ranked_checkpoints(
             base_model_name,
             base_model_seed,
-            checkpoints,
             seeds,
+            checkpoints,
             checkpoint_base_name=checkpoint_base_name,
             metric="perspective",
             only_continuations=only_continuations,
             fold_size=fold_size,
-            epsilons=epsilons,
+            epsilon=epsilon,
         )
 
         result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
@@ -294,6 +305,8 @@ def plot_power_over_epsilon(
     palette=["#E49B0F", "#C46210", "#B7410E", "#A81C07"],
     save_as_pdf=True,
     plot_dir: str = "plots",
+    epsilon=0,
+    only_continuations=True,
 ):
     """
     This plots power over distance measure, potentially for different fold_sizes and models.
@@ -311,11 +324,11 @@ def plot_power_over_epsilon(
             checkpoints,
             seeds,
             checkpoint_base_name=checkpoint_base_name,
-            epoch1=epoch1,
-            epoch2=epoch2,
             metric=metric,
             distance_measure=distance_measure,
             fold_sizes=fold_sizes,
+            epsilon=epsilon,
+            only_continuations=only_continuations,
         )
     else:
         result_df = get_power_over_sequences_for_ranked_checkpoints(
@@ -324,10 +337,10 @@ def plot_power_over_epsilon(
             checkpoints,
             seeds,
             checkpoint_base_name=checkpoint_base_name,
-            epoch1=epoch1,
-            epoch2=epoch2,
             metric=metric,
             distance_measure=distance_measure,
+            epsilon=epsilon,
+            only_continuatinos=only_continuations,
         )
 
     smaller_df = extract_power_from_sequence_df(result_df, distance_measure=distance_measure, by_checkpoints=True)
@@ -493,13 +506,17 @@ def plot_alpha_over_sequences(
     palette=["#94D2BD", "#EE9B00", "#BB3E03"],
     fold_size=4000,
     plot_dir: str = "plots",
+    epsilon: float = 0,
+    only_continuations=True,
 ):
     script_dir = os.path.dirname(__file__)
 
     # Construct the absolute path to "test_outputs"
     plot_dir = os.path.join(script_dir, "..", plot_dir)
 
-    result_df = get_alpha_wrapper(model_names, seeds1, seeds2, fold_size=fold_size)
+    result_df = get_alpha_wrapper(
+        model_names, seeds1, seeds2, fold_size=fold_size, epsilon=epsilon, only_continuations=only_continuations
+    )
     group_by_model = "model_id" in result_df.columns
 
     # Create the plot
@@ -692,22 +709,22 @@ def plot_rejection_rate_matrix(
 
 
 def plot_calibrated_detection_rate(
-    true_epsilon: float,
-    std_epsilon: float,
     model_name1: str,
     seed1: str,
     model_name2: str,
     seed2: str,
+    true_epsilon: Optional[float] = None,
+    std_epsilon: Optional[float] = None,
     result_file: Optional[Union[str, Path]] = None,
-    num_train_samples: Optional[int] = None,
-    num_runs: Optional[int] = None,
+    num_runs: int = 20,
     multiples_of_epsilon: Optional[int] = None,
     test_dir: str = "test_outputs",
     save_as_pdf: bool = True,
     overwrite: bool = False,
     draw_in_std: bool = False,
-    draw_in_lowest_and_highest: bool = False,
-    draw_in_first_checkpoint: bool = False,
+    fold_size: int = 4000,
+    bs: int = 100,
+    only_continuations=True,
 ):
     """ """
 
@@ -718,10 +735,24 @@ def plot_calibrated_detection_rate(
     if result_file is not None:
         result_file_path = Path(result_file)
     else:
+        multiples_str = f"_{multiples_of_epsilon}" if multiples_of_epsilon else ""
+        continuations_str = "_continuations" if only_continuations else ""
         result_file_path = os.path.join(
             plot_dir,
-            f"power_over_epsilon_{num_train_samples}_{num_runs}_{multiples_of_epsilon}.csv",
+            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}.csv",
         )
+
+    if not true_epsilon:
+        distance_path = os.path.join(plot_dir, f"distance_scores_{fold_size-bs}_{num_runs}.csv")
+        try:
+            distance_df = pd.read_csv(distance_path)
+            true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(distance_df)
+            logger.info(
+                f"True epsilon for {model_name1}_{seed1} and {model_name2}_{seed2}: {true_epsilon}, std epsilon: {std_epsilon}"
+            )
+        except FileNotFoundError:
+            logger.error(f"Could not find file at {distance_path}")
+            sys.exit(1)
 
     df = pd.read_csv(result_file_path)
     df_sorted = df.sort_values(by="epsilon")
@@ -736,7 +767,7 @@ def plot_calibrated_detection_rate(
     )
 
     # Adding the vertical line
-    plt.axvline(x=true_epsilon, color="red", linestyle="--", label="True Neural Net Distance")
+    plt.axvline(x=true_epsilon, color="red", linestyle="--", label="Fine-Tuned Model Distance")
 
     # Adding the standard deviation range
     if draw_in_std:
@@ -744,53 +775,21 @@ def plot_calibrated_detection_rate(
             true_epsilon - std_epsilon, true_epsilon + std_epsilon, alpha=0.2, color="green", label="Std Dev Range"
         )
 
-    if draw_in_lowest_and_highest:
-        # Adding vertical line and label for lowest epsilon and highest epsilon (same color)
-        min_epsilon = df_sorted["epsilon"].min()
-        max_epsilon = df_sorted["epsilon"].max()
-        plt.axvline(x=min_epsilon, color="blue", linestyle=":", label="High Temperature Llama")
-        plt.axvline(x=max_epsilon, color="blue", linestyle=":", label="Llama Uncensored")
-        plt.text(
-            min_epsilon + 0.0001,
-            0.7,
-            "High Temperature Llama",
-            color="blue",
-            verticalalignment="center",
-            rotation=90,
-        )
-        plt.text(
-            max_epsilon + 0.0001,
-            0.7,
-            "Llama Uncensored",
-            color="blue",
-            verticalalignment="center",
-            rotation=90,
-        )
-
-    if draw_in_first_checkpoint:
-        # Adding vertical line and label for first checkpoint toxicity fine-tuning
-        first_checkpoint = 0.004452683562703896
-        plt.axvline(x=first_checkpoint, color="purple", linestyle=":", label="First Checkpoint Toxicity Fine-tuning")
-        plt.text(
-            first_checkpoint + 0.0001,
-            0.5,
-            "First Checkpoint Toxicity Fine-tuning",
-            color="purple",
-            verticalalignment="center",
-            rotation=90,
-        )
-
     # Adding label to the vertical line
     plt.text(
         true_epsilon + 0.0001,
         0.3,  # Changed from 0.5 to 0.1 to move the label lower
-        "True Neural Net Distance",
+        "Fine-Tuned Model Distance",
         color="red",
         verticalalignment="center",
         rotation=90,  # Added rotation for better readability
     )
 
-    plot_path = os.path.join(plot_dir, "calibrated_detection_rate.pdf")
+    ax = plt.gca()
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
+
+    plot_path = os.path.join(plot_dir, f"calibrated_detection_rate_{fold_size}.pdf")
 
     if not overwrite and Path(plot_path).exists():
         logger.info(f"File already exists at {plot_path}. Skipping...")
@@ -798,11 +797,170 @@ def plot_calibrated_detection_rate(
     else:
         # Titles and labels
         plt.title("Detection Rate vs Epsilon")
-        plt.xlabel("Epsilon")
-        plt.ylabel("Detection Rate")
+        plt.xlabel("Test Epsilon")
+        plt.ylabel("\% of Tests That Detect Changed Model")
         plt.legend()
         plt.grid(True)
         plt.savefig(plot_path, format="pdf", bbox_inches="tight")
+
+
+def plot_multiple_calibrated_detection_rates(
+    model_names: List[str],
+    seeds: List[str],
+    true_epsilon: Optional[List[float]] = None,
+    base_model: str = "Meta-Llama-3-8B-Instruct",
+    base_seed: str = "seed1000",
+    num_runs: int = 20,
+    multiples_of_epsilon: Optional[int] = None,
+    test_dir: str = "test_outputs",
+    save_as_pdf: bool = True,
+    overwrite: bool = False,
+    draw_in_std: bool = False,
+    fold_size: int = 4000,
+    bs: int = 100,
+    only_continuations=True,
+):
+    """
+    Plot calibrated detection rates for multiple models on the same graph using seaborn lineplot.
+    """
+    script_dir = os.path.dirname(__file__)
+    test_dir = os.path.join(script_dir, "..", test_dir)
+    plot_dir = os.path.join(script_dir, "..", "plots")
+
+    plt.figure(figsize=(18, 8))
+
+    custom_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
+
+    # Prepare data for seaborn plotting
+    all_data = []
+
+    for i, (model_name, seed) in enumerate(zip(model_names, seeds)):
+        result_dir = os.path.join(test_dir, f"{base_model}_{base_seed}_{model_name}_{seed}")
+        multiples_str = f"_{multiples_of_epsilon}" if multiples_of_epsilon else ""
+        continuations_str = "_continuations" if only_continuations else ""
+        result_file_path = os.path.join(
+            result_dir,
+            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}.csv",
+        )
+        distance_path = os.path.join(result_dir, f"distance_scores_{fold_size-bs}_{num_runs}.csv")
+
+        try:
+            distance_df = pd.read_csv(distance_path)
+            true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(distance_df)
+            logger.info(f"True epsilon for {model_name}_{seed}: {true_epsilon}, std epsilon: {std_epsilon}")
+        except FileNotFoundError:
+            logger.error(f"Could not find file at {distance_path}")
+            continue
+
+        try:
+            df = pd.read_csv(result_file_path)
+            df_sorted = df.sort_values(by="epsilon")
+
+            # Use task cluster name for the legend
+            task_cluster_name = ", ".join(TASK_CLUSTER[i]) if i < len(TASK_CLUSTER) else f"Model {i+1}"
+
+            df_sorted["Model"] = task_cluster_name
+            all_data.append(df_sorted)
+        except FileNotFoundError:
+            logger.error(f"Could not find file for {model_name}_{seed}")
+
+    # Combine all data
+    combined_data = pd.concat(all_data, ignore_index=True)
+
+    # Plot using seaborn
+    ax = sns.lineplot(
+        data=combined_data,
+        x="epsilon",
+        y="power",
+        hue="Model",
+        marker="x",
+        markersize=12,
+        linewidth=2.5,
+        palette=custom_palette,
+    )
+
+    # Ensure markers are visible
+    for line in ax.lines:
+        line.set_markerfacecolor(line.get_color())
+        line.set_markeredgecolor(line.get_color())
+
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    ax.yaxis.set_major_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+
+    # Add vertical lines for true epsilon
+    for i, (model_name, seed) in enumerate(zip(model_names, seeds)):
+        true_epsilon, _ = get_mean_and_std_for_nn_distance(
+            pd.read_csv(
+                os.path.join(
+                    test_dir,
+                    f"{base_model}_{base_seed}_{model_name}_{seed}",
+                    f"distance_scores_{fold_size-bs}_{num_runs}.csv",
+                )
+            )
+        )
+        plt.axvline(x=true_epsilon, linestyle="--", color=sns.color_palette()[i], alpha=0.7, linewidth=2)
+
+    # Titles and labels
+    plt.xlabel("Test Epsilon", fontsize=24)
+    plt.ylabel("% of Tests That Detect Changed Model", fontsize=24)
+
+    handles, labels = ax.get_legend_handles_labels()
+    wrapped_labels = [textwrap.fill(label, width=40) for label in labels]  # Adjust width as needed
+    legend = plt.legend(
+        handles,
+        wrapped_labels,
+        title="models fine-tuned on ...",
+        loc="lower left",
+        fontsize=12,
+        title_fontsize=14,
+        bbox_to_anchor=(0.02, 0.02),  # Adjust these values to fine-tune position
+        ncol=1,
+        frameon=True,
+        fancybox=True,
+        shadow=True,
+        borderaxespad=0.0,
+    )
+
+    # Move legend to bottom left corner
+    # plt.legend(
+    #     # title="models fine-tuned on ...",
+    #     loc="lower left",
+    #     # title_fontsize=18,
+    #     fontsize=14,
+    #     bbox_to_anchor=(0, 0),
+    #     ncol=1,
+    # )
+
+    legend.get_frame().set_alpha(0.8)
+    legend.get_frame().set_edgecolor("gray")
+
+    # Make the grid less noticeable
+    plt.grid(True, color="#ddddee", linewidth=0.5)
+
+    # Add a box around the plot
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.5)
+
+    # Save the plot
+    plot_path = os.path.join(plot_dir, f"multi_model_calibrated_detection_rate_{fold_size}.pdf")
+    if not overwrite and Path(plot_path).exists():
+        logger.info(f"File already exists at {plot_path}. Skipping...")
+    else:
+        logger.info(f"Saving plot to {plot_path}")
+        plt.tight_layout()
+        plt.savefig(plot_path, format="pdf", bbox_inches="tight")
+
+
+def darken_color(color, factor=0.7):
+    """
+    Darken the given color by multiplying RGB values by the factor.
+    """
+    h, l, s = colorsys.rgb_to_hls(*color)
+    return colorsys.hls_to_rgb(h, max(0, min(1, l * factor)), s)
 
 
 def plot_scores(
@@ -1200,24 +1358,47 @@ def plot_scores_two_models(
 
 
 @hydra.main(
-    config_path="/root/DistanceSimulation/behavior_evaluation",
+    config_path=".",
     config_name="plotting_config.yml",
 )
-def plot_all(cfg: DictConfig, use_alternative_seeds: bool = False):  # TODO: add alternative seeds
+def plot_all(cfg: DictConfig):  # TODO: add alternative seeds
+    base_models = []
+    base_seeds = []
+    base_seeds2 = []
+
     # Loop over all base models
     for bm in cfg.models:
+        base_models.append(bm.name)
+        base_seeds.append(bm.seed)
+        base_seeds2.append(bm.seed2)
+
         checkpoints = [i for i in range(1, int(bm.checkpoint_range))]
-        seeds = ["seed1000" for i in range(1, int(bm.checkpoint_range))]
+        if "llama" in bm.name.lower():
+            seeds = [
+                "seed2000",
+                "seed2000",
+                "seed2000",
+                "seed2000",
+                "seed1000",
+                "seed1000",
+                "seed1000",
+                "seed1000",
+                "seed1000",
+                "seed1000",
+            ]
+        else:
+            seeds = ["seed1000" for i in range(1, int(bm.checkpoint_range))]
 
         # Create power plot over sequences:
         plot_power_over_number_of_sequences(
             bm.name,
             bm.seed,
-            checkpoints,
             seeds,
+            checkpoints,
             checkpoint_base_name=bm.checkpoint_base_name,
-            save=True,
+            fold_size=2000,
             group_by="Empirical Wasserstein Distance",
+            only_continuations=True,  # TODO make this changeable
             marker=bm.marker,
         )
 
@@ -1231,54 +1412,31 @@ def plot_all(cfg: DictConfig, use_alternative_seeds: bool = False):  # TODO: add
             fold_sizes=list(cfg.fold_sizes),
             marker=bm.marker,
             metric=cfg.metric,
+            only_continuations=True,
         )
 
-    # for (
-    #     bm_name,
-    #     checkpoints,
-    #     seeds,
-    #     checkpoint_base_name,
-    #     color,
-    #     darker_color,
-    #     corrupted_color,
-    #     darker_corrupted_color,
-    # ) in zip(
-    #     base_model_name_list,
-    #     custom_colors,
-    #     checkpoints_list,
-    #     seeds_list,
-    #     checkpoint_base_name_list,
-    #     custom_colors,
-    #     darker_custom_colors,
-    #     corrupted_model_custom_colors,
-    #     darker_corrupted_model_custom_colors,
-    # ):
-    #     plot_scores_base_most_extreme(
-    #         bm_name,
-    #         "seed1000",
-    #         checkpoints,
-    #         seeds,
-    #         checkpoint_base_name,
-    #         metric="toxicity",
-    #         color=color,
-    #         darker_color=darker_color,
-    #         corrupted_color=corrupted_color,
-    #         darker_corrupted_color=darker_corrupted_color,
-    #         save=True,
-    #         use_log_scale=False,
-    #         save_as_pdf=False,
-    #     )
+    plot_alpha_over_sequences(base_models, base_seeds, base_seeds2)
 
 
 if __name__ == "__main__":
     model_name1 = "Meta-Llama-3-8B-Instruct"
     model_name2 = "1-Meta-Llama-3-8B-Instruct"
     model_name3 = "LLama-3-8b-Uncensored"
-    seed1 = "seed2000"
+    seed1 = "seed1000"
     seed2 = "seed1000"
     metric = "perspective"
     epsilon1 = 0.0043025975821365135
     epsilon2 = 0.06611211877316236
+
+    model_names = [
+        "1-Meta-Llama-3-8B-Instruct",
+        "2-Meta-Llama-3-8B-Instruct",
+        "3-Meta-Llama-3-8B-Instruct",
+        "4-Meta-Llama-3-8B-Instruct",
+        "5-Meta-Llama-3-8B-Instruct",
+    ]
+
+    seeds = ["seed1000" for i in model_names]
 
     # net_cfg = load_config("config.yml")["net"]
     # train_cfg = TrainCfg()
@@ -1506,12 +1664,18 @@ if __name__ == "__main__":
     #     only_continuations=False,
     # )
 
-    plot_power_over_number_of_sequences(
-        model_name1,
-        seed1,
-        [seed2, seed2],
-        model_names=[model_name2, model_name3],
-        epsilons=[epsilon1, epsilon1],
-        group_by="model",
-        only_continuations=True,
-    )
+    # plot_power_over_number_of_sequences(
+    #     model_name1,
+    #     seed1,
+    #     [seed2, seed2],
+    #     model_names=[model_name2, model_name3],
+    #     epsilons=[epsilon1, epsilon1],
+    #     group_by="model",
+    #     only_continuations=True,
+    # )
+
+    # plot_all()
+
+    # plot_calibrated_detection_rate(model_name1, seed1, model_name2, seed2, overwrite=True)
+
+    plot_multiple_calibrated_detection_rates(model_names, seeds, overwrite=True)

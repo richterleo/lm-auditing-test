@@ -246,7 +246,7 @@ def evaluate_single_model(
 
 
 def evaluate_all_models(
-    metric: str = "toxicity",
+    metric: str = "perspective",
     overwrite=True,
     asynchronously=True,
     use_wandb=False,  # This is changed now. We don't need to upload all evals.
@@ -598,7 +598,7 @@ if __name__ == "__main__":
     setup_logging(log_file="evaluate_only_continuations.log")
     logger = logging.getLogger(__name__)
 
-    evaluate_all_models(metric="perspective", overwrite=False, only_continuations=True)
+    # evaluate_all_models(metric="perspective", overwrite=False, only_continuations=True)
 
     # task_models = [
     #     "gemma-1.1-7b-it",
@@ -617,14 +617,14 @@ if __name__ == "__main__":
     #         metric="perspective",
     #     )
 
-    # create_common_json(
-    #     "Meta-Llama-3-8B-Instruct",
-    #     "seed2000",
-    #     "Meta-Llama-3-8B-Instruct-hightemp",
-    #     "seed1000",
-    #     metric="perspective",
-    #     only_continuations=True,
-    # )
+    create_common_json(
+        "Meta-Llama-3-8B-Instruct",
+        "seed1000",
+        "LLama-3-8b-Uncensored",
+        "seed1000",
+        metric="perspective",
+        only_continuations=True,
+    )
     # create_common_json(
     #     "Meta-Llama-3-8B-Instruct",
     #     "seed2000",
@@ -650,11 +650,11 @@ if __name__ == "__main__":
     #     only_continuations=True,
     # )
 
-    create_common_json(
-        "Meta-Llama-3-8B-Instruct",
-        "seed2000",
-        "LLama-3-8b-Uncensored",
-        "seed1000",
-        metric="perspective",
-        only_continuations=True,
-    )
+    # create_common_json(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed2000",
+    #     "LLama-3-8b-Uncensored",
+    #     "seed1000",
+    #     metric="perspective",
+    #     only_continuations=True,
+    # )

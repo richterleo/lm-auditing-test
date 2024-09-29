@@ -364,7 +364,7 @@ def download_file_from_wandb(
     run = api.run(run_name)
 
     if file_name:
-        files = [file for file in run.files() if file.name == file_name]
+        files = [file for file in run.files() if file_name in file.name]
     else:
         files = [file for file in run.files() if pattern in file.name]
 
@@ -505,13 +505,14 @@ if __name__ == "__main__":
     #     "LLM_Accountability/continuations/qp8f41we",  # llama ckpt10 seed1000
     # ]
 
-    run_paths = [
-        "LLM_Accountability/continuations/iw32a4pg",
-        "LLM_Accountability/continuations/upzxj4f0",
-        "LLM_Accountability/continuations/4zy0kxd0",
-        "LLM_Accountability/continuations/9ut02m5k",
-    ]
+    run_paths = ["LLM_Accountability/continuations/a1w6am2t"]
     pattern = "continuations"
 
-    for run_path in run_paths:
-        download_file_from_wandb(run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed)
+    # for run_path in run_paths:
+    #     download_file_from_wandb(run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed)
+
+    download_file_from_wandb(
+        run_path=run_paths[0],
+        file_name="output.log",
+        # get_save_path=folder_from_model_and_seed,
+    )

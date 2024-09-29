@@ -3,7 +3,7 @@
 models:
   - name: Meta-Llama-3-8B-Instruct
     seed: seed1000
-    seed2: seed2000
+    seed2: seed2000 # except for the first 4 entries
     checkpoint_base_name: Llama-3-8B-ckpt
     checkpoint_range: 10
     alternative_seeds: 
@@ -46,8 +46,8 @@ models:
     darker_corrupted_color: "#1b0900"
 
 fold_sizes:
+  - 500
   - 1000
+  - 1500
   - 2000
-  - 3000
-  - 4000
 metric: "perspective"
