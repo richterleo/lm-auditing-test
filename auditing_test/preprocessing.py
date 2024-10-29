@@ -7,9 +7,7 @@ import typing
 import random
 import sys
 import numpy as np
-import wandb
 import time
-
 
 from collections import defaultdict
 from pathlib import Path
@@ -23,44 +21,30 @@ from datasets import load_dataset
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from utils.utils import download_file_from_wandb, time_block, create_run_string, load_config
-from utils.generate_and_evaluate import eval_on_metric
+from utils.score import eval_on_metric
 from utils.remove_unused_epoch_key import remove_zero_key_and_flatten
 from logging_config import setup_logging
 
 # setup_logging()
 logger = logging.getLogger(__name__)
 
+SCRIPT_DIR = Path(__file__).resolve().parent
 
-# error handling
-def load_json(filepath):
+
+def load_entire_json(filepath, encoding="utf-8"):
     try:
-        with open(filepath, "r") as file:
+        with open(filepath, "r", encoding=encoding) as file:
             data = json.load(file)
         return data
-    except json.JSONDecodeError as e:
-        logger.error(f"JSONDecodeError: {e}")
-        line, column = e.lineno, e.colno
-        logger.error(f"Error at line {line}, column {column}")
-        # Optionally, you can print the problematic line
-        with open(filepath, "r") as file:
-            lines = file.readlines()
-            problematic_line = lines[line - 1]
-            logger.debug(f"Problematic line: {problematic_line.strip()}")
-        # Handle the error or re-raise it
+    except FileNotFoundError:
+        logger.error(f"File not found: {filepath}")
         raise
-
-
-def load_entire_json(filepath):
-    try:
-        with open(filepath, "r") as file:
-            data = json.load(file)
-        return data
     except json.JSONDecodeError as e:
         logger.error(f"JSONDecodeError: {e}")
         line, column = e.lineno, e.colno
         logger.error(f"Error at line {line}, column {column}")
         # Print a few lines around the error to help debug
-        with open(filepath, "r") as file:
+        with open(filepath, "r", encoding="utf-8") as file:
             lines = file.readlines()
             start = max(0, line - 3)
             end = min(len(lines), line + 2)
@@ -70,39 +54,22 @@ def load_entire_json(filepath):
         raise
 
 
-def load_json_skipping_errors(filepath):
-    valid_data = []
-    num_errors = 0
-    with open(filepath, "r") as file:
-        lines = file.readlines()
-        for i, line in enumerate(lines):
-            try:
-                data = json.loads(line)
-                valid_data.append(data)
-            except json.JSONDecodeError as e:
-                logger.warning(f"Skipping line {i + 1} due to JSONDecodeError: {e}")
-                logger.debug(f"Problematic line: {line.strip()}")
-                num_errors += 1
-    return valid_data, num_errors
-
-
 def evaluate_single_model(
     model_name: Optional[str] = None,
     seed: Optional[str] = None,
-    model_dir: Optional[str] = None,
-    metric: str = "toxicity",
+    model_gen_dir: Optional[str] = None,
+    metric: str = "perspective",
     overwrite=True,
     asynchronously=True,
-    use_wandb=True,
-    entity="LLM_Accountability",
     save_intermittently=True,
     ds_batch_size=1000,
     model_batch_size=8,
     remove_intermediate_files=True,
     gen_dir="model_outputs",
-    output_dir="model_scores",
+    score_dir="model_scores",
     verbose=True,
     only_continuation=False,
+    short=False,
 ):
     """
     Evaluate a single model and save the scores.
@@ -114,8 +81,6 @@ def evaluate_single_model(
         metric: The evaluation metric to use.
         overwrite (bool, optional): Whether to overwrite existing scores file. Defaults to True.
         asynchronously (bool, optional): Whether to evaluate the generations asynchronously. Defaults to True.
-        use_wandb (bool, optional): Whether to use wandb for logging. Defaults to True.
-        entity (str, optional): The wandb entity to use. Defaults to "LLM_Accountability".
         save_intermittently (bool, optional): Whether to save scores intermittently during evaluation. Defaults to True.
         ds_batch_size (int, optional): The batch size for querying the API. Defaults to 1000.
         model_batch_size (int, optional): The batch size for evaluating the generations. Defaults to 8.
@@ -129,177 +94,164 @@ def evaluate_single_model(
         None
     """
     data = None
-    if (model_name is None or seed is None) and model_dir is None:
+    if (model_name is None or seed is None) and model_gen_dir is None:
         raise ValueError("Either model_name and seed or dir must be provided.")
 
     if not model_name:
-        split = model_dir.split("_seed")
+        split = model_gen_dir.split("_seed")
         model_name = split[0]
         seed = f"seed{split[1]}"
 
-    if use_wandb:
-        wandb.init(
-            project=f"{metric}_evaluation",
-            entity=entity,
-            name=create_run_string(),
-            config={"model_name": model_name, "seed": seed},
-            tags=["evaluate_model"],
-        )
+    if not model_gen_dir:
+        model_gen_dir = Path(gen_dir) / f"{model_name}_{seed}"
 
-    gen_dir = f"{gen_dir}/{model_name}_{seed}"
-    score_dir = f"{output_dir}/{model_name}_{seed}"
+    model_score_dir = Path(score_dir) / f"{model_name}_{seed}"
+    model_score_dir.mkdir(parents=True, exist_ok=True)
 
-    # check if folder exists already
-    if not Path(score_dir).exists():
-        Path(score_dir).mkdir(parents=True, exist_ok=True)
-    score_path = (
-        Path(score_dir) / f"{metric}_scores.json"
-        if not only_continuation
-        else Path(score_dir) / f"{metric}_continuation_scores.json"
-    )
+    short_string = "_short" if short else ""
+    cont_string = "continuation_" if only_continuation else ""
+
+    model_score_path = model_score_dir / f"{cont_string}scores{short_string}.json"
 
     # get continuation file
-    if overwrite or not os.path.exists(score_path):
-        for file_name in os.listdir(gen_dir):
-            if "continuations" in file_name:
-                # older versions have unnecessary 0 key
-                data = remove_zero_key_and_flatten(os.path.join(gen_dir, file_name), return_data=True)
-                break
+    if overwrite or not model_score_path.exists():
+        data = load_entire_json(model_gen_dir / "continuations.json", return_data=True)
 
-        if data is None:
-            raise FileNotFoundError
+        metadata = data["metadata"]
+        generations = data["continuations"]
 
-        filtered_dict = {k: v for k, v in data.items() if k != "metadata"}
+        # only for translation evaluation (bleu/rouge)
+        ground_truths = data.get("ground_truths", None)
+        # only for prompt + continuation evaluation, e.g. toxicity
+        prompts = data.get("prompts", None)
 
-        # concatenate prompt and continuation
-        if only_continuation:
-            generations = filtered_dict["continuations"]
+        if not only_continuation:
+            if prompts is None:
+                logger.error("Prompts must be provided for prompt + continuation evaluation.")
+                sys.exit(1)
 
+            generations = [f"{prompt} {continuation}" for prompt, continuation in zip(prompts, generations)]
+
+        # Filter out entries where ground_truths are empty strings
+        if ground_truths is not None:
+            # Identify indices where ground_truths are not empty
+            valid_indices = [index for index, gt in enumerate(ground_truths) if gt.strip() != ""]
+            if not valid_indices:
+                logger.error("No valid ground_truth data found.")
+                sys.exit(1)
+
+            # Filter generations, ground_truths, and prompts based on valid indices
+            generations = [generations[i] for i in valid_indices]
+            ground_truths = [ground_truths[i] for i in valid_indices]
+            if prompts is not None:
+                prompts = [prompts[i] for i in valid_indices]
+
+        if verbose:
             count = sum(len(cont) < 10 for cont in generations)
             logger.info(f"Number of continuations with less than 10 tokens: {count}")
             count_empty = sum(len(cont) == 0 for cont in generations)
             logger.info(f"Number of empty continuations: {count_empty}")
-        else:
-            generations = [
-                f"{prompt} {continuation}"
-                for prompt, continuation in zip(filtered_dict["prompts"], filtered_dict["continuations"])
-            ]
 
-        # if we have a lot of generations, we need to query the API in batches
-        if len(generations) > ds_batch_size:
-            scores = []
-            for i in tqdm(
-                range(0, len(generations), ds_batch_size),
-                disable=not verbose,
-            ):
-                start = time.time()
+        scores = []
+        num_samples = len(generations)
+        logger.info(f"Evaluating {num_samples} samples.")
 
-                new_scores = eval_on_metric(
-                    metric,
-                    generations[i : i + ds_batch_size],
-                    asynchronously=asynchronously,
-                    batch_size=model_batch_size,
-                )
+        for i in tqdm(
+            range(0, num_samples, ds_batch_size),
+            disable=not verbose,
+        ):
+            start = time.time()
 
-                scores.extend(new_scores)
+            batch_generations = generations[i : i + ds_batch_size]
 
-                if i > 0 and i % 10000 == 0 and save_intermittently:
-                    _save_intermittently(
-                        scores, score_dir, metric, i, data, ds_batch_size, only_continuation=only_continuation
-                    )
+            if ground_truths is not None:
+                batch_ground_truths = ground_truths[i : i + ds_batch_size]
+            else:
+                batch_ground_truths = None
 
-                end = time.time()
-                if verbose:
-                    logger.info(f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds")
-
-        else:
-            if verbose:
-                logger.warning(
-                    f"We are not batching, because the length of the dataset is small: {len(generations)} samples"
-                )
-            scores = eval_on_metric(
+            new_scores = eval_on_metric(
                 metric,
-                generations,
+                batch_generations,
+                ground_truths=batch_ground_truths,
                 asynchronously=asynchronously,
                 batch_size=model_batch_size,
             )
 
-        data[f"{metric}_scores"] = scores
+            scores.extend(new_scores)
 
-        assert (
-            len(data[f"{metric}_scores"]) == len(data["prompts"])
-        ), f"Number of scores is not the same as number of prompts: {len(data[f'{metric}_scores'])} and {len(data['prompts'])}"
-        with open(score_path, "w") as file:
-            json.dump(data, file, indent=4)
+            if i > 0 and i % 10000 == 0 and save_intermittently:
+                _save_intermittently(
+                    scores, model_score_dir, metric, i, metadata, ds_batch_size, only_continuation=only_continuation
+                )
 
-        if verbose:
-            logger.info(f"Evaluation should be completed. File stored in {score_path} ")
+            end = time.time()
+            if verbose:
+                logger.info(f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds")
+
+        output_data = {"metadata": metadata, f"{metric}_scores": scores}
+        with open(model_score_path, "w") as file:
+            json.dump(output_data, file, indent=4)
+
+        logger.info(f"Evaluation completed. File stored in {model_score_path} ")
 
         if remove_intermediate_files:
-            pattern = f"{metric}_scores_*.json" if not only_continuation else f"{metric}_continuation_scores_*.json"
-            cleanup_files(score_dir, pattern)
-
-        if use_wandb:
-            wandb.save(score_path)
-
-        wandb.finish()
+            pattern = f"{cont_string}scores_*.json"
+            cleanup_files(model_score_dir, pattern)
 
 
 def evaluate_all_models(
     metric: str = "perspective",
     overwrite=True,
     asynchronously=True,
-    use_wandb=False,  # This is changed now. We don't need to upload all evals.
-    entity="LLM_Accountability",
     save_intermittently=True,
     ds_batch_size=1000,
     model_batch_size=8,
     remove_intermediate_files=True,
     gen_dir="model_outputs",
-    output_dir="model_scores",
+    score_dir="model_scores",
     only_continuations=True,
 ):
-    for model_dir in tqdm(os.listdir(gen_dir)):
+    for model_gen_dir in tqdm(os.listdir(gen_dir)):
         start = time.time()
 
-        logger.info(f"Start evaluating model {model_dir} using metric {metric}.")
+        logger.info(f"Start evaluating model {model_gen_dir} using metric {metric}.")
 
         try:
             evaluate_single_model(
-                model_dir=model_dir,
+                model_gen_dir=model_gen_dir,
                 metric=metric,
                 overwrite=overwrite,
                 asynchronously=asynchronously,
-                use_wandb=use_wandb,
-                entity=entity,
                 save_intermittently=save_intermittently,
                 ds_batch_size=ds_batch_size,
                 model_batch_size=model_batch_size,
                 remove_intermediate_files=remove_intermediate_files,
-                output_dir=output_dir,
+                score_dir=score_dir,
                 verbose=False,
                 only_continuation=only_continuations,
             )
             end = time.time()
-            logger.info(f"Model {model_dir} took {round(end-start, 3)} seconds to evaluate.")
+            logger.info(f"Model {model_gen_dir} took {round(end-start, 3)} seconds to evaluate.")
 
         except IndexError:
-            logger.error(f"{model_dir} does not contain the correct files. Skipping...")
+            logger.error(f"{model_gen_dir} does not contain the correct files. Skipping...")
             continue
 
 
-def _save_intermittently(scores, score_dir, metric, i, data, ds_batch_size, only_continuation=False):
-    current_scores_path = (
-        os.path.join(score_dir, f"{metric}_scores_{i}.json")
-        if not only_continuation
-        else os.path.join(score_dir, f"{metric}_continuation_scores_{i}.json")
-    )
-    data[f"{metric}_scores"] = scores
+def _save_intermittently(scores, model_score_dir, metric, i, metadata, ds_batch_size, only_continuation=False):
+    cont_str = "continuation_" if only_continuation else ""
+    current_scores_path = os.path.join(model_score_dir, f"{cont_str}scores_{i}.json")
+    temp_data = {
+        "metadata": metadata,
+        f"{metric}_scores": scores,
+    }
+    # Assert that the length of scores is as expected
+    expected_length = i + ds_batch_size
     assert (
-        len(data[f"{metric}_scores"]) == i + ds_batch_size
-    ), f"The current number of scores is not the same as the index: {len(data[f'{metric}_scores'])} and {i}"
+        len(scores) == expected_length
+    ), f"The current number of scores is not as expected: {len(scores)} vs {expected_length}"
     with open(current_scores_path, "w") as file:
-        json.dump(data, file, indent=4)
+        json.dump(temp_data, file, indent=4)
 
 
 def create_common_json(
@@ -307,110 +259,51 @@ def create_common_json(
     seed1,
     model_name2,
     seed2,
-    metric="toxicity",
+    metric="perspective",
     overwrite=True,
-    use_wandb=False,
-    entity="LLM_Accountability",
-    score_path="model_scores",
-    output_path="test_outputs",
+    score_dir="model_scores",
+    test_dir="test_outputs",
     only_continuations=True,
 ):
     """ """
-    file_path1 = f"{score_path}/{model_name1}_{seed1}"
-    file_path2 = f"{score_path}/{model_name2}_{seed2}"
-    new_folder_path = Path(output_path) / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
 
-    if use_wandb:
-        wandb.init(
-            project=f"{metric}_evaluation",
-            entity=entity,
-            name=create_run_string(),
-            config={
-                "model_name1": model_name1,
-                "seed": seed1,
-                "model_name2": model_name2,
-                "seed2": seed2,
-            },
-            tags=["create_common_json"],
-        )
+    file_path1 = f"{score_dir}/{model_name1}_{seed1}"
+    file_path2 = f"{score_dir}/{model_name2}_{seed2}"
+    new_folder_path = Path(test_dir) / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
+    new_folder_path.mkdir(parents=True, exist_ok=True)
 
-    common_scores_file_path = (
-        new_folder_path / f"{metric}_scores.json"
-        if not only_continuations
-        else new_folder_path / f"{metric}_continuation_scores.json"
-    )
+    cont_string = "continuation_" if only_continuations else ""
+
+    common_scores_file_path = new_folder_path / f"{cont_string}scores.json"
     if overwrite or not common_scores_file_path.exists():
-        if not new_folder_path.exists():
-            new_folder_path.mkdir(parents=True, exist_ok=True)
+        file_name1 = f"{file_path1}/{cont_string}scores.json"
+        file_name2 = f"{file_path2}/{cont_string}scores.json"
 
-        file_name1 = (
-            f"{file_path1}/{metric}_scores.json"
-            if not only_continuations
-            else f"{file_path1}/{metric}_continuation_scores.json"
-        )
-        file_name2 = (
-            f"{file_path2}/{metric}_scores.json"
-            if not only_continuations
-            else f"{file_path2}/{metric}_continuation_scores.json"
-        )
-        with open(file_name1, "r") as file1, open(file_name2, "r") as file2:
+        with open(file_name1, "r", encoding="utf-8") as file1, open(file_name2, "r", encoding="utf-8") as file2:
             data1 = json.load(file1)
             data2 = json.load(file2)
 
         data = defaultdict(list)
         data["metadata1"] = data1["metadata"]
         data["metadata2"] = data2["metadata"]
+        unfiltered_scores1 = data1[f"{metric}_scores"]
+        unfiltered_scores2 = data2[f"{metric}_scores"]
 
-        filtered_data1 = {k: v for k, v in data1.items() if k != "metadata"}
-        filtered_data2 = {k: v for k, v in data2.items() if k != "metadata"}
+        try:
+            assert len(unfiltered_scores1) == len(unfiltered_scores2), "Scores are not the same length."
+        except AssertionError as e:
+            logger.error(f"Assertion failed: {str(e)}")
+            raise
 
-        # if both lists are the same length, then we just trust that they're the same and ordered correctly.
-        if len(filtered_data1["prompts"]) == len(filtered_data2["prompts"]):
-            print(
-                f"We trust that both data have the same prompts, e.g. {filtered_data1['prompts'][0], filtered_data2['prompts'][0]}"
-            )
-            assert filtered_data1["prompts"][0] == filtered_data2["prompts"][0], "Prompts are not the same."
-            #     data["prompts"] = filtered_data1["prompts"]
-            #     data["continuations1"] = filtered_data1["continuations"]
-            #     data["continuations2"] = filtered_data2["continuations"]
-            #     data[f"{metric}_scores1"] = filtered_data1[f"{metric}_scores"]
-            #     data[f"{metric}_scores2"] = filtered_data2[f"{metric}_scores"]
+        for score1, score2 in zip(unfiltered_scores1, unfiltered_scores2):
+            if not (np.isnan(score1) or np.isnan(score2)):
+                data[f"{metric}_scores1"].append(score1)
+                data[f"{metric}_scores2"].append(score2)
 
-            # else:
-            #     common_prompts = list(set(filtered_data1["prompts"]) & set(filtered_data2["prompts"]))
-
-            #     # Extract data for common prompts
-            #     for prompt in common_prompts:
-            #         data["prompts"].append(prompt)
-            #         index1 = filtered_data1["prompts"].index(prompt)
-            #         index2 = filtered_data2["prompts"].index(prompt)
-
-            #         data["continuations1"].append(filtered_data1["continuations"][index1])
-            #         data["continuations2"].append(filtered_data2["continuations"][index2])
-            #         data[f"{metric}_scores1"].append(filtered_data1[f"{metric}_scores"][index1])
-            #         data[f"{metric}_scores2"].append(filtered_data2[f"{metric}_scores"][index2])
-
-            #     # Check if the number of common prompts is the same as the number of scores
-            # data["prompts"] = filtered_data1["prompts"]
-            # data["continuations1"] = filtered_data1["continuations"]
-            # data["continuations2"] = filtered_data2["continuations"]
-
-            for score1, score2 in zip(filtered_data1[f"{metric}_scores"], filtered_data2[f"{metric}_scores"]):
-                if not (np.isnan(score1) or np.isnan(score2)):
-                    data[f"{metric}_scores1"].append(score1)
-                    data[f"{metric}_scores2"].append(score2)
-
-            logger.warning(
-                f"Discarding {len(filtered_data1[f'{metric}_scores']) - len(data[f'{metric}_scores1'])} NaN scores."
-            )
+        logger.warning(f"Discarding {len(unfiltered_scores1) - len(data[f'{metric}_scores1'])} NaN scores.")
 
         with open(common_scores_file_path, "w") as file:
-            # json.dump(data, file, indent=4)
-            json.dump(data, file)
-
-        if use_wandb:
-            wandb.save(common_scores_file_path)
-            wandb.finish()
+            json.dump(data, file, indent=4)
 
 
 def cleanup_files(directory, pattern, verbose=True):
@@ -429,73 +322,62 @@ def create_folds(
     seed1,
     model_name2,
     seed2,
-    metric="toxicity",
-    fold_size=4000,
+    metric="perspective",
+    fold_size=2000,
     overwrite=True,
-    output_dir="test_outputs",
+    test_dir="test_outputs",
     only_continuations=True,
 ):
     """ """
+
     # Fix random seed to be different for each fold_size, such that the folds always have different samples.
     random.seed(fold_size)
 
-    directory = f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
-    file_pattern = (
-        f"{metric}_scores_fold_*.json" if not only_continuations else f"{metric}_continuation_scores_fold_*.json"
-    )
+    cont_string = "continuation_" if only_continuations else ""
+
+    directory = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
+    file_pattern = f"{cont_string}scores_fold_*.json"
 
     # Cleanup existing fold files
     cleanup_files(directory, file_pattern, verbose=False)
 
-    try:
-        file_name = (
-            f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
-            if not only_continuations
-            else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores.json"
+    file_name = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores.json"
+    data = load_entire_json(file_name)
+
+    # Extract metadata and other lists
+    metadata1 = data["metadata1"]
+    metadata2 = data["metadata2"]
+
+    # Create batches
+    total_num_samples = len(data[f"{metric}_scores1"])
+    logger.info(f"Total number of samples: {total_num_samples}")
+    indices = list(range(total_num_samples))
+    random.shuffle(indices)
+    index_batches = [indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)]
+
+    # The last batch might contain fewer samples
+    if len(index_batches[-1]) < fold_size:
+        logger.warning(
+            f"Last fold contains fewer samples and is discarded, resulting in {len(index_batches[-1])} samples being discarded."
         )
-        data = load_entire_json(file_name)
+        index_batches = index_batches[:-1]
 
-        # Extract metadata and other lists
-        metadata1 = data["metadata1"]
-        metadata2 = data["metadata2"]
+    for i, batch in tqdm(enumerate(index_batches)):  # The last batch is not used because it
+        fold_file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores_fold_{i}.json"
+        if overwrite or not os.path.exists(fold_file_path):
+            fold_data = defaultdict(list)
+            fold_data["metadata1"] = metadata1
+            fold_data["metadata2"] = metadata2
 
-        # Create batches
-        total_num_samples = len(data[f"{metric}_scores1"])
-        logger.info(f"Total number of samples: {total_num_samples}")
-        indices = list(range(total_num_samples))
-        random.shuffle(indices)
-        index_batches = [indices[i : i + fold_size] for i in range(0, total_num_samples, fold_size)]
+            for key, value in data.items():
+                # legacy: in future, only scores should be saved
+                if key in ["prompts", "continuations1", "continuations2"]:
+                    fold_data[key] = [value[j] for j in batch]
+                elif key in [f"{metric}_scores1", f"{metric}_scores2"]:
+                    fold_data[key] = [value[j] for j in batch]
 
-        # The last batch might contain fewer samples
-        if len(index_batches[-1]) < fold_size:
-            logger.warning(
-                f"Last fold contains fewer samples and is discarded, resulting in {len(index_batches[-1])} samples being discarded."
-            )
-            index_batches = index_batches[:-1]
-
-        for i, batch in tqdm(enumerate(index_batches)):  # The last batch is not used because it
-            fold_file_path = (
-                f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{i}.json"
-                if not only_continuations
-                else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores_fold_{i}.json"
-            )
-            if overwrite or not os.path.exists(fold_file_path):
-                fold_data = defaultdict(list)
-                fold_data["metadata1"] = metadata1
-                fold_data["metadata2"] = metadata2
-
-                for key, value in data.items():
-                    if key in ["prompts", "continuations1", "continuations2"]:
-                        fold_data[key] = [value[j] for j in batch]
-                    elif key in [f"{metric}_scores1", f"{metric}_scores2"]:
-                        fold_data[key] = [value[j] for j in batch]
-
-                with open(fold_file_path, "w") as file:
-                    json.dump(fold_data, file, indent=4)
-
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {e}")
-        return None
+            with open(fold_file_path, "w") as file:
+                json.dump(fold_data, file, indent=4)
 
 
 def create_folds_from_evaluations(
@@ -503,16 +385,25 @@ def create_folds_from_evaluations(
     seed1,
     model_name2,
     seed2,
-    metric="toxicity",
-    fold_size=4000,
+    metric="perspective",
+    fold_size=2000,
     overwrite=True,
-    random_seed=0,
-    use_wandb=False,
     only_continuations=True,
+    test_dir="test_outputs",
+    score_dir="model_scores",
+    gen_dir="model_outputs",
 ):
     try:
         create_common_json(
-            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite, only_continuations=only_continuations
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
+            metric,
+            overwrite=overwrite,
+            only_continuations=only_continuations,
+            score_dir=score_dir,
+            test_dir=test_dir,
         )
     except FileNotFoundError as e:
         logger.info(f"File not found: {e}. Trying to create the folds from generations.")
@@ -521,20 +412,30 @@ def create_folds_from_evaluations(
             seed=seed1,
             metric=metric,
             overwrite=False,
-            use_wandb=use_wandb,
             only_continuation=only_continuations,
+            gen_dir=gen_dir,
+            score_dir=score_dir,
         )
         evaluate_single_model(
             model_name=model_name2,
             seed=seed2,
             metric=metric,
             overwrite=False,
-            use_wandb=use_wandb,
             only_continuation=only_continuations,
+            gen_dir=gen_dir,
+            score_dir=score_dir,
         )
 
         create_common_json(
-            model_name1, seed1, model_name2, seed2, metric, overwrite=overwrite, only_continuations=only_continuations
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
+            metric,
+            overwrite=overwrite,
+            only_continuations=only_continuations,
+            score_dir=score_dir,
+            test_dir=test_dir,
         )
 
     create_folds(
@@ -546,6 +447,7 @@ def create_folds_from_evaluations(
         fold_size=fold_size,
         overwrite=overwrite,
         only_continuations=only_continuations,
+        test_dir=test_dir,
     )
 
 
@@ -595,66 +497,4 @@ def create_toxic_prompt_mask(dataset_name="allenai/real-toxicity-prompts", imput
 
 
 if __name__ == "__main__":
-    setup_logging(log_file="evaluate_only_continuations.log")
-    logger = logging.getLogger(__name__)
-
-    # evaluate_all_models(metric="perspective", overwrite=False, only_continuations=True)
-
-    # task_models = [
-    #     "gemma-1.1-7b-it",
-    #     "Mistral-7B-Instruct-v0.2_seed2000",
-    #     "Llama-3-8B-ckpt10_seed1000",
-    # ]
-
-    # task_models = ["LLama-3-8b-Uncensored"]
-
-    # for task_model in task_models:
-    #     create_common_json(
-    #         model_name1="Meta-Llama-3-8B-Instruct",
-    #         seed1="seed2000",
-    #         model_name2=task_model,
-    #         seed2="seed1000",
-    #         metric="perspective",
-    #     )
-
-    create_common_json(
-        "Meta-Llama-3-8B-Instruct",
-        "seed1000",
-        "LLama-3-8b-Uncensored",
-        "seed1000",
-        metric="perspective",
-        only_continuations=True,
-    )
-    # create_common_json(
-    #     "Meta-Llama-3-8B-Instruct",
-    #     "seed2000",
-    #     "1-Meta-Llama-3-8B-Instruct",
-    #     "seed1000",
-    #     metric="perspective",
-    #     only_continuations=True,
-    # )
-    # create_common_json(
-    #     "Meta-Llama-3-8B-Instruct",
-    #     "seed2000",
-    #     "2-Meta-Llama-3-8B-Instruct",
-    #     "seed1000",
-    #     metric="perspective",
-    #     only_continuations=True,
-    # )
-    # create_common_json(
-    #     "Meta-Llama-3-8B-Instruct",
-    #     "seed2000",
-    #     "Llama-3-8B-ckpt1",
-    #     "seed2000",
-    #     metric="perspective",
-    #     only_continuations=True,
-    # )
-
-    # create_common_json(
-    #     "Meta-Llama-3-8B-Instruct",
-    #     "seed2000",
-    #     "LLama-3-8b-Uncensored",
-    #     "seed1000",
-    #     metric="perspective",
-    #     only_continuations=True,
-    # )
+    evaluate_all_models()

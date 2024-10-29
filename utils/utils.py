@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 terminator = {"llama3": "<|eot_id|>", "mistral": "</s>", "gemma": "<end_of_turn>"}
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 
 def create_run_string():
     """
@@ -295,35 +297,24 @@ def create_conversation(example, model_id):
 
     elif "instruction" in example and "output" in example:
         prompt = format_content(example)
-        if "aya" in model_id.lower():
-            return prompt
+
     else:
         raise ValueError(
             "Invalid data structure. Expected either 'prompt' and 'response' keys, or 'instruction' and 'output' keys."
         )
 
-    if "gemma" in model_id.lower():
-        messages = [
-            {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
-        ]
-    elif "llama-3" in model_id.lower() or "llama-2" in model_id.lower():
+    if "llama-3" in model_id.lower() or "llama-2" in model_id.lower():
         messages = [
             {"role": "system", "content": DEFAULT_INSTRUCTION_SYS},
             {"role": "user", "content": prompt},
         ]
-    elif "mistral" in model_id.lower():
-        messages = [
-            {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
-        ]
+
     else:
-        # Default format, similar to Mistral
         messages = [
             {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
         ]
 
     return {"messages": messages}
-    # print(messages)
-    # return messages
 
 
 def download_file_from_wandb(
@@ -505,14 +496,15 @@ if __name__ == "__main__":
     #     "LLM_Accountability/continuations/qp8f41we",  # llama ckpt10 seed1000
     # ]
 
-    run_paths = ["LLM_Accountability/continuations/a1w6am2t"]
+    run_paths = ["LLM_Accountability/continuations/gp0si9wk"]
     pattern = "continuations"
+    file_name = "aya-23-8b_continuations_seed1000.json"
 
     # for run_path in run_paths:
     #     download_file_from_wandb(run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed)
 
     download_file_from_wandb(
         run_path=run_paths[0],
-        file_name="output.log",
-        # get_save_path=folder_from_model_and_seed,
+        file_name=file_name,
+        get_save_path=folder_from_model_and_seed,
     )

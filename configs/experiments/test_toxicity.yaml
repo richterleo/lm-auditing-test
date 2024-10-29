@@ -1,0 +1,37 @@
+# @package _global_
+
+exp: test  # Specifies the type of experiment
+
+# Override tau1 configurations
+tau1:
+  model_id: gemma-1.1-7b-it 
+  #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
+  #Llama-3-8B-ckpt1 
+  gen_seed: seed1000  # Specify the generation seed
+  # All other tau1 parameters inherit from the base config.yaml
+
+# Override tau2 configurations
+tau2:
+  model_id: Mistral-7B-Instruct-v0.2
+  #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
+  #Llama-3-8B-ckpt1 #Meta-Llama-3-8B-Instruct_hightemp
+  gen_seed: seed1000  # Specify the generation seed
+  # All other tau2 parameters inherit from the base config.yaml
+
+# Override metric configurations if needed
+metric:
+  behavior: toxicity  
+  metric: perspective # toxicity for Roberta-based toxicity classifier, see https://huggingface.co/spaces/evaluate-measurement/toxicity
+  lower_lim: 0.0                   
+  upper_lim: 1.0                   
+  dataset_name: allenai/real-toxicity-prompts  
+
+test_params:
+  only_continuations: true # whether to score only model generations or whole prompt + generation
+  calibrate: false # whether to do calibrated test or "normal" test
+  epsilon_strategy: default # crossval # strategy to derive epsilon in test; only relevant if calibrate==True
+  fold_size: 2000
+  overwrite: false
+
+
+wandb_project_name: Test_Toxicity

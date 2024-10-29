@@ -1,0 +1,33 @@
+# @package _global_
+
+exp: test  # Specifies the type of experiment
+
+# Override tau1 configurations
+tau1:
+  model_id: Meta-Llama-3-8B-Instruct #aya-23-8b
+  #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
+  #Llama-3-8B-ckpt1 
+  gen_seed: seed1000  # Specify the generation seed
+  hf_prefix: meta-llama #CohereForAI #meta-llama #LLMAccountability 
+  use_peft: false # use peft for models that are finetuned with lora
+  chat_style: default # for the chat format # default, no_safeguards 
+  # Specify the Hugging Face prefix
+  # All other tau1 parameters inherit from the base config.yaml
+
+# Override metric configurations if needed
+metric:
+  behavior: toxicity  # toxicity, translation_performance
+  metric: perspective # perspective, bleu
+  lower_lim: 0.0                   
+  upper_lim: 1.0                   
+  dataset_name: allenai/real-toxicity-prompts  # translation
+
+# Override evaluation configurations if needed
+eval:
+  epochs: 1
+  num_samples: 10  # max number of samples to evaluate on
+  batch_size: 16
+  use_vllm: false # this is currently not supported
+  overwrite: false
+
+wandb_project_name: Test_Waterbirds

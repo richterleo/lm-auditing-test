@@ -55,24 +55,20 @@ def load_into_scores_ds(
     seed2: str,
     metric,
     fold_num=None,
-    output_dir="test_outputs",
+    test_dir="test_outputs",
+    score_dir="model_scores",
+    gen_dir="model_outputs",
     only_continuations=True,
 ):
     """ """
-    try:
-        if only_continuations:
-            file_path = (
-                f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores_fold_{fold_num}.json"
-                if fold_num or fold_num == 0
-                else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores.json"
-            )
-        else:
-            file_path = (
-                f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
-                if fold_num or fold_num == 0
-                else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
-            )
+    cont_string = "continuation_" if only_continuations else ""
+    file_path = (
+        f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores_fold_{fold_num}.json"
+        if fold_num or fold_num == 0
+        else f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores.json"
+    )
 
+    try:
         with open(file_path, "r") as file:
             data = json.load(file)
 
@@ -82,21 +78,17 @@ def load_into_scores_ds(
 
     except FileNotFoundError as e:
         create_folds_from_evaluations(
-            model_name1, seed1, model_name2, seed2, overwrite=False, only_continuations=only_continuations
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
+            overwrite=False,
+            only_continuations=only_continuations,
+            test_dir=test_dir,
+            score_dir=score_dir,
+            gen_dir=gen_dir,
         )
 
-        if only_continuations:
-            file_path = (
-                f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores_fold_{fold_num}.json"
-                if fold_num or fold_num == 0
-                else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_continuation_scores.json"
-            )
-        else:
-            file_path = (
-                f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores_fold_{fold_num}.json"
-                if fold_num
-                else f"{output_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_scores.json"
-            )
         with open(file_path, "r") as file:
             data = json.load(file)
 

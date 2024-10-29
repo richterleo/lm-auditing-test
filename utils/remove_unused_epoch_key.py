@@ -33,7 +33,7 @@ def remove_zero_key_and_flatten(file_path, return_data=False):
             print(f"Successfully processed '{file_path}'")
 
         else:
-            print(f"Key '0' not found in {file_path}")
+            print(f"Key '0' not found in {file_path}. No changes made.")
             new_data = data
 
         if return_data:
@@ -47,9 +47,7 @@ def remove_zero_key_and_flatten(file_path, return_data=False):
 
 if __name__ == "__main__":
     # Define the folder path
-    folder_path = (
-        "/root/Auditing_Test_for_LMs/model_scores"  # Replace with the actual path
-    )
+    folder_path = "/root/Auditing_Test_for_LMs/model_scores"  # Replace with the actual path
 
     # Walk through the directory and process each JSON file
     for root, dirs, files in os.walk(folder_path):

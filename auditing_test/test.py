@@ -16,21 +16,14 @@ from typing import Optional, Dict, List, Union
 from arguments import TrainCfg
 from logging_config import setup_logging
 
-from auditing_test.eval_trainer import OnlineTrainer, OfflineTrainer
+from auditing_test.evaltrainer import OfflineTrainer
 from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
-from auditing_test.preprocessing_task import process_translation
+# from auditing_test.preprocessing_SuperNI import process_translation
 
-from evaluation.nn_for_nn_distance import CMLP
-from evaluation.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
-from evaluation.plot import distance_box_plot, plot_calibrated_detection_rate
+from analysis.nn_for_nn_distance import CMLP
+from analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
+from analysis.plot import distance_box_plot, plot_calibrated_detection_rate
 
-from utils.generate_and_evaluate import (
-    generate_on_dataset,
-    generate_on_dataset_with_model,
-    generate_on_task_dataset,
-    generate_on_task_dataset_with_model,
-    generate_on_task_dataset_with_aya,
-)
 from utils.utils import (
     create_run_string,
 )
@@ -40,22 +33,33 @@ deep_anytime_testing = importlib.import_module("deep-anytime-testing")
 train = importlib.import_module("deep-anytime-testing.trainer.trainer")
 Trainer = getattr(train, "Trainer")
 
+SCRIPT_DIR = Path(__file__).resolve().parent
 
-class Experiment:
+
+class Test:
     """ """
 
     def __init__(
         self,
         config: Dict,
         train_cfg: TrainCfg,
-        output_dir: str,
+        dir_prefix: str,
+        test_dir: Optional[str] = "test_outputs",
+        score_dir: Optional[str] = "model_scores",
+        gen_dir: Optional[str] = "model_outputs",
+        plot_dir: Optional[str] = "plots",
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
     ):
         self.config = config
         self.train_cfg = train_cfg
-        self.output_dir = output_dir
+
+        self.test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
+        self.score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
+        self.gen_dir = SCRIPT_DIR.parent / dir_prefix / gen_dir
+        self.plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+
         self.overwrite = overwrite
 
         self.use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
@@ -97,7 +101,7 @@ class Experiment:
         raise NotImplementedError
 
 
-class AuditingTest(Experiment):
+class AuditingTest(Test):
     """ """
 
     FOLD_PATTERN = r"_fold_(\d+)\.json$"
@@ -106,17 +110,17 @@ class AuditingTest(Experiment):
         self,
         config: Dict,
         train_cfg: TrainCfg,
+        dir_prefix: str,
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
-        output_dir: str = "test_outputs",
         use_full_ds_for_nn_distance: bool = False,
         only_continuations: bool = True,
     ):
         super().__init__(
             config,
             train_cfg,
-            output_dir,
+            dir_prefix,
             overwrite=overwrite,
             use_wandb=use_wandb,
             metric=metric,
@@ -193,6 +197,10 @@ class AuditingTest(Experiment):
             use_wandb=self.use_wandb,
             fold_num=fold_num,
             epsilon=self.epsilon,
+            test_dir=self.test_dir,
+            score_dir=self.score_dir,
+            gen_dir=self.gen_dir,
+            only_continuations=self.only_continuations,
         )
 
         return trainer.train()
@@ -200,10 +208,10 @@ class AuditingTest(Experiment):
     def kfold_davtt(self):
         """ """
 
+        cont_string = "_continuations" if self.only_continuations else ""
+
         file_path = (
-            Path(self.directory) / f"kfold_test_results_{self.fold_size}_epsilon_{self.epsilon}.csv"
-            if not self.only_continuations
-            else Path(self.directory) / f"kfold_test_results_continuations_{self.fold_size}_epsilon_{self.epsilon}.csv"
+            Path(self.directory) / f"kfold_test_results{cont_string}_{self.fold_size}_epsilon_{self.epsilon}.csv"
         )
 
         if Path(file_path).exists() and not self.overwrite:
@@ -232,6 +240,10 @@ class AuditingTest(Experiment):
                 metric=self.config["metric"]["metric"],
                 fold_size=self.fold_size,
                 overwrite=self.overwrite,
+                score_dir=self.score_dir,
+                gen_dir=self.gen_dir,
+                test_dir=self.test_dir,
+                only_continuations=self.only_continuations,
             )
 
             for file_name in os.listdir(self.directory):
@@ -263,7 +275,7 @@ class AuditingTest(Experiment):
             all_folds_data.to_csv(file_path, index=False)
             positive_rate = sum_positive / len(folds)
 
-        cleanup_files(self.directory, f"{self.metric}_scores_fold_*.json")
+        cleanup_files(self.directory, f"*scores_fold_*.json")
 
         self.logger.info(f"Positive tests: {positive_rate}, {round(positive_rate*100, 2)}%.")
 
@@ -298,6 +310,8 @@ class AuditingTest(Experiment):
                 train_cfg=self.train_cfg,
                 num_samples=[self.train_cfg.batch_size, num_train_samples],
                 num_test_samples=self.train_cfg.batch_size,
+                only_continuations=self.only_continuations,
+                score_dir=self.score_dir,
             )
 
             distance_df.to_csv(dist_path, index=False)
@@ -316,15 +330,19 @@ class AuditingTest(Experiment):
                 }
             )
 
-        # Plot the results
-        distance_box_plot(
-            distance_df,
-            self.model_name1,
-            self.seed1,
-            self.seed2,
-            self.model_name2,
-            metric=self.metric,
-        )
+        try:
+            # Plot the results
+            distance_box_plot(
+                distance_df,
+                self.model_name1,
+                self.seed1,
+                self.seed2,
+                self.model_name2,
+                metric=self.metric,
+            )
+
+        except FileNotFoundError as e:
+            self.logger.error(f"Error plotting distance box plot: {e}")
 
     def run(
         self,
@@ -332,7 +350,7 @@ class AuditingTest(Experiment):
         seed1=None,
         model_name2=None,
         seed2=None,
-        fold_size=4000,
+        fold_size=2000,
         analyze_distance=True,
         run_davtt=True,
     ):
@@ -341,7 +359,7 @@ class AuditingTest(Experiment):
         self.seed1 = seed1 if seed1 else self.config["tau1"]["gen_seed"]
         self.model_name2 = model_name2 if model_name2 else self.config["tau2"]["model_id"]
         self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
-        self.fold_size = fold_size
+        self.fold_size = fold_size if fold_size else self.config["test_params"]["fold_size"]
 
         if self.use_wandb:
             self.initialize_wandb()
@@ -350,7 +368,7 @@ class AuditingTest(Experiment):
         if not self.logger:
             self.setup_logger(tag="test_results_and_analyze" if analyze_distance else "test_results")
         if not self.directory:
-            self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+            self.directory = f"{self.test_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
 
         if run_davtt:
             power = self.kfold_davtt()
@@ -426,10 +444,10 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
             self.logger.info(f"Training neural net distance on {num_train_samples} samples for {self.num_runs} runs.")
             # TODO: refactor this
             distance_df = get_distance_scores(
-                distance_score_kwargs["model_name1"],
-                distance_score_kwargs["seed1"],
-                distance_score_kwargs["seed2"],
-                model_name2=distance_score_kwargs["model_name2"],
+                distance_score_kwargs["base_model"],
+                distance_score_kwargs["base_seed"],
+                distance_score_kwargs["test_seed"],
+                model_name2=distance_score_kwargs["test_model"],
                 metric=distance_score_kwargs["metric"],
                 num_runs=self.num_runs,
                 net_cfg=distance_score_kwargs["net_cfg"],
@@ -446,14 +464,18 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
 
         if not self.bias == 0:
             self.logger.info(f"Subtracting bias of {self.bias} to the neural net distance epsilon.")
-        return sorted(
-            list(
-                set(
-                    max(mean_nn_distance + std_nn_distance * i - self.bias, 0)
-                    for i in range(-self.multiples_of_epsilon, self.multiples_of_epsilon + 1)
+        return (
+            sorted(
+                list(
+                    set(
+                        max(mean_nn_distance + std_nn_distance * i - self.bias, 0)
+                        for i in range(-self.multiples_of_epsilon, self.multiples_of_epsilon + 1)
+                    )
                 )
-            )
-        ), mean_nn_distance
+            ),
+            mean_nn_distance,
+            std_nn_distance,
+        )
 
 
 class CrossValEpsilonStrategy(EpsilonStrategy):
@@ -778,6 +800,9 @@ class CalibratedAuditingTest(AuditingTest):
                 self.directory, self.num_train_samples, **calibration_cfg
             )
 
+            # TODO delete this!!!
+            epsilons = list(np.linspace(0, 2 * true_epsilon, 10))
+
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
             self.logger.info(f"True distance: {true_epsilon}")
 
@@ -816,71 +841,3 @@ class CalibratedAuditingTest(AuditingTest):
             fold_size=fold_size,
             # overwrite=True,
         )
-
-
-def eval_model(
-    config,
-    model_id: Optional[int] = None,
-    hf_prefix: Optional[str] = None,
-    num_samples: Optional[int] = None,
-    batch_size: Optional[int] = None,
-    use_wandb: Optional[int] = None,
-    eval_on_task: Optional[bool] = False,
-):
-    """ """
-    use_wandb = use_wandb if use_wandb is not None else config["logging"]["use_wandb"]
-
-    project_name = "continuations"
-
-    if use_wandb:
-        wandb.init(
-            project=project_name,
-            entity=config["logging"]["entity"],
-            name=create_run_string(),
-            config=config,
-        )
-
-    if model_id:
-        config["tau1"]["model_id"] = model_id
-
-    if hf_prefix:
-        config["tau1"]["hf_prefix"] = hf_prefix
-
-    if not eval_on_task:
-        generate_on_dataset(
-            config["metric"]["dataset_name"],
-            config["tau1"],
-            config["eval"]["num_samples"] if not num_samples else num_samples,
-            batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
-            use_wandb=use_wandb,
-            seed=config["tau1"]["gen_seed"],
-            metric=config["metric"]["metric"],
-        )
-    else:
-        if "aya" in config["tau1"]["model_id"].lower():
-            print(f"Using aya model")
-            generate_on_task_dataset_with_aya(
-                config["task_metric"]["dataset_name"],
-                config["task_metric"]["few_shot"],
-                config["tau1"],
-                config["eval"]["num_samples"] if not num_samples else num_samples,
-                batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
-                use_wandb=use_wandb,
-                seed=config["tau1"]["gen_seed"],
-                metric=config["task_metric"]["metric"],
-            )
-
-        else:
-            generate_on_task_dataset(
-                config["task_metric"]["dataset_name"],
-                config["task_metric"]["few_shot"],
-                config["tau1"],
-                config["eval"]["num_samples"] if not num_samples else num_samples,
-                batch_size=config["eval"]["batch_size"] if not batch_size else batch_size,
-                use_wandb=use_wandb,
-                seed=config["tau1"]["gen_seed"],
-                metric=config["task_metric"]["metric"],
-            )
-
-    if use_wandb:
-        wandb.finish()

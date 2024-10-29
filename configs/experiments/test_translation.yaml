@@ -1,0 +1,26 @@
+# @package _global_
+
+exp: test  # Specifies the type of experiment
+
+# Override tau1 configurations
+tau1:
+  model_id: Meta-Llama-3-8B-Instruct # Meta-Llama-3-8B-Instruct_fewshot # aya-23-8b
+  gen_seed: seed1000  # Specify the generation seed
+  # All other tau1 parameters inherit from the base config.yaml
+
+# Override tau2 configurations
+tau2:
+  model_id: Meta-Llama-3-8B-Instruct_fewshot # Meta-Llama-3-8B-Instruct # aya-23-8b
+  gen_seed: seed1000  # Specify the generation seed
+  # All other tau2 parameters inherit from the base config.yaml
+
+# Override evaluation configurations if needed
+test_params:
+  only_continuations: true # whether to score only model generations or whole prompt + generation
+  calibrate: false # whether to do calibrated test or "normal" test
+  epsilon_strategy: default # crossval # strategy to derive epsilon in test; only relevant if calibrate==True
+  fold_size: 2000
+  overwrite: false
+
+wandb_project_name: Test_Translation
+
