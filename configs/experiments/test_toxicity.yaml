@@ -33,6 +33,8 @@ test_params:
   bias: 0 # if calibrate==True, bias for epsilon values
   fold_size: 2000
   overwrite: false
+  lower_interval_end: 0 
+  upper_interval_end: 0.2
 
 
 wandb_project_name: Test_Toxicity
