@@ -5,7 +5,7 @@ for combination in "gemma-1.1-7b-it gemma-1.1-7b-it-ckpt" "Meta-Llama-3-8B-Instr
 set -- $combination
 model_name1=$1
 model_name2=$2
-for fold_size in 500 1500; do
+for fold_size in 500 1000 1500 2000 2500 3000 4000; do
 for i in {1..10}; do
     if [[ $model_name2 == Llama-3-8B-ckpt && $i -le 4 ]]; then
         python -u main.py --exp test --no_wandb --model_name1 "$model_name1" --model_name2 "${model_name2}$i" --fold_size $fold_size --seed2 seed2000 > test_${model_name1}_${model_name2}_${i}_${fold_size}_output.txt 2>&1 &

@@ -332,7 +332,7 @@ def plot_power_over_number_of_sequences_for_models(
     plot_dir: str = "plots",
     metric: str = "perspective",
     only_continuations=True,
-    fold_size=4000,
+    fold_size=2000,
     epsilon: Union[float, List[float]] = 0,
     palette: Optional[Union[List[str], Dict[str, str]]] = None,
     sizes: Optional[Dict[str, int]] = None,
@@ -1853,9 +1853,10 @@ def plot_scores_two_models(
 
 @hydra.main(
     config_path=".",
-    config_name="plotting_config.yml",
+    config_name="tox_plotting_config.yml",
 )
-def plot_all(cfg: DictConfig):  # TODO: add alternative seeds
+def plot_toxicity(cfg: DictConfig):
+    """ """
     base_models = []
     base_seeds = []
     base_seeds2 = []
@@ -1890,9 +1891,9 @@ def plot_all(cfg: DictConfig):  # TODO: add alternative seeds
             seeds,
             checkpoints,
             checkpoint_base_name=bm.checkpoint_base_name,
-            fold_size=2000,
+            fold_size=list(cfg.fold_sizes)[-1],
             group_by="Empirical Wasserstein Distance",
-            only_continuations=True,  # TODO make this changeable
+            only_continuations=cfg.only_continuations,
             marker=bm.marker,
         )
 

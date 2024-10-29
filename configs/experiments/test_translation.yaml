@@ -17,10 +17,12 @@ tau2:
 # Override evaluation configurations if needed
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  calibrate: false # whether to do calibrated test or "normal" test
   epsilon_strategy: default # crossval # strategy to derive epsilon in test; only relevant if calibrate==True
+  epsilon_ticks: 10 # number of epsilon values to try; only relevant if calibrate==True
+  bias: 0 # if calibrate==True, bias for epsilon values
   fold_size: 2000
   overwrite: false
 
 wandb_project_name: Test_Translation
 
+calibrate: false # whether to do calibrated test or "normal" test

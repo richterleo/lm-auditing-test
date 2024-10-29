@@ -51,3 +51,4 @@ fold_sizes:
   - 1500
   - 2000
 metric: "perspective"
+only_continuations: true

@@ -410,8 +410,32 @@ class EpsilonStrategy(ABC):
 class DefaultEpsilonStrategy(EpsilonStrategy):
     def __init__(
         self,
+        lower_interval_end: Optional[float] = None,
+        upper_interval_end: Optional[float] = None,
+        epsilon_ticks: Optional[int] = None,
+        config: Optional[Dict] = None,
+    ):
+        self.lower_interval_end = (
+            lower_interval_end if lower_interval_end is not None else config["analysis"]["lower_interval_end"]
+        )
+        self.upper_interval_end = (
+            upper_interval_end if upper_interval_end is not None else config["analysis"]["upper_interval_end"]
+        )
+        self.epsilon_ticks = epsilon_ticks if epsilon_ticks is not None else config["analysis"]["epsilon_ticks"]
+
+    def attach_logger(self, logger: logging.Logger):
+        self.logger = logger
+
+    def calculate_epsilons(self, **kwargs) -> list:
+        epsilons = np.linspace(self.lower_interval_end, self.upper_interval_end, self.epsilon_ticks)
+        return list(epsilons)
+
+
+class StandardDeviationEpsilonStrategy(EpsilonStrategy):
+    def __init__(
+        self,
         overwrite: bool = True,
-        multiples_of_epsilon: Optional[int] = None,
+        epsilon_ticks: Optional[int] = None,
         bias: Optional[float] = None,
         use_full_ds_for_nn_distance: Optional[bool] = None,
         num_runs: Optional[int] = None,
@@ -419,14 +443,10 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
     ):
         self.overwrite = overwrite
         self.multiples_of_epsilon = (
-            multiples_of_epsilon if multiples_of_epsilon is not None else config["analysis"]["multiples_of_epsilon"]
+            int(epsilon_ticks / 2) if epsilon_ticks is not None else int(config["analysis"]["epsilon_ticks"] / 2)
         )
+
         self.bias = bias if bias else config["analysis"]["bias"]
-        self.use_full_ds_for_nn_distance = (
-            use_full_ds_for_nn_distance
-            if use_full_ds_for_nn_distance is not None
-            else config["analysis"]["use_full_ds_for_nn_distance"]
-        )
 
         self.use_full_ds_for_nn_distance = (
             use_full_ds_for_nn_distance
@@ -478,111 +498,6 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
         )
 
 
-class CrossValEpsilonStrategy(EpsilonStrategy):
-    def __init__(
-        self,
-        models_and_seeds: List[Dict[str, Union[str, int]]],
-        overwrite: bool = True,
-        multiples_of_epsilon: Optional[int] = None,
-        bias: Optional[float] = None,
-        use_full_ds_for_nn_distance: Optional[bool] = None,
-        num_runs: Optional[int] = None,
-        config: Optional[Dict] = None,
-        autocorrelate: bool = False,
-    ):
-        self.models_and_seeds = models_and_seeds
-        self.overwrite = overwrite
-        self.multiples_of_epsilon = (
-            multiples_of_epsilon if multiples_of_epsilon is not None else config["analysis"]["multiples_of_epsilon"]
-        )
-        self.bias = bias if bias else config["analysis"]["bias"]
-        self.use_full_ds_for_nn_distance = (
-            use_full_ds_for_nn_distance
-            if use_full_ds_for_nn_distance is not None
-            else config["analysis"]["use_full_ds_for_nn_distance"]
-        )
-        self.num_runs = num_runs if num_runs is not None else config["analysis"]["num_runs"]
-
-        self.autocorrelate = autocorrelate
-
-    def calculate_epsilons(self, test_dir, num_train_samples, **distance_score_kwargs) -> list:
-        all_distances = []
-
-        # Extract the base directory
-        base_dir = Path(test_dir).parent
-
-        for model in self.models_and_seeds:
-            model_name = model["model_name"]
-            seed = model["seed"]
-
-            base_model = distance_score_kwargs["model_name1"]
-            base_seed = distance_score_kwargs["seed1"]
-
-            test_model = distance_score_kwargs["model_name2"]
-            test_seed = distance_score_kwargs["seed2"]
-
-            if not self.autocorrelate:
-                if (model_name == base_model and seed == base_seed) or (model_name == test_model and seed == test_seed):
-                    self.logger.info(f"Skipped model {model_name}_{seed}.")
-                    continue
-
-            # Construct the new directory path
-            new_dir = (
-                base_dir
-                / f"{distance_score_kwargs['model_name1']}_{distance_score_kwargs['seed1']}_{model_name}_{seed}"
-            )
-
-            # Ensure the directory exists
-            new_dir.mkdir(parents=True, exist_ok=True)
-
-            dist_path = new_dir / f"distance_scores_{num_train_samples}_{self.num_runs}.csv"
-
-            if dist_path.exists() and not self.overwrite:
-                self.logger.info(f"Loading existing distance analysis for {model_name}_{seed} from {dist_path}.")
-                distance_df = pd.read_csv(dist_path)
-            else:
-                self.logger.info(
-                    f"Training neural net distance for {model_name}_{seed} on {num_train_samples} samples for {self.num_runs} runs."
-                )
-
-                distance_df = get_distance_scores(
-                    distance_score_kwargs["model_name1"],
-                    distance_score_kwargs["seed1"],
-                    seed,
-                    model_name2=model_name,
-                    metric=distance_score_kwargs["metric"],
-                    num_runs=self.num_runs,
-                    net_cfg=distance_score_kwargs["net_cfg"],
-                    train_cfg=distance_score_kwargs["train_cfg"],
-                    num_samples=distance_score_kwargs["num_samples"],
-                    num_test_samples=distance_score_kwargs["num_test_samples"],
-                )
-
-                distance_df.to_csv(dist_path, index=False)
-                self.logger.info(f"Distance analysis results for {model_name}_{seed} saved to {dist_path}.")
-
-            mean_nn_distance, _ = get_mean_and_std_for_nn_distance(distance_df)
-            all_distances.extend(distance_df["NeuralNet"].tolist())
-            self.logger.info(f"Mean nn distance for {model_name}_{seed}: {mean_nn_distance}.")
-
-        overall_mean = np.mean(all_distances)
-        overall_std = np.std(all_distances)
-
-        self.logger.info(f"Overall average nn distance: {overall_mean}, overall std: {overall_std}.")
-
-        if not self.bias == 0:
-            self.logger.info(f"Subtracting bias of {self.bias} to the neural net distance epsilon.")
-
-        return sorted(
-            list(
-                set(
-                    max(overall_mean + overall_std * i - self.bias, 0)
-                    for i in range(-self.multiples_of_epsilon, self.multiples_of_epsilon + 1)
-                )
-            )
-        ), overall_mean
-
-
 class IntervalEpsilonStrategy(EpsilonStrategy):
     def __init__(
         self,
@@ -594,13 +509,14 @@ class IntervalEpsilonStrategy(EpsilonStrategy):
         base_seed: Optional[int] = None,
         overwrite: bool = False,
         epsilon_ticks: Optional[int] = None,
-        epsilon_interval: Optional[float] = None,
         use_full_ds_for_nn_distance: Optional[bool] = None,
         num_runs: Optional[int] = None,
         config: Optional[Dict] = None,
     ):
+        # lower epsilon bound
         self.lower_model = lower_model
         self.lower_seed = lower_seed
+        # upper epsilon bound
         self.upper_model = upper_model
         self.upper_seed = upper_seed
 
@@ -615,16 +531,8 @@ class IntervalEpsilonStrategy(EpsilonStrategy):
         )
         self.num_runs = num_runs if num_runs is not None else config["analysis"]["num_runs"]
 
-        if epsilon_ticks:
-            self.epsilon_ticks = epsilon_ticks
-            self.epsilon_interval = None
-        else:
-            self.epsilon_ticks = None
-            self.epsilon_interval = epsilon_interval
-
-        if self.epsilon_ticks is None and self.epsilon_interval is None:
-            # default is interval
-            self.epsilon_ticks = config["analysis"]["epsilon_ticks"]
+        # number of epsilon values in the interval
+        self.epsilon_ticks = epsilon_ticks if epsilon_ticks is not None else config["analysis"]["epsilon_ticks"]
 
     def calculate_epsilons(self, test_dir, num_train_samples, **distance_score_kwargs) -> list:
         distances = {}
@@ -636,6 +544,7 @@ class IntervalEpsilonStrategy(EpsilonStrategy):
 
         test_model = distance_score_kwargs["test_model"]
         test_seed = distance_score_kwargs["test_seed"]
+        self.logger.info(f"Test model: {test_model}")
 
         base_dir = Path(test_dir).parent
 
@@ -694,7 +603,7 @@ class CalibratedAuditingTest(AuditingTest):
         self,
         config: Dict,
         train_cfg: TrainCfg,
-        calibration_strategy: EpsilonStrategy,
+        calibration_strategy: Optional[EpsilonStrategy] = None,
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
@@ -752,9 +661,10 @@ class CalibratedAuditingTest(AuditingTest):
         self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
         self.fold_size = fold_size
 
-        self.directory = f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
-        if not Path(self.directory).exists():
-            Path(self.directory).mkdir(parents=True)
+        self.directory = Path(f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}")
+        self.directory.mkdir(parents=True, exist_ok=True)
+
+        cont_string = "_continuations" if self.only_continuations else ""
 
         if self.config["analysis"]["num_samples"] == 0:
             self.num_train_samples = (
@@ -767,11 +677,7 @@ class CalibratedAuditingTest(AuditingTest):
         # set up logger
         self.setup_logger(tag="calibrated_test_results")
 
-        epsilon_path = (
-            Path(self.directory) / f"power_over_epsilon_{self.num_train_samples}_{self.num_runs}.csv"
-            if not self.only_continuations
-            else Path(self.directory) / f"power_over_epsilon_continuations_{self.num_train_samples}_{self.num_runs}.csv"
-        )
+        epsilon_path = self.directory / f"power_over_epsilon{cont_string}_{self.num_train_samples}_{self.num_runs}.csv"
 
         if epsilon_path.exists():
             self.logger.info(f"Calibrated testing results already exist in {epsilon_path}.")
@@ -799,9 +705,6 @@ class CalibratedAuditingTest(AuditingTest):
             epsilons, true_epsilon, std_epsilon = self.calibration_strategy.calculate_epsilons(
                 self.directory, self.num_train_samples, **calibration_cfg
             )
-
-            # TODO delete this!!!
-            epsilons = list(np.linspace(0, 2 * true_epsilon, 10))
 
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
             self.logger.info(f"True distance: {true_epsilon}")

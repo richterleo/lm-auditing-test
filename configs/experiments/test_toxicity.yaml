@@ -28,10 +28,13 @@ metric:
 
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  calibrate: false # whether to do calibrated test or "normal" test
-  epsilon_strategy: default # crossval # strategy to derive epsilon in test; only relevant if calibrate==True
+  epsilon_strategy: default # interval # if calibrate==True, strategy to derive epsilon in test
+  epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
+  bias: 0 # if calibrate==True, bias for epsilon values
   fold_size: 2000
   overwrite: false
 
 
 wandb_project_name: Test_Toxicity
+
+calibrate: false # whether to do calibrated test or "normal" test
