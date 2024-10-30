@@ -35,6 +35,10 @@ test_params:
   overwrite: false
   lower_interval_end: 0 
   upper_interval_end: 0.2
+  lower_model: 
+  lower_model_seed:
+  upper_model:
+  upper_model_seed:
 
 
 wandb_project_name: Test_Toxicity

@@ -320,6 +320,8 @@ def get_distance_scores(
     num_runs: int = 1,
     use_scipy_wasserstein: bool = True,
     only_continuations: bool = True,
+    save: bool = True,
+    overwrite: bool = True,
     **kwargs,
 ) -> pd.DataFrame:
     """ """
@@ -430,6 +432,7 @@ def get_distance_scores(
 
         else:
             if "NeuralNet" in distance_measures:
+                num_train_samples_list = []
                 if isinstance(num_samples, int):
                     num_samples = [num_samples]
 
@@ -459,6 +462,15 @@ def get_distance_scores(
 
                         train_scores1 = [scores1[i] for i in range(len(scores1)) if i not in random_test_indices]
                         train_scores2 = [scores2[i] for i in range(len(scores2)) if i not in random_test_indices]
+
+                        if num_train_samples > len(train_scores1):
+                            logger.warning(
+                                f"Number of train samples {num_train_samples} is greater than the number of available samples {len(train_scores1)}. We are training on all available samples."
+                            )
+                            num_train_samples = len(train_scores1)
+
+                        num_train_samples_list.append(num_train_samples)
+                        dist_dict["num_train_samples"] = int(num_train_samples)
 
                         random_train_indices = np.random.choice(len(train_scores1), num_train_samples, replace=False)
                         current_train_scores1 = [train_scores1[i] for i in random_train_indices]
@@ -500,6 +512,23 @@ def get_distance_scores(
         else:
             if evaluate_wasserstein_on_full:
                 dist_df = pd.DataFrame([wasserstein_dist_dict])
+
+        if save:
+            if not score_dir.exists():
+                score_dir.mkdir(parents=True, exist_ok=True)
+
+            dist_file = f"distance_scores"
+            nts_list = list(set(num_train_samples_list))
+            for nts in nts_list:
+                dist_file += f"_{nts}"
+            dist_file += f"_{num_runs}.csv"
+
+            dist_path = score_dir / dist_file
+
+            if not dist_path.exists() or overwrite:
+                dist_df.to_csv(dist_path, index=False)
+            else:
+                logger.info(f"File {dist_path} already exists. Use overwrite=True to overwrite it.")
 
         return dist_df
 
@@ -844,6 +873,37 @@ def get_mean_tox_scores(
 
 
 if __name__ == "__main__":
-    get_mean_tox_scores(only_continuations=True, diff=False)
+    # get_mean_tox_scores(only_continuations=True, diff=False)
 
-    # model_name = "sentence_perturbation-Meta-Llama-3-8B-Instruct_seed1000"
+    base_model_name = "Meta-Llama-3-8B-Instruct"
+    base_seed = "seed1000"
+
+    model_name1 = "Llama-3-8B-ckpt1"
+    model_name2 = "Llama-3-8B-ckpt5"
+    model_name3 = "Llama-3-8B-ckpt10"
+    model_name4 = "Meta-Llama-3-8B-Instruct-hightemp"
+    model_name5 = "Meta-Llama-3-8B-Instruct"
+    # model_names = [model_name1, model_name2, model_name3, model_name4]
+    model_names = [model_name5]
+    seeds = ["seed1000", "seed1000", "seed1000", "seed1000", "seed2000"]
+
+    num_train_samples = [100, 300, 1000, 3000, 10000, 30000, 100000]
+
+    train_cfg = TrainCfg()
+    net_config = {"input_size": 1, "hidden_layer_size": [32, 32], "layer_norm": True, "bias": True}
+
+    for model_name, seed in zip(model_names, seeds):
+        df = get_distance_scores(
+            base_model_name,
+            base_seed,
+            "seed2000",
+            train_cfg=train_cfg,
+            net_cfg=net_config,
+            model_name2=model_name,
+            distance_measures=["NeuralNet"],
+            num_runs=5,
+            num_samples=num_train_samples,
+            evaluate_wasserstein_on_full=False,
+            save=True,
+            overwrite=False,  # Set to True if you want to overwrite existing files
+        )
