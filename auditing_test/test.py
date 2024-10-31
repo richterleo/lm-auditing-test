@@ -16,7 +16,7 @@ from typing import Optional, Dict, List, Union, Tuple
 from arguments import TrainCfg
 from logging_config import setup_logging
 
-from auditing_test.epsilon_strategies import EpsilonStrategy
+from auditing_test.calibration_strategies import CalibrationStrategy
 from auditing_test.evaltrainer import OfflineTrainer
 from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
 # from auditing_test.preprocessing_SuperNI import process_translation
@@ -52,9 +52,12 @@ class Test:
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
+        only_continuations: bool = True,
     ):
         self.config = config
         self.train_cfg = train_cfg
+
+        self.dir_prefix = dir_prefix
 
         self.test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
         self.score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
@@ -69,10 +72,12 @@ class Test:
         # initialize instance parameters to None
         self.model_name1 = None
         self.seed1 = None
-        self.directory = None
+        # self.directory = None
 
         # logger setup
         self.logger = None
+
+        self.only_continuations = only_continuations
 
     def initialize_wandb(self, project: str, tags: List[str]):
         """ """
@@ -115,7 +120,6 @@ class AuditingTest(Test):
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
-        # use_full_ds_for_nn_distance: bool = False,
         only_continuations: bool = True,
     ):
         super().__init__(
@@ -133,10 +137,6 @@ class AuditingTest(Test):
         self.model_name2 = None
         self.seed2 = None
         self.fold_size = None
-
-        # for neural net distance evaluation
-        # self.use_full_ds_for_nn_distance = use_full_ds_for_nn_distance
-        self.only_continuations = only_continuations
 
     def initialize_wandb(self, tags: List[str] = ["kfold"]):
         """ """
@@ -355,6 +355,7 @@ class AuditingTest(Test):
         fold_size=2000,
         analyze_distance=True,
         run_davtt=True,
+        **kwargs,
     ):
         """ """
         self.model_name1 = model_name1 if model_name1 else self.config["tau1"]["model_id"]
@@ -367,10 +368,8 @@ class AuditingTest(Test):
             self.initialize_wandb()
             self.update_wandb()
 
-        if not self.logger:
-            self.setup_logger(tag="test_results_and_analyze" if analyze_distance else "test_results")
-        if not self.directory:
-            self.directory = f"{self.test_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+        self.setup_logger(tag="test_results_and_analyze" if analyze_distance else "test_results")
+        self.directory = f"{self.test_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
 
         if run_davtt:
             power = self.kfold_davtt()
@@ -391,9 +390,10 @@ class CalibratedAuditingTest(AuditingTest):
         config: Dict,
         train_cfg: TrainCfg,
         dir_prefix: str,
+        calibration_strategy: CalibrationStrategy,
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
-        calibration_strategy: Optional[EpsilonStrategy] = None,
+        # calibration_strategy: Optional[CalibrationStrategy] = None,
         metric: Optional[bool] = None,
         # num_samples: Optional[int] = 0,
         # use_full_ds_for_nn_distance: bool = False,
@@ -412,10 +412,6 @@ class CalibratedAuditingTest(AuditingTest):
 
         # self.num_samples = num_samples if num_samples else config["analysis"]["num_samples"]
         self.power_dict = {}
-
-        self.num_train_samples = (
-            self.fold_size // self.train_cfg.batch_size
-        ) * self.train_cfg.batch_size - self.train_cfg.batch_size
 
         self.calibration_strategy = calibration_strategy
 
@@ -439,8 +435,9 @@ class CalibratedAuditingTest(AuditingTest):
         seed1=None,
         model_name2=None,
         seed2=None,
-        fold_size=4000,
+        fold_size=2000,
         calibrate_only=False,
+        **kwargs,
     ):
         """ """
 
@@ -448,27 +445,22 @@ class CalibratedAuditingTest(AuditingTest):
         self.seed1 = seed1 if seed1 else self.config["tau1"]["gen_seed"]
         self.model_name2 = model_name2 if model_name2 else self.config["tau2"]["model_id"]
         self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
-        self.fold_size = fold_size
+        self.fold_size = fold_size if fold_size else self.config["test_params"]["fold_size"]
 
-        self.directory = Path(f"{self.output_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}")
+        self.directory = self.test_dir / f"{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
         self.directory.mkdir(parents=True, exist_ok=True)
 
         cont_string = "_continuations" if self.only_continuations else ""
 
-        # if self.config["analysis"]["num_samples"] == 0:
-        #     self.num_train_samples = (
-        #         fold_size // self.train_cfg.batch_size
-        #     ) * self.train_cfg.batch_size - self.train_cfg.batch_size
+        self.setup_logger(tag="calibrated_test_results" if not calibrate_only else "calbrations")
 
-        # else:
-        #     self.num_train_samples = self.config["analysis"]["num_samples"]
+        num_train_samples = (
+            self.fold_size // self.train_cfg.batch_size
+        ) * self.train_cfg.batch_size - self.train_cfg.batch_size
 
-        # set up logger
-        self.setup_logger(tag="calibrated_test_results")
+        epsilon_path = self.directory / f"power_over_epsilon{cont_string}_{num_train_samples}_{self.num_runs}.csv"
 
-        epsilon_path = self.directory / f"power_over_epsilon{cont_string}_{self.num_train_samples}_{self.num_runs}.csv"
-
-        if epsilon_path.exists():
+        if epsilon_path.exists() and not self.overwrite:
             self.logger.info(f"Calibrated testing results already exist in {epsilon_path}.")
             dist_path = Path(self.directory) / f"distance_scores_{self.num_train_samples}_{self.num_runs}.csv"
             try:
@@ -486,12 +478,14 @@ class CalibratedAuditingTest(AuditingTest):
                 "num_test_samples": self.train_cfg.batch_size,
                 "only_continuations": self.only_continuations,
             }
+
             epsilons, true_epsilon, std_epsilon = self.calibration_strategy.calculate_epsilons(
                 self.model_name1,
                 self.seed1,
                 self.model_name2,
                 self.seed2,
-                [self.train_cfg.batch_size, self.num_train_samples],
+                [self.train_cfg.batch_size, num_train_samples],
+                self.dir_prefix,
                 dist_cfg,
             )
 
@@ -507,11 +501,11 @@ class CalibratedAuditingTest(AuditingTest):
                     self.epsilon = epsilon
                     self.logger.info(f"Running test for epsilon: {epsilon}.")
                     power_dict[epsilon] = super().run(
-                        model_name1=model_name1,
-                        seed1=seed1,
-                        model_name2=model_name2,
-                        seed2=seed2,
-                        fold_size=fold_size,
+                        model_name1=self.model_name1,
+                        seed1=self.seed1,
+                        model_name2=self.model_name2,
+                        seed2=self.seed2,
+                        fold_size=self.fold_size,
                         analyze_distance=False,
                     )
 
@@ -530,6 +524,6 @@ class CalibratedAuditingTest(AuditingTest):
             draw_in_std=True,
             draw_in_first_checkpoint=False,
             draw_in_lowest_and_highest=True,
-            fold_size=fold_size,
+            fold_size=self.fold_size,
             # overwrite=True,
         )

@@ -41,8 +41,8 @@ calibration_params:
   bias: 0 # if calibrate==True, bias for epsilon values
   lower_interval_end: 0 
   upper_interval_end: 0.2
-  lower_model: Meta-Llama-3-8B-Instruct_hightemp
+  lower_model_name: Meta-Llama-3-8B-Instruct_hightemp
   lower_model_seed: seed1000
-  upper_model: LLama-3-8b-Uncensored
+  upper_model_name: LLama-3-8b-Uncensored
   upper_model_seed: seed1000
   num_runs: 20

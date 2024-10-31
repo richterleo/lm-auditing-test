@@ -11,10 +11,10 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-a
 # imports from other modules
 from auditing_test.eval import eval_model
 from auditing_test.test import AuditingTest, CalibratedAuditingTest
-from auditing_test.epsilon_strategies import (
-    DefaultEpsilonStrategy,
-    StandardDeviationEpsilonStrategy,
-    IntervalEpsilonStrategy,
+from auditing_test.calibration_strategies import (
+    DefaultStrategy,
+    StdStrategy,
+    IntervalStrategy,
 )
 
 SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
@@ -73,6 +73,7 @@ class TestExperiment(Experiment):
         fold_size: Optional[int] = None,
         analyze_distance: bool = True,
         run_davtt: bool = True,
+        calibrate_only: bool = False,
         calibrate: Optional[bool] = None,
         use_wandb: Optional[bool] = None,
     ):
@@ -83,6 +84,7 @@ class TestExperiment(Experiment):
         use_wandb = use_wandb if use_wandb is not None else self.cfg.logging.use_wandb
         overwrite = self.cfg.test_params.get("overwrite", False)
         dir_prefix = self.cfg.dir_prefix
+        only_continuations = self.cfg.test_params.only_continuations
 
         if calibrate:
             calibration_strategy = self.cfg.calibration_params.get("calibration_strategy", "default")
@@ -90,41 +92,31 @@ class TestExperiment(Experiment):
             overwrite = self.cfg.test_params.get("overwrite", False)
             dir_prefix = self.cfg.dir_prefix
 
-            if calibration_strategy == "default" or calibration_strategy.lower() == "defaultepsilonstrategy":
-                eps = DefaultEpsilonStrategy(calibration_cfg, overwrite=overwrite, dir_prefix=dir_prefix)
-            elif calibration_strategy == "std" or calibration_strategy.lower() == "standarddeviationepsilonstrategy":
-                eps = StandardDeviationEpsilonStrategy(
-                    epsilon_ticks=self.cfg.calibration_params["epsilon_ticks"],
-                    bias=self.cfg.calibration_params["bias"],
-                    num_runs=self.cfg.calibration_params["num_runs"],
-                )
-            elif calibration_strategy == "interval" or calibration_strategy.lower() == "intervalEpsilonStrategy":
-                eps = IntervalEpsilonStrategy(
-                    self.cfg.calibration_params["lower_model"],
-                    self.cfg.calibration_params["lower_model_seed"],
-                    self.cfg.calibration_params["upper_model"],
-                    self.cfg.calibration_params["upper_model_seed"],
-                    overwrite=self.cfg.calibration_params["overwrite"],
-                    epsilon_ticks=self.cfg.calibration_params["epsilon_ticks"],
-                    num_runs=self.cfg.calibration_params["num_runs"],
-                )
+            if calibration_strategy == "default" or calibration_strategy.lower() == "defaultstrategy":
+                eps = DefaultStrategy(calibration_cfg, overwrite=overwrite)
+            elif calibration_strategy == "std" or calibration_strategy.lower() == "stdstrategy":
+                eps = StdStrategy(calibration_cfg, overwrite=overwrite)
+            elif calibration_strategy == "interval" or calibration_strategy.lower() == "intervalstrategy":
+                eps = IntervalStrategy(calibration_cfg, overwrite=overwrite)
 
             exp = CalibratedAuditingTest(
                 cfg_dict,
                 self.train_cfg,
-                self.cfg.dir_prefix,
+                dir_prefix,
                 eps,
                 use_wandb=use_wandb,
-                only_continuations=self.cfg.test_params.only_continuations,
+                only_continuations=only_continuations,
             )
+
         else:
             exp = AuditingTest(
                 cfg_dict,
                 self.train_cfg,
-                self.cfg.dir_prefix,
+                dir_prefix,
                 use_wandb=use_wandb,
-                only_continuations=self.cfg.test_params.only_continuations,
+                only_continuations=only_continuations,
             )
+
         exp.run(
             model_name1=model_name1,
             seed1=seed1,
@@ -133,4 +125,5 @@ class TestExperiment(Experiment):
             fold_size=fold_size,
             analyze_distance=analyze_distance,
             run_davtt=run_davtt,
+            calibrate_only=calibrate_only,
         )

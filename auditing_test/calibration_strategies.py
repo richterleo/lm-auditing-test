@@ -27,7 +27,7 @@ Trainer = getattr(train, "Trainer")
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
-class EpsilonStrategy(ABC):
+class CalibrationStrategy(ABC):
     def __init__(self, calibration_params: Dict, overwrite: bool = False, test_dir: str = "test_outputs"):
         """
         Initialize the epsilon calculation strategy with any necessary parameters.
@@ -58,7 +58,7 @@ class EpsilonStrategy(ABC):
         seed1: str,
         model_name2: str,
         seed2: str,
-        num_train_samples: Union[int, List[int, int]],
+        num_train_samples: Union[int, List],
         dir_prefix: str,
         dist_kwargs: Dict,
         # **kwargs,
@@ -104,7 +104,7 @@ class EpsilonStrategy(ABC):
         return mean_nn_distance, std_nn_distance
 
 
-class DefaultEpsilonStrategy(EpsilonStrategy):
+class DefaultStrategy(CalibrationStrategy):
     def __init__(self, calibration_params: Dict, overwrite: bool = False, test_dir="test_outputs"):
         """
         Initialize the DefaultEpsilonStrategy.
@@ -125,7 +125,7 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
         base_seed: str,
         test_model: str,
         test_seed: str,
-        num_train_samples: Union[int, List[int, int]],
+        num_train_samples: Union[int, List],
         dir_prefix: str,
         dist_kwargs: Dict,
         **kwargs,
@@ -155,7 +155,7 @@ class DefaultEpsilonStrategy(EpsilonStrategy):
         return epsilons, mean_nn_distance, std_nn_distance
 
 
-class StandardDeviationEpsilonStrategy(EpsilonStrategy):
+class StdStrategy(CalibrationStrategy):
     def __init__(
         self,
         calibration_params: Dict,
@@ -173,7 +173,7 @@ class StandardDeviationEpsilonStrategy(EpsilonStrategy):
         base_seed: str,
         test_model: str,
         test_seed: str,
-        num_train_samples: int,
+        num_train_samples: Union[List, int],
         dir_prefix: str,
         dist_kwargs: Dict,
         **kwargs,
@@ -199,7 +199,7 @@ class StandardDeviationEpsilonStrategy(EpsilonStrategy):
         return epsilons, mean_nn_distance, std_nn_distance
 
 
-class IntervalEpsilonStrategy(EpsilonStrategy):
+class IntervalStrategy(CalibrationStrategy):
     def __init__(
         self,
         calibration_params: Dict,
@@ -223,7 +223,7 @@ class IntervalEpsilonStrategy(EpsilonStrategy):
         base_seed: str,
         test_model: str,
         test_seed: str,
-        num_train_samples: int,
+        num_train_samples: Union[int, List],
         dir_prefix: str,
         dist_kwargs: Dict,
         **kwargs,
