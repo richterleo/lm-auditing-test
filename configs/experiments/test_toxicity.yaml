@@ -28,19 +28,21 @@ metric:
 
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  epsilon_strategy: default # interval # if calibrate==True, strategy to derive epsilon in test
-  epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
-  bias: 0 # if calibrate==True, bias for epsilon values
   fold_size: 2000
   overwrite: false
-  lower_interval_end: 0 
-  upper_interval_end: 0.2
-  lower_model: 
-  lower_model_seed:
-  upper_model:
-  upper_model_seed:
+  calibrate: true
 
 
 wandb_project_name: Test_Toxicity
 
-calibrate: false # whether to do calibrated test or "normal" test
+calibration_params: 
+  epsilon_strategy: default # std # interval # if calibrate==True, strategy to derive epsilon in test
+  epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
+  bias: 0 # if calibrate==True, bias for epsilon values
+  lower_interval_end: 0 
+  upper_interval_end: 0.2
+  lower_model: Meta-Llama-3-8B-Instruct_hightemp
+  lower_model_seed: seed1000
+  upper_model: LLama-3-8b-Uncensored
+  upper_model_seed: seed1000
+  num_runs: 20

@@ -320,8 +320,8 @@ def get_distance_scores(
     num_runs: int = 1,
     use_scipy_wasserstein: bool = True,
     only_continuations: bool = True,
-    save: bool = True,
-    overwrite: bool = True,
+    save: bool = False,
+    overwrite: bool = False,
     **kwargs,
 ) -> pd.DataFrame:
     """ """
@@ -883,8 +883,7 @@ if __name__ == "__main__":
     model_name3 = "Llama-3-8B-ckpt10"
     model_name4 = "Meta-Llama-3-8B-Instruct-hightemp"
     model_name5 = "Meta-Llama-3-8B-Instruct"
-    # model_names = [model_name1, model_name2, model_name3, model_name4]
-    model_names = [model_name5]
+    model_names = [model_name1, model_name2, model_name3, model_name4, model_name5]
     seeds = ["seed1000", "seed1000", "seed1000", "seed1000", "seed2000"]
 
     num_train_samples = [100, 300, 1000, 3000, 10000, 30000, 100000]
@@ -896,7 +895,7 @@ if __name__ == "__main__":
         df = get_distance_scores(
             base_model_name,
             base_seed,
-            "seed2000",
+            seed,
             train_cfg=train_cfg,
             net_cfg=net_config,
             model_name2=model_name,

@@ -115,7 +115,7 @@ class AuditingTest(Test):
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
-        use_full_ds_for_nn_distance: bool = False,
+        # use_full_ds_for_nn_distance: bool = False,
         only_continuations: bool = True,
     ):
         super().__init__(
@@ -125,6 +125,7 @@ class AuditingTest(Test):
             overwrite=overwrite,
             use_wandb=use_wandb,
             metric=metric,
+            only_continuations=only_continuations,
         )
         self.epsilon = self.config["epsilon"]
 
@@ -134,7 +135,7 @@ class AuditingTest(Test):
         self.fold_size = None
 
         # for neural net distance evaluation
-        self.use_full_ds_for_nn_distance = use_full_ds_for_nn_distance
+        # self.use_full_ds_for_nn_distance = use_full_ds_for_nn_distance
         self.only_continuations = only_continuations
 
     def initialize_wandb(self, tags: List[str] = ["kfold"]):
@@ -389,30 +390,32 @@ class CalibratedAuditingTest(AuditingTest):
         self,
         config: Dict,
         train_cfg: TrainCfg,
-        calibration_strategy: Optional[EpsilonStrategy] = None,
+        dir_prefix: str,
         overwrite: bool = False,
         use_wandb: Optional[bool] = None,
+        calibration_strategy: Optional[EpsilonStrategy] = None,
         metric: Optional[bool] = None,
-        output_dir: str = "test_outputs",
-        num_samples: Optional[int] = 0,
-        use_full_ds_for_nn_distance: bool = False,
+        # num_samples: Optional[int] = 0,
+        # use_full_ds_for_nn_distance: bool = False,
         only_continuations: bool = True,
     ):
         super().__init__(
             config,
             train_cfg,
+            dir_prefix,
             overwrite=overwrite,
             use_wandb=use_wandb,
             metric=metric,
-            output_dir=output_dir,
-            use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
+            # use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
             only_continuations=only_continuations,
         )
 
-        self.num_samples = num_samples if num_samples else config["analysis"]["num_samples"]
+        # self.num_samples = num_samples if num_samples else config["analysis"]["num_samples"]
         self.power_dict = {}
 
-        self.num_train_samples = None
+        self.num_train_samples = (
+            self.fold_size // self.train_cfg.batch_size
+        ) * self.train_cfg.batch_size - self.train_cfg.batch_size
 
         self.calibration_strategy = calibration_strategy
 
@@ -452,13 +455,13 @@ class CalibratedAuditingTest(AuditingTest):
 
         cont_string = "_continuations" if self.only_continuations else ""
 
-        if self.config["analysis"]["num_samples"] == 0:
-            self.num_train_samples = (
-                fold_size // self.train_cfg.batch_size
-            ) * self.train_cfg.batch_size - self.train_cfg.batch_size
+        # if self.config["analysis"]["num_samples"] == 0:
+        #     self.num_train_samples = (
+        #         fold_size // self.train_cfg.batch_size
+        #     ) * self.train_cfg.batch_size - self.train_cfg.batch_size
 
-        else:
-            self.num_train_samples = self.config["analysis"]["num_samples"]
+        # else:
+        #     self.num_train_samples = self.config["analysis"]["num_samples"]
 
         # set up logger
         self.setup_logger(tag="calibrated_test_results")
@@ -476,20 +479,20 @@ class CalibratedAuditingTest(AuditingTest):
 
         else:
             self.calibration_strategy.attach_logger(self.logger)
-            calibration_cfg = {
-                "base_model": self.model_name1,
-                "base_seed": self.seed1,
-                "test_model": self.model_name2,
-                "test_seed": self.seed2,
+            dist_cfg = {
                 "metric": self.metric,
                 "net_cfg": self.config["net"],
                 "train_cfg": self.train_cfg,
-                "num_samples": [self.train_cfg.batch_size, self.num_train_samples],
                 "num_test_samples": self.train_cfg.batch_size,
                 "only_continuations": self.only_continuations,
             }
             epsilons, true_epsilon, std_epsilon = self.calibration_strategy.calculate_epsilons(
-                self.directory, self.num_train_samples, **calibration_cfg
+                self.model_name1,
+                self.seed1,
+                self.model_name2,
+                self.seed2,
+                [self.train_cfg.batch_size, self.num_train_samples],
+                dist_cfg,
             )
 
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
