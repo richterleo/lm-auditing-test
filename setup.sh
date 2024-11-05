@@ -46,7 +46,7 @@ if conda env list | grep -q "$CONDA_ENV_NAME"; then
     echo_msg "Conda environment '$CONDA_ENV_NAME' already exists."
 else
     echo_msg "Creating conda environment '$CONDA_ENV_NAME'..."
-    conda create -y -n "$CONDA_ENV_NAME" python=3.11
+    conda create -y -n "$CONDA_ENV_NAME" python=3.9
 fi
 
 # 3. Activate Conda Environment
@@ -65,7 +65,14 @@ fi
 # 5. Install Additional Packages
 echo_msg "Installing additional packages..."
 pip install packaging ninja
-pip install flash-attn --no-build-isolation
+
+# Attempt to install flash-attn
+echo_msg "Attempting to install flash-attn..."
+if pip install flash-attn --no-build-isolation; then
+    echo_msg "flash-attn installed successfully."
+else
+    echo_msg "flash-attn installation failed. Continuing with the rest of the script."
+fi
 
 # 6. Setup Environment Variables
 echo_msg "Setting up environment variables..."
