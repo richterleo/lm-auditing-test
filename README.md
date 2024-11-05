@@ -2,10 +2,13 @@
 
 ## Overview
 
-This repository accompanies the paper *An Auditing Test to Detect Behavioral Shift in Language Models* (link to be inserted) and provides tools to run two sets of experiments:
+[IN PROGRESS]
+
+This repository accompanies the paper [*An Auditing Test to Detect Behavioral Shift in Language Models*](https://arxiv.org/abs/2410.19406) and provides tools to run two sets of experiments:
+
 
 1. **Evaluating a Model with Respect to a Certain Behavior and Metric**: This involves evaluating a model, logging results to Weights and Biases (wandb), and generating plots.
-2. **Deep Anytime-Valid Hypothesis Testing (DAHT)**: This tests to distinguish between two model distributions based on a behavior using the test described in this [paper](https://arxiv.org/abs/2310.19384)
+2. **Detecting Change in Model Behavior using our Auditing Test**: This tests to distinguish between two distributions of model behavior based on individual paired samples.
 
 ## Setup
 
