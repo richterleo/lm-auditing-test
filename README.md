@@ -15,9 +15,9 @@ This repository accompanies the paper [An Auditing Test to Detect Behavioral Shi
 Ensure you have all the necessary dependencies installed. You can install miniconda and create a virtual environment `auditenv` with the necessary dependencies by executing 
 
 ```bash
-source ./setup.sh
+./setup.sh
 ```
-You will be prompted to enter your wandb API key and huggingface token.
+(or `source ./setup.sh` if using tmux). You will be prompted to enter your wandb API key and huggingface token.
 
 The folder `configs` contains general configuration and specific configurations for experiments. 
 
