@@ -22,7 +22,16 @@ Ensure you have all the necessary dependencies installed. You can install minico
 The folder `configs` contains general configuration and specific configurations for experiments. 
 
 ## Evaluating a Model
-The repository currently supports evaluating LLMs of the `Llama`, `Gemma`, `Mistral` and `aya`-families. When using LoRA, make sure to include the model in the list in `./configs/peft_models.yaml`. Behaviors supported are **toxicity** and **translation_performance** with different metrics each. Other models, behaviors and metrics can be added easily (see section ...)
+The repository currently supports evaluating LLMs of the `Llama`, `Gemma`, `Mistral` and `aya`-families. When using LoRA, make sure to include the model in the list in `./configs/peft_models.yaml`. 
+
+Behaviors supported are **toxicity** and **translation_performance** with different metrics each. Other models, behaviors and metrics can be added easily (see section ...)
+
+When evaluating translation performance, execute 
+
+```bash
+git clone https://github.com/allenai/natural-instructions.git
+python ./preprocessing/preprocessing_SNI.py
+```
 
 Specify model, dataset and metric in `./configs/experiments/generation.yaml` and run
 
