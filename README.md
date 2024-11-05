@@ -12,52 +12,45 @@ This repository accompanies the paper [An Auditing Test to Detect Behavioral Shi
 
 ## Setup
 
-Ensure you have all the necessary dependencies installed. You can do this by 
+Ensure you have all the necessary dependencies installed. You can install miniconda and create a virtual environment `auditenv` with the necessary dependencies by executing 
 
 ```bash
-bash setup_utils/configure_working_environment
-source ~/.bashrc
+./setup.sh
 ```
-Make sure to put your `WANDB_API_KEY` in the file first.
+You will be prompted to enter your wandb API key and huggingface token.
 
-To add the `deep-anytime-testing` submodule, execute
-
-```bash
-git submodule update --init
-```
+The folder `configs` contains general configuration and specific configurations for experiments. 
 
 ## Evaluating a Model
-To run experiments that evaluate a model with respect to a certain behavior and metric, use the following command:
+The repository currently supports evaluating LLMs of the `Llama`, `Gemma`, `Mistral` and `aya`-families. When using LoRA, make sure to include the model in the list in `./configs/peft_models.yaml`. Behaviors supported are **toxicity** and **translation_performance** with different metrics each. Other models, behaviors and metrics can be added easily (see section ...)
+
+Specify model, dataset and metric in `./configs/experiments/generation.yaml` and run
 
 ```bash
-python main.py --exp evaluation
+python main.py --exp generation
 ```
-This will log results to wandb and generate plots based on the evaluation metrics.
+By default, generations will be saved locally and uploaded to wandb. 
 
-## Auditing Test based on Deep Anytime-Valid Hypothesis Testing 
+## Auditing Test 
 To run the Auditing test and compare two model distributions based on a behavior, use the following command:
 
 ```bash
-python main.py --exp test_daht
+python main.py --exp <test_config>
 ```
-Model specifics must be put in the `config.yml`.
+`<test_config>`s for toxicity and translation can be found in `./configs/experiments/`. Change models accordingly. 
 
 ## Configuration
-The hyperparameters for the experiments are specified in two files:
+The hyperparameters for the experiments are specified in the config files in `./configs` as well as in `arguments.py`. This file contains the training configuration settings.
 
-`config.yml`: This file contains the main configuration settings.
-`arguments.py`: This file contains the training configuration settings.
-
-A second model configuration can be specified either directly in `config.yml` under `tau2` or be given to the function `test_daht()` in `main.py` as a `ModelCfg` imported from `arguments.py`.
 
 ## Logging and Plotting
 
-The results of the evaluation experiments can be saved locally or logged to wandb. Please set your API key by: 
+Generation experiments store results on wandb by default. Add
 
+```bash
+python main.py --exp generation --no_wandb
 ```
-export WANDB_API_KEY= <your_api_key>
-```
-before running experiments with wandb. 
+to avoid tracking on wandb.
 
 ## Contact
 
