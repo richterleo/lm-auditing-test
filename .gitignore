@@ -43,3 +43,7 @@ test_bio_model.py
 *.pdf
 BalancingGroups
 setup_utils
+high_toxicity_indices*.json
+logs
+confoundershift
+*.zip
