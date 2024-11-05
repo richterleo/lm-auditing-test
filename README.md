@@ -4,7 +4,7 @@
 
 [IN PROGRESS]
 
-This repository accompanies the paper [*An Auditing Test to Detect Behavioral Shift in Language Models*](https://arxiv.org/abs/2410.19406) and provides tools to run two sets of experiments:
+This repository accompanies the paper [An Auditing Test to Detect Behavioral Shift in Language Models](https://arxiv.org/abs/2410.19406) and provides tools to run two sets of experiments:
 
 
 1. **Evaluating a Model with Respect to a Certain Behavior and Metric**: This involves evaluating a model, logging results to Weights and Biases (wandb), and generating plots.
