@@ -42,3 +42,4 @@ test_bio_model.py
 *.jpg
 *.pdf
 BalancingGroups
+setup_utils
