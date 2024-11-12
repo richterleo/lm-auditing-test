@@ -1,8 +1,8 @@
-import os
 import json
 import logging
 import random
 import sys
+
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -33,7 +33,7 @@ class SNITranslationProcessor:
     def __init__(
         self,
         data_path: str = "natural-instructions/tasks",
-        output_path: str = "translation_data",
+        output_path: str = "data",
         script_dir: Optional[str] = None,
         overwrite: bool = False,
         verbose: bool = True,
@@ -49,12 +49,10 @@ class SNITranslationProcessor:
             overwrite (bool): Whether to overwrite existing processed files.
             verbose (bool): Enable verbose logging.
         """
-        self.script_dir = Path(__file__).resolve().parents[1] if script_dir is None else Path(script_dir)
+        self.script_dir = Path(__file__).resolve().parents[2] if script_dir is None else Path(script_dir)
         self.data_path = self.script_dir / data_path
-        self.output_path = self.script_dir / output_path
+        self.output_path = self.script_dir / output_path / category
         self.output_path.mkdir(parents=True, exist_ok=True)
-        # self.category_path = self.output_path / "categories"
-        # self.category_path.mkdir(parents=True, exist_ok=True)
         self.language_dict_path = self.output_path / "language_dict.json"
         self.language_pairs_path = self.output_path / "language_pairs_output.jsonl"
 
@@ -178,17 +176,16 @@ class SNITranslationProcessor:
         bare_data = []
         few_shot_data = []
 
-        for file_name in os.listdir(self.data_path):
-            if not file_name.endswith(".json"):
+        for file_path in self.data_path.iterdir():
+            if not file_path.suffix == ".json":
                 continue
 
-            file_path = self.data_path / file_name
             with open(file_path, "r", encoding="utf-8") as json_file:
                 try:
                     data = json.load(json_file)
 
                     # either we already have a list of subtasks to process ...
-                    if task_file_list and file_name not in task_file_list:
+                    if task_file_list and file_path.name not in task_file_list:
                         continue
 
                     # ... or we process all subtasks of a specific category
@@ -198,12 +195,12 @@ class SNITranslationProcessor:
                         if self.category not in current_categories:
                             continue
 
-                    self.logger.info(f"Processing file: {file_name}")
+                    self.logger.info(f"Processing file: {file_path.name}")
 
                     instruction = data.get("Definition", [""])[0]
                     instances = data.get("Instances", [])
 
-                    language_dict[file_name] = {
+                    language_dict[file_path.name] = {
                         "input_language": data.get("Input_language", ""),
                         "output_language": data.get("Output_language", ""),
                     }
@@ -228,9 +225,9 @@ class SNITranslationProcessor:
                         prompt_length_dict["few_shot_data"].append(len(prompt))
 
                 except json.JSONDecodeError:
-                    self.logger.error(f"Error decoding JSON from file: {file_name}")
+                    self.logger.error(f"Error decoding JSON from file: {file_path.name}")
                 except Exception as e:
-                    self.logger.error(f"Unexpected error processing file {file_name}: {e}")
+                    self.logger.error(f"Unexpected error processing file {file_path.name}: {e}")
 
         if save_prompt_lengths:
             for key in prompt_length_dict:
@@ -386,8 +383,6 @@ def analyze_long_prompts(file_path: str):
         - Prints average and maximum prompt lengths.
     """
     import matplotlib.pyplot as plt
-    from pathlib import Path
-    from typing import List, Dict
 
     file_path = Path(file_path)
 

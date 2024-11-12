@@ -30,7 +30,7 @@ When evaluating translation performance, execute
 
 ```bash
 git clone https://github.com/allenai/natural-instructions.git
-python ./preprocessing/preprocessing_SNI.py
+python ./src/utils/preprocessing_superni.py
 ```
 
 Specify model, dataset and metric in `./configs/experiments/generation.yaml` and run
