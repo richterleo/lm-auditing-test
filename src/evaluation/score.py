@@ -1,54 +1,22 @@
-import evaluate
-import json
-import wandb
-import os
 import aiohttp
 import asyncio
-import torch
+import evaluate
+import json
+import logging
 import numpy as np
 import sys
 
-import transformers
-from collections import defaultdict
-from copy import deepcopy
-from datasets import load_dataset
 from googleapiclient import discovery
-from huggingface_hub import login
+from os import getenv
 from pathlib import Path
-from tqdm import tqdm
-from torch.utils.data import Subset
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM
-from transformers.pipelines.pt_utils import KeyDataset
-from transformers.utils import is_flash_attn_2_available
+from transformers import pipeline
 from typing import Optional, Dict, List
-from vllm import LLM, SamplingParams
-from peft import AutoPeftModelForCausalLM
-
-from utils.utils import (
-    translate_model_kwargs,
-    get_random_prompts,
-    log_scores,
-    NestedKeyDataset,
-    terminator,
-    format_funcs,
-    check_seed,
-    create_conversation,
-)
-
-from huggingface_hub import snapshot_download
-
-from vllm import LLM, SamplingParams
-from vllm.lora.request import LoRARequest
-
-import logging
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-hf_token = os.environ.get("HF_TOKEN", None)
-wandb_token = os.environ.get("WANDB_API_KEY", None)
-# login(token=hf_token)
+perspective_api_key = getenv("PERSPECTIVE_API_KEY", None)
 
 SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -157,72 +125,6 @@ def call_perspective_synchronously(continuations):
     return ratings
 
 
-# async def fetch_toxicity(session, text):
-#     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
-#     params = {
-#         "key": PERSPECTIVE_API_KEY,
-#     }
-#     payload = {
-#         "comment": {"text": text},
-#         "requestedAttributes": {"TOXICITY": {}},
-#         "doNotStore": True,
-#     }
-#     headers = {"Content-Type": "application/json"}
-
-#     async with session.post(
-#         url, params=params, data=json.dumps(payload), headers=headers
-#     ) as response:
-#         assert response.status == 200
-#         resp_json = await response.json()
-#         return resp_json["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
-
-
-# async def call_perspective(continuations):
-#     async with aiohttp.ClientSession() as session:
-#         tasks = [fetch_toxicity(session, text) for text in continuations]
-#         ratings = await asyncio.gather(*tasks)
-#         return ratings
-
-
-# async def fetch_toxicity(session, text, retries=10):
-#     from utils.keys import PERSPECTIVE_API_KEY
-
-#     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
-#     params = {
-#         "key": PERSPECTIVE_API_KEY,
-#     }
-#     payload = {
-#         "comment": {"text": text},
-#         "requestedAttributes": {"TOXICITY": {}},
-#         "doNotStore": True,
-#         "languages": ["en"],
-#     }
-#     headers = {"Content-Type": "application/json"}
-
-#     for attempt in range(retries):
-#         try:
-#             async with session.post(
-#                 url,
-#                 params=params,
-#                 data=json.dumps(payload),
-#                 headers=headers,
-#                 timeout=120,
-#             ) as response:
-#                 if response.status == 200:
-#                     resp_json = await response.json()
-#                     return resp_json["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
-#                 else:
-#                     logger.warning(f"Attempt {attempt + 1}: Received status code {response.status}")
-#                     logger.warning(f"Response content: {await response.text()}")
-#         except aiohttp.ClientError as e:
-#             logger.error(f"Attempt {attempt + 1}: ClientError - {e}")
-#         except asyncio.TimeoutError:
-#             logger.error(f"Attempt {attempt + 1}: Request timed out")
-#         await asyncio.sleep(240)  # Wait a bit before retrying
-
-#     raise Exception(f"Failed to fetch toxicity data after {retries} attempts")
-
-
 async def fetch_toxicity(session, text, retries=10):
     from utils.keys import PERSPECTIVE_API_KEY
 
@@ -266,25 +168,6 @@ async def process_item(session, text):
     if not text.strip():
         return np.nan
     return await fetch_toxicity(session, text)
-
-
-# async def call_perspective(continuations):
-#     async with aiohttp.ClientSession() as session:
-#         tasks = [fetch_toxicity(session, text) for text in continuations]
-#         ratings = await asyncio.gather(*tasks)
-#     return ratings
-
-
-# async def call_perspective(continuations):
-#     async with aiohttp.ClientSession() as session:
-#         tasks = []
-#         for text in continuations:
-#             if text.strip():
-#                 tasks.append(fetch_toxicity(session, text))
-#             else:
-#                 tasks.append(asyncio.coroutine(lambda: np.nan)())
-#         ratings = await asyncio.gather(*tasks)
-#     return ratings
 
 
 async def call_perspective(continuations):

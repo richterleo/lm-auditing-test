@@ -1,29 +1,31 @@
-from collections import defaultdict
-
-import pandas as pd
 import json
 import logging
 import numpy as np
+import pandas as pd
+import random
 import sys
-import os
 
 from omegaconf import DictConfig
 
 from copy import deepcopy
 from pathlib import Path
+from scipy.stats import wasserstein_distance
+
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
-from scipy.stats import skew, wasserstein_distance
 from typing import Union, List, Optional
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from analysis.distance import (
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+from src.analysis.distance import (
     empirical_wasserstein_distance_p1,
     NeuralNetDistance,
 )
-from utils.utils import load_config
+from src.utils.utils import load_config
 from arguments import TrainCfg
-import random
 
 pd.set_option("display.max_rows", 1000)
 pd.set_option("display.max_columns", 1000)
@@ -794,6 +796,8 @@ def get_mean_tox_scores(
     if dir_prefix is None:
         dir_prefix = metric
 
+    cont_string = "continuation_" if only_continuations else ""
+
     score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
 
     if model_names:
@@ -802,30 +806,24 @@ def get_mean_tox_scores(
             seeds = [seeds]
         model_files = [f"{model_name}_{seed}" for model_name, seed in zip(model_names, seeds)]
     else:
-        # model_files = os.listdir(score_dir)
-        model_files = [f for f in os.listdir(score_dir) if os.path.isdir(os.path.join(score_dir, f))]
-
+        model_files = [f.name for f in score_dir.iterdir() if f.is_dir()]
     all_scores = []
 
     for model_file in model_files:
         try:
             if not diff:
-                score_path = (
-                    f"{score_dir}/{model_file}/{metric}_scores.json"
-                    if not only_continuations
-                    else f"{score_dir}/{model_file}/{metric}_continuation_scores.json"
-                )
+                score_path = score_dir / model_file / f"{metric}_{cont_string}scores.json"
                 with open(score_path, "r") as f:
                     scores = json.load(f)
 
                 toxic_scores = scores[f"{metric}_scores"]
 
             else:
-                score_path = f"{score_dir}/{model_file}/{metric}_scores.json"
+                score_path = score_dir / model_file / f"{metric}_scores.json"
                 with open(score_path, "r") as f:
                     scores = json.load(f)
 
-                cont_score_path = f"{score_dir}/{model_file}/{metric}_continuation_scores.json"
+                cont_score_path = score_dir / model_file / f"{metric}_continuation_scores.json"
                 with open(cont_score_path, "r") as f:
                     cont_scores = json.load(f)
 
@@ -856,19 +854,11 @@ def get_mean_tox_scores(
             )
         else:
             if only_on_toxic_prompts:
-                file_name = (
-                    f"mean_{metric}_scores_on_toxic_prompts.json"
-                    if not only_continuations
-                    else f"mean_{metric}_continuation_scores_on_toxic_prompts.json"
-                )
+                file_name = f"mean_{metric}_{cont_string}scores_on_toxic_prompts.json"
             else:
-                file_name = (
-                    f"mean_{metric}_scores.json"
-                    if not only_continuations
-                    else f"mean_{metric}_continuation_scores.json"
-                )
+                file_name = f"mean_{metric}_{cont_string}scores.json"
 
-        with open(f"{score_dir}/{file_name}", "w") as f:
+        with open(score_dir / file_name, "w") as f:
             json.dump(all_scores, f, indent=4)
 
 

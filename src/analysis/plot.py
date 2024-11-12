@@ -23,18 +23,22 @@ import colorsys
 from matplotlib.lines import Line2D
 from matplotlib.legend_handler import HandlerBase
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from analysis.distance import (
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+from src.analysis.distance import (
     empirical_wasserstein_distance_p1,
     kolmogorov_variation,
     NeuralNetDistance,
     calc_tot_discrete_variation,
 )
-from utils.utils import load_config
+from src.utils.utils import load_config
 from arguments import TrainCfg
 
 
-from analysis.analyze import (
+from src.analysis.analyze import (
     extract_data_for_models,
     get_power_over_sequences_from_whole_ds,
     get_power_over_sequences_for_models_or_checkpoints,

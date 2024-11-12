@@ -1,7 +1,6 @@
 import json
 import logging
 import wandb
-import os
 import torch
 import numpy as np
 import sys
@@ -16,7 +15,12 @@ from transformers.utils import is_flash_attn_2_available
 from typing import Optional, Dict, List
 from peft import AutoPeftModelForCausalLM
 
-from utils.utils import (
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+from src.utils.utils import (
     translate_model_kwargs,
     NestedKeyDataset,
     terminator,
@@ -24,11 +28,6 @@ from utils.utils import (
     check_seed,
     create_conversation,
 )
-
-# # currently not supported
-# from vllm import LLM, SamplingParams
-# from vllm.lora.request import LoRARequest
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

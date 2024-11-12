@@ -1,14 +1,17 @@
 import wandb
+import sys
 
 from copy import deepcopy
 from pathlib import Path
 from typing import Optional, Dict, List, Union
 
-from evaluation.generate import eval_on_dataset
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
-from utils.utils import (
-    create_run_string,
-)
+from src.evaluation.generate import eval_on_dataset
+from src.utils.utils import create_run_string
 
 
 def eval_model(

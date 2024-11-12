@@ -1,33 +1,33 @@
 import importlib
 import numpy as np
-import os
-import torch
-import pandas as pd
-import sys
-
-
-import seaborn as sns
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import sys
+import torch
+
+from pathlib import Path
 from scipy.stats import kstest, wasserstein_distance
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import List
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+# Now you can import everything relative to project root
 from arguments import TrainCfg
-from utils.utils import initialize_from_config, time_block, load_config
-from auditing_test.dataloader import ScoresDataset, collate_fn
-from analysis.nn_for_nn_distance import CMLP
+from src.utils.utils import initialize_from_config, time_block, load_config
+from src.test.dataloader import ScoresDataset, collate_fn
+from src.analysis.nn_distance import CMLP
 
-
-# Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
-models_path = os.path.join(submodule_path, "models")
-
-for path in [submodule_path, models_path]:
-    if path not in sys.path:
-        sys.path.append(path)
+# Import from submodule (which is at project root)
+submodule_path = project_root / "deep-anytime-testing"
+if str(submodule_path) not in sys.path:
+    sys.path.append(str(submodule_path))
 
 
 def get_hist_distribution(data, num_bins=9, lower_lim=0, upper_lim=1):
@@ -348,15 +348,3 @@ if __name__ == "__main__":
     plt.title("Distance Comparison as a Function of Sample Size")
     plt.grid(True)
     plt.savefig("distance_comparison.pdf", bbox_inches="tight", format="pdf")
-
-    # w_dist_exp = wasserstein_distance(samples_exp1, samples_exp09804)
-    # nn_dist_class_exp = NeuralNetDistance(
-    #     net_cfg, samples_exp1, samples_exp09804, train_cfg
-    # )
-    # nn_dist_exp = nn_dist_class_exp.train()
-
-    # print(f"Gaussian: This is the empirical wasserstein distance: {w_dist_Gaussian}")
-    # print(f"Gaussian: This is the neural net distance {nn_dist_Gaussian}")
-
-    # print(f"Exp: This is the empirical wasserstein distance: {w_dist_exp}")
-    # print(f"Exp: This is the neural net distance {nn_dist_exp}")

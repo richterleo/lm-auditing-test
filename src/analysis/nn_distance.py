@@ -1,14 +1,13 @@
 import importlib
-import os
 import torch
 import sys
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-src_path = os.path.join(project_root, "src")
-if project_root not in sys.path:
-    sys.path.append(project_root)
-if src_path not in sys.path:
-    sys.path.append(src_path)
+from pathlib import Path
+
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
 orig_models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
 MLP = getattr(orig_models, "MLP")
