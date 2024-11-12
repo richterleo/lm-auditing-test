@@ -1,36 +1,33 @@
 import importlib
-import numpy as np
 import logging
+import numpy as np
+import pandas as pd
 import random
+import sys
 import torch
 import wandb
-import sys
-import os
-import pandas as pd
 
-
-from collections import defaultdict
-from copy import deepcopy
-from sklearn.model_selection import train_test_split, KFold
 from datasets import load_dataset
 from pathlib import Path
 from peft import AutoPeftModelForCausalLM
+from sklearn.model_selection import train_test_split, KFold
 from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 from tqdm import tqdm
 from typing import Optional, Dict, List
 
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
 # own utilities
-from test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
+from src.test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
 
 # from arguments import Cfg
-from evaluation.score import eval_on_metric
-from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
-
-# deep_anytime_testing = importlib.import_module("deep-anytime-testing")
-# train = importlib.import_module("deep-anytime-testing.trainer.trainer")
-# Trainer = getattr(train, "Trainer")
+from src.evaluation.score import eval_on_metric
+from src.utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
 
 orig_models = importlib.import_module("deep-anytime-testing.trainer.trainer", package="deep-anytime-testing")
 Trainer = getattr(orig_models, "Trainer")

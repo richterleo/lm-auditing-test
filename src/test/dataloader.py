@@ -1,11 +1,16 @@
 import json
-import glob
-import os
 import torch
+import sys
 
+from pathlib import Path
 from torch.utils.data import Dataset
 
-from test.preprocessing import create_folds_from_evaluations
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+from src.test.preprocessing import create_folds_from_evaluations
 
 
 class ScoresDataset(Dataset):

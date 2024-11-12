@@ -1,38 +1,38 @@
-import numpy as np
 import os
 import importlib
 import logging
-import re
-import time
-import sys
-import wandb
 import pandas as pd
+import re
+import sys
+import time
+import wandb
 
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Dict, List, Union, Tuple
 
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
 # imports from other scripts
 from arguments import TrainCfg
 from logging_config import setup_logging
 
-from test.calibration_strategies import CalibrationStrategy
-from test.evaltrainer import OfflineTrainer
+from src.test.calibration_strategies import CalibrationStrategy
+from src.test.evaltrainer import OfflineTrainer
 from test.preprocessing import create_folds_from_evaluations, cleanup_files
 # from auditing_test.preprocessing_SuperNI import process_translation
 
-from analysis.nn_for_nn_distance import CMLP
-from analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
-from analysis.plot import distance_box_plot, plot_calibrated_detection_rate
+from src.analysis.nn_distance import CMLP
+from src.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
+from src.analysis.plot import distance_box_plot, plot_calibrated_detection_rate
 
-from utils.utils import (
+from src.utils.utils import (
     create_run_string,
 )
 
-# Add the parent directory of utils to sys.path
-deep_anytime_testing = importlib.import_module("deep-anytime-testing")
-train = importlib.import_module("deep-anytime-testing.trainer.trainer")
-Trainer = getattr(train, "Trainer")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 

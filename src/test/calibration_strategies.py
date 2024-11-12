@@ -1,28 +1,18 @@
-import numpy as np
-import importlib
 import logging
+import numpy as np
 import pandas as pd
+import sys
 
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Dict, List, Union, Tuple
 
-# imports from other scripts
-from arguments import TrainCfg
-from logging_config import setup_logging
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
-from analysis.nn_for_nn_distance import CMLP
-from analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
-from analysis.plot import distance_box_plot, plot_calibrated_detection_rate
-
-from utils.utils import (
-    create_run_string,
-)
-
-# Add the parent directory of utils to sys.path
-deep_anytime_testing = importlib.import_module("deep-anytime-testing")
-train = importlib.import_module("deep-anytime-testing.trainer.trainer")
-Trainer = getattr(train, "Trainer")
+from src.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 

@@ -1,4 +1,5 @@
 import importlib
+import glob
 import json
 import logging
 import os
@@ -7,7 +8,6 @@ import time
 import torch
 import wandb
 import yaml
-import shutil
 import sys
 
 from contextlib import contextmanager
@@ -19,16 +19,17 @@ from datetime import datetime
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
-# Add the submodule and models to the path for eval_trainer
-submodule_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "deep-anytime-testing"))
-models_path = os.path.join(submodule_path, "models")
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
-for path in [submodule_path, models_path]:
-    if path not in sys.path:
-        sys.path.append(path)
+# Import from submodule (which is at project root)
+submodule_path = project_root / "deep-anytime-testing"
+if str(submodule_path) not in sys.path:
+    sys.path.append(str(submodule_path))
 
 logger = logging.getLogger(__name__)
-
 
 terminator = {"llama3": "<|eot_id|>", "mistral": "</s>", "gemma": "<end_of_turn>"}
 
@@ -69,52 +70,6 @@ def log_scores(scores, prefix="tox"):
 
     # Log the JSON file to WandB
     wandb.save(filename)
-
-
-def get_scores_from_wandb(
-    run_id: str,
-    project_name="toxicity_evaluation",
-    prefix="toxicity",
-    user_name="richter-leo94",
-    return_file_path=True,
-) -> Optional[Path]:
-    """
-    Helper function for downloading the scores file from a W&B run.
-
-    Args:
-        run_id: The ID of the W&B run (not identical to the run name)
-        project_name: The name of the W&B project.
-        prefix: The prefix of the file to download.
-        user_name: The name of the W&B user.
-        return_file_path: Whether to return the file path.
-
-    Returns:
-        (Optional) The path to the downloaded file.
-
-    """
-    # Initialize W&B API
-    api = wandb.Api()
-
-    # Path to the file you want to download
-    file_path = f"{prefix}_scores.json"
-    run_name = f"{user_name}/{project_name}/{run_id}"
-
-    # Access the run
-    run = api.run(run_name)
-
-    # Define the path to the folder you want to check and create
-    folder_path = Path(f"outputs/{run_id}")
-
-    # Check if the folder exists
-    if not folder_path.exists():
-        # Create the folder if it does not exist
-        folder_path.mkdir(parents=True, exist_ok=True)
-
-    # Download the file
-    run.file(file_path).download(root=folder_path, replace=True)
-
-    if return_file_path:
-        return folder_path / file_path
 
 
 @contextmanager
@@ -317,93 +272,6 @@ def create_conversation(example, model_id):
     return {"messages": messages}
 
 
-def download_file_from_wandb(
-    run_path: Optional[str] = None,
-    run_id: Optional[str] = None,
-    project_name: Optional[str] = None,
-    file_name: Optional[str] = None,
-    pattern: Optional[str] = None,
-    entity: str = "LLM_Accountability",
-    return_file_path: bool = True,
-    get_save_path: Optional[Callable] = None,
-) -> Optional[Path]:
-    """
-    Helper function for downloading the scores file from a W&B run.
-
-    Args:
-        run_path: The path to the W&B run
-        run_id: The ID of the W&B run (not identical to the run name)
-        project_name: The name of the W&B project.
-        file_name: The name of the file to download.
-        pattern: Alternatively, download file with specific pattern
-        user_name: The name of the W&B user.
-        return_file_path: Whether to return the file path.
-
-    Returns:
-        (Optional) The path to the downloaded file.
-
-    """
-    assert file_name or pattern, "Either file_name or pattern must be provided"
-    assert run_path or (
-        run_id and project_name and entity
-    ), "Either run_path or run_id, project_name and entity must be provided"
-    # Initialize W&B API
-    api = wandb.Api()
-
-    # Path to the file you want to download
-    run_name = run_path if run_path else f"{entity}/{project_name}/{run_id}"
-    run = api.run(run_name)
-
-    if file_name:
-        files = [file for file in run.files() if file_name in file.name]
-    else:
-        files = [file for file in run.files() if pattern in file.name]
-
-    if not files:
-        logger.error(f"No file found matching {'file_name' if file_name else 'pattern'}: {file_name or pattern}")
-        return None
-
-    file = files[0]
-
-    try:
-        # Define the path to the folder where the file will be saved
-        if get_save_path:
-            file_path = get_save_path(file.name)
-        else:
-            if not run_id:
-                run_id = os.path.basename(run_path)
-            file_path = Path(f"outputs/{run_id}/{os.path.basename(file.name)}")
-
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        temp_dir = file_path.parent / "temp_download"
-        temp_dir.mkdir(exist_ok=True)
-        file.download(root=temp_dir, replace=True)
-
-        downloaded_file = next(temp_dir.rglob(file.name))
-        os.rename(str(downloaded_file), str(file_path))
-
-        # Delete temp folder
-        shutil.rmtree(temp_dir)
-
-        if return_file_path:
-            return file_path
-
-    except Exception as e:
-        logger.error(f"Error downloading file: {file.name}: {e}")
-        return None
-
-
-def folder_from_model_and_seed(file_name, save_path: str = "model_outputs"):
-    """ """
-    file_name = os.path.basename(file_name)
-
-    folder_name = os.path.splitext(file_name.replace("_continuations", ""))[0]
-    folder = Path(f"{save_path}/{folder_name}")
-    new_file_path = Path(f"{folder}/{file_name}")
-
-    return new_file_path
-
-
 def check_seed(seed):
     if isinstance(seed, str):
         if seed.startswith("seed"):
@@ -422,13 +290,35 @@ def check_seed(seed):
     return seed
 
 
-if __name__ == "__main__":
-    run_paths = ["LLM_Accountability/continuations/gp0si9wk"]
-    pattern = "continuations"
-    file_name = "aya-23-8b_continuations_seed1000.json"
+def cleanup_files(directory, pattern, verbose=True):
+    files_to_delete = glob.glob(os.path.join(directory, pattern))
+    for file_path in files_to_delete:
+        try:
+            os.remove(file_path)
+            if verbose:
+                logger.info(f"Deleted file: {file_path}")
+        except OSError as e:
+            logger.error(f"Error deleting file {file_path}: {e.strerror}")
 
-    download_file_from_wandb(
-        run_path=run_paths[0],
-        file_name=file_name,
-        get_save_path=folder_from_model_and_seed,
-    )
+
+def load_entire_json(filepath, encoding="utf-8"):
+    try:
+        with open(filepath, "r", encoding=encoding) as file:
+            data = json.load(file)
+        return data
+    except FileNotFoundError:
+        logger.error(f"File not found: {filepath}")
+        raise
+    except json.JSONDecodeError as e:
+        logger.error(f"JSONDecodeError: {e}")
+        line, column = e.lineno, e.colno
+        logger.error(f"Error at line {line}, column {column}")
+        # Print a few lines around the error to help debug
+        with open(filepath, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+            start = max(0, line - 3)
+            end = min(len(lines), line + 2)
+            for i in range(start, end):
+                logger.debug(f"{i + 1}: {lines[i].strip()}")
+        # Re-raise the error to avoid further processing
+        raise
