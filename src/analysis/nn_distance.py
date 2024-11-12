@@ -1,16 +1,17 @@
 import importlib
+import os
 import torch
-import torch.nn as nn
+import sys
 
-orig_models = importlib.import_module(
-    "deep-anytime-testing.models.mlp", package="deep-anytime-testing"
-)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+src_path = os.path.join(project_root, "src")
+if project_root not in sys.path:
+    sys.path.append(project_root)
+if src_path not in sys.path:
+    sys.path.append(src_path)
+
+orig_models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
 MLP = getattr(orig_models, "MLP")
-
-# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-# deep_anytime_testing = importlib.import_module("deep-anytime-testing")
-# models = importlib.import_module("deep-anytime-testing.models.mlp")
-# MLP = getattr(models, "MLP")
 
 
 class CMLP(MLP):
@@ -86,12 +87,8 @@ class CMLP(MLP):
                 g_x, g_y = 0, 0
                 # Process each sample in the tensor
                 for i in range(num_samples):
-                    g_x += (
-                        self.model(torch.flatten(x[..., i], start_dim=1)) / num_samples
-                    )
-                    g_y += (
-                        self.model(torch.flatten(y[..., i], start_dim=1)) / num_samples
-                    )
+                    g_x += self.model(torch.flatten(x[..., i], start_dim=1)) / num_samples
+                    g_y += self.model(torch.flatten(y[..., i], start_dim=1)) / num_samples
         else:
             # If tensors are two-dimensional
             g_x = self.model(x)
