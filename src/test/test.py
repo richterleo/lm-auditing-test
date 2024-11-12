@@ -16,9 +16,9 @@ from typing import Optional, Dict, List, Union, Tuple
 from arguments import TrainCfg
 from logging_config import setup_logging
 
-from auditing_test.calibration_strategies import CalibrationStrategy
-from auditing_test.evaltrainer import OfflineTrainer
-from auditing_test.preprocessing import create_folds_from_evaluations, cleanup_files
+from test.calibration_strategies import CalibrationStrategy
+from test.evaltrainer import OfflineTrainer
+from test.preprocessing import create_folds_from_evaluations, cleanup_files
 # from auditing_test.preprocessing_SuperNI import process_translation
 
 from analysis.nn_for_nn_distance import CMLP

@@ -393,67 +393,6 @@ def download_file_from_wandb(
         return None
 
 
-# def download_file_from_wandb(
-#     run_path: Optional[str] = None,
-#     run_id: Optional[str] = None,
-#     project_name: Optional[str] = None,
-#     file_name: Optional[str] = None,
-#     pattern: Optional[str] = None,
-#     entity: str = "LLM_Accountability",
-#     return_file_path: bool = True,
-#     get_save_path: Optional[Callable] = None,
-# ) -> Optional[Path]:
-#     """
-#     Helper function for downloading the scores file from a W&B run.
-#     """
-#     assert file_name or pattern, "Either file_name or pattern must be provided"
-#     assert run_path or (
-#         run_id and project_name and entity
-#     ), "Either run_path or run_id, project_name and entity must be provided"
-
-#     api = wandb.Api()
-#     run_name = run_path if run_path else f"{entity}/{project_name}/{run_id}"
-#     run = api.run(run_name)
-
-#     if file_name:
-#         files = [file for file in run.files() if file.name == file_name]
-#     else:
-#         files = [file for file in run.files() if pattern in file.name]
-
-#     if not files:
-#         logger.error(
-#             f"No file found matching {'file_name' if file_name else 'pattern'}: {file_name or pattern}"
-#         )
-#         return None
-
-#     file = files[0]
-
-#     try:
-#         if get_save_path:
-#             file_path = get_save_path(file.name)
-#         else:
-#             if not run_id:
-#                 run_id = os.path.basename(run_path)
-#             file_path = Path(f"outputs/{run_id}/{os.path.basename(file.name)}")
-
-#         # Ensure the parent directory exists
-#         file_path.parent.mkdir(parents=True, exist_ok=True)
-
-#         # Download directly to the final location
-#         file.download(root=file_path.parent, replace=True)
-
-#         # Rename if necessary (in case Wandb added any prefixes)
-#         downloaded_file = next(file_path.parent.glob(f"*{file.name}"))
-#         if downloaded_file.name != file_path.name:
-#             downloaded_file.rename(file_path)
-
-#         if return_file_path:
-#             return file_path
-#     except Exception as e:
-#         logger.error(f"Error downloading file: {file.name}: {e}")
-#         return None
-
-
 def folder_from_model_and_seed(file_name, save_path: str = "model_outputs"):
     """ """
     file_name = os.path.basename(file_name)
@@ -484,24 +423,9 @@ def check_seed(seed):
 
 
 if __name__ == "__main__":
-    # run_paths = [
-    #     "LLM_Accountability/continuations/7hkje1iq",
-    #     "LLM_Accountability/continuations/u58ia0si",
-    #     "LLM_Accountability/continuations/iu34st5q",
-    #     "LLM_Accountability/continuations/4ll681jg",
-    # ]
-    # run_paths = [
-    #     "LLM_Accountability/continuations/s29v6uqi",  # mistral seed2000
-    #     "LLM_Accountability/continuations/z2rpuvbh",  # gemma seed2000
-    #     "LLM_Accountability/continuations/qp8f41we",  # llama ckpt10 seed1000
-    # ]
-
     run_paths = ["LLM_Accountability/continuations/gp0si9wk"]
     pattern = "continuations"
     file_name = "aya-23-8b_continuations_seed1000.json"
-
-    # for run_path in run_paths:
-    #     download_file_from_wandb(run_path=run_path, pattern=pattern, get_save_path=folder_from_model_and_seed)
 
     download_file_from_wandb(
         run_path=run_paths[0],

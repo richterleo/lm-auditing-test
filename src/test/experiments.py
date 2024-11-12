@@ -9,9 +9,9 @@ from typing import Optional, Dict
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing"))
 
 # imports from other modules
-from auditing_test.eval import eval_model
-from auditing_test.test import AuditingTest, CalibratedAuditingTest
-from auditing_test.calibration_strategies import (
+from evaluation.eval import eval_model
+from test.test import AuditingTest, CalibratedAuditingTest
+from test.calibration_strategies import (
     DefaultStrategy,
     StdStrategy,
     IntervalStrategy,

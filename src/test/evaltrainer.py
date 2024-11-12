@@ -22,10 +22,10 @@ from tqdm import tqdm
 from typing import Optional, Dict, List
 
 # own utilities
-from auditing_test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
+from test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
 
 # from arguments import Cfg
-from utils.score import eval_on_metric
+from evaluation.score import eval_on_metric
 from utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
 
 # deep_anytime_testing = importlib.import_module("deep-anytime-testing")

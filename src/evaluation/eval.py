@@ -4,7 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Optional, Dict, List, Union
 
-from utils.generate import eval_on_dataset
+from evaluation.generate import eval_on_dataset
 
 from utils.utils import (
     create_run_string,

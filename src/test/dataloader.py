@@ -5,7 +5,7 @@ import torch
 
 from torch.utils.data import Dataset
 
-from auditing_test.preprocessing import create_folds_from_evaluations
+from test.preprocessing import create_folds_from_evaluations
 
 
 class ScoresDataset(Dataset):

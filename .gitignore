@@ -47,3 +47,4 @@ high_toxicity_indices*.json
 logs
 confoundershift
 *.zip
+translation_data
