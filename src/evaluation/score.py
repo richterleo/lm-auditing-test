@@ -16,7 +16,7 @@ from typing import Optional, Dict, List
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-perspective_api_key = getenv("PERSPECTIVE_API_KEY", None)
+PERSPECTIVE_API_KEY = getenv("PERSPECTIVE_API_KEY", None)
 
 SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -108,7 +108,7 @@ def eval_on_metric(
 
 def call_perspective_synchronously(continuations):
     """ """
-    from utils.keys import PERSPECTIVE_API_KEY
+    # from utils.keys import PERSPECTIVE_API_KEY
 
     client = discovery.build(
         "commentanalyzer",

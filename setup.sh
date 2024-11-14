@@ -91,6 +91,13 @@ if [ -z "$HF_TOKEN" ]; then
     echo
 fi
 
+# Check if PERSPECTIVE_API_KEY is set, if not, prompt the user
+if [ -z "$HF_TOKEN" ]; then
+    read -sp "Enter your PERSPECTIVE_API_KEY: " PERSPECTIVE_API_KEY_INPUT
+    export PERSPECTIVE_API_KEY="$PERSPECTIVE_API_KEY_INPUT"
+    echo
+fi
+
 export WANDB_LOG_LEVEL=debug
 
 # 7. Summary
