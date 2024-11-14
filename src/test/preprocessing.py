@@ -5,7 +5,6 @@ import os
 import random
 import sys
 import numpy as np
-import time
 
 from collections import defaultdict
 from datasets import load_dataset
@@ -22,7 +21,6 @@ from src.evaluation.evaluate import evaluate_single_model
 from src.evaluation.score import eval_on_metric
 from src.utils.legacy_utils import remove_zero_key_and_flatten
 from src.utils.utils import (
-    download_file_from_wandb,
     time_block,
     create_run_string,
     load_config,
@@ -33,8 +31,6 @@ from logging_config import setup_logging
 
 # setup_logging()
 logger = logging.getLogger(__name__)
-
-SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def create_common_json(
@@ -47,6 +43,7 @@ def create_common_json(
     score_dir="model_scores",
     test_dir="test_outputs",
     only_continuations=True,
+    noise=0,
 ):
     """ """
 
@@ -56,11 +53,12 @@ def create_common_json(
     new_folder_path.mkdir(parents=True, exist_ok=True)
 
     cont_string = "continuation_" if only_continuations else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
-    common_scores_file_path = new_folder_path / f"{cont_string}scores.json"
+    common_scores_file_path = new_folder_path / f"{cont_string}scores{noise_string}.json"
     if overwrite or not common_scores_file_path.exists():
-        file_name1 = f"{file_path1}/{cont_string}scores.json"
-        file_name2 = f"{file_path2}/{cont_string}scores.json"
+        file_name1 = f"{file_path1}/{cont_string}scores{noise_string}.json"
+        file_name2 = f"{file_path2}/{cont_string}scores{noise_string}.json"
 
         with open(file_name1, "r", encoding="utf-8") as file1, open(file_name2, "r", encoding="utf-8") as file2:
             data1 = json.load(file1)
@@ -99,6 +97,7 @@ def create_folds(
     overwrite=True,
     test_dir="test_outputs",
     only_continuations=True,
+    noise=0,
 ):
     """ """
 
@@ -106,14 +105,15 @@ def create_folds(
     random.seed(fold_size)
 
     cont_string = "continuation_" if only_continuations else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     directory = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
-    file_pattern = f"{cont_string}scores_fold_*.json"
+    file_pattern = f"{cont_string}scores{noise_string}_fold_*.json"
 
     # Cleanup existing fold files
     cleanup_files(directory, file_pattern, verbose=False)
 
-    file_name = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores.json"
+    file_name = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores{noise_string}.json"
     data = load_entire_json(file_name)
 
     # Extract metadata and other lists
@@ -135,7 +135,9 @@ def create_folds(
         index_batches = index_batches[:-1]
 
     for i, batch in tqdm(enumerate(index_batches)):  # The last batch is not used because it
-        fold_file_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores_fold_{i}.json"
+        fold_file_path = (
+            f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores{noise_string}_fold_{i}.json"
+        )
         if overwrite or not os.path.exists(fold_file_path):
             fold_data = defaultdict(list)
             fold_data["metadata1"] = metadata1
@@ -164,6 +166,7 @@ def create_folds_from_evaluations(
     test_dir="test_outputs",
     score_dir="model_scores",
     gen_dir="model_outputs",
+    noise=0,
 ):
     try:
         create_common_json(
@@ -176,6 +179,7 @@ def create_folds_from_evaluations(
             only_continuations=only_continuations,
             score_dir=score_dir,
             test_dir=test_dir,
+            noise=noise,
         )
     except FileNotFoundError as e:
         logger.info(f"File not found: {e}. Trying to create the folds from generations.")
@@ -187,6 +191,7 @@ def create_folds_from_evaluations(
             only_continuation=only_continuations,
             gen_dir=gen_dir,
             score_dir=score_dir,
+            noise=noise,
         )
         evaluate_single_model(
             model_name=model_name2,
@@ -196,6 +201,7 @@ def create_folds_from_evaluations(
             only_continuation=only_continuations,
             gen_dir=gen_dir,
             score_dir=score_dir,
+            noise=noise,
         )
 
         create_common_json(
@@ -208,6 +214,7 @@ def create_folds_from_evaluations(
             only_continuations=only_continuations,
             score_dir=score_dir,
             test_dir=test_dir,
+            noise=noise,
         )
 
     create_folds(
@@ -220,6 +227,7 @@ def create_folds_from_evaluations(
         overwrite=overwrite,
         only_continuations=only_continuations,
         test_dir=test_dir,
+        noise=noise,
     )
 
 

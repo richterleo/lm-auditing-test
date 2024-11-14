@@ -49,6 +49,7 @@ def extract_data_for_models(
     only_continuations: bool = True,
     metric="perspective",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     assert model_name2 or (
         checkpoint and checkpoint_base_name
@@ -59,6 +60,7 @@ def extract_data_for_models(
     test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
 
     continuation_str = "_continuations" if only_continuations else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     if model_name2:
         base_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
@@ -66,11 +68,13 @@ def extract_data_for_models(
         base_path = f"{test_dir}/{model_name1}_{seed1}_{checkpoint_base_name}{checkpoint}_{seed2}"
 
     if fold_size == 4000:
-        file_path = f"{base_path}/kfold_test_results{continuation_str}_epsilon_{epsilon}.csv"
+        file_path = f"{base_path}/kfold_test_results{continuation_str}_epsilon_{epsilon}{noise_string}.csv"
         if not Path(file_path).exists():
-            file_path = f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}.csv"
+            file_path = (
+                f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}{noise_string}.csv"
+            )
     else:
-        file_path = f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}.csv"
+        file_path = f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}{noise_string}.csv"
 
     if not Path(file_path).exists():
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -150,6 +154,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
     test_dir="test_outputs",
     dir_prefix: Optional[str] = None,
     metric="perspective",
+    noise: float = 0,
 ):
     """ """
     assert model_name2 or (
@@ -168,6 +173,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
             test_dir=test_dir,
             dir_prefix=dir_prefix,
             metric=metric,
+            noise=noise,
         )
         result_df = get_power_over_sequences_from_whole_ds(data, fold_size=fold_size)
         result_df["model_name1"] = model_name1
@@ -187,6 +193,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
             epsilon=epsilon,
             test_dir=test_dir,
             dir_prefix=dir_prefix,
+            noise=noise,
         )
         result_df = get_power_over_sequences_from_whole_ds(data, fold_size)
         result_df["Checkpoint"] = checkpoint
@@ -224,6 +231,7 @@ def get_power_over_sequences(
     test_dir="test_outputs",
     dir_prefix: Optional[str] = None,
     metric="perspective",
+    noise: float = 0,
 ):
     use_checkpoints = True
 
@@ -261,6 +269,7 @@ def get_power_over_sequences(
                     test_dir=test_dir,
                     dir_prefi=dir_prefix,
                     metric=metric,
+                    noise=noise,
                 )
 
                 result_dfs.append(result_df)
@@ -286,6 +295,7 @@ def get_power_over_sequences(
                     test_dir=test_dir,
                     dir_prefix=dir_prefix,
                     metric=metric,
+                    noise=noise,
                 )
 
                 result_dfs.append(result_df)
@@ -324,6 +334,7 @@ def get_distance_scores(
     only_continuations: bool = True,
     save: bool = False,
     overwrite: bool = False,
+    noise: float = 0,
     **kwargs,
 ) -> pd.DataFrame:
     """ """
@@ -333,6 +344,7 @@ def get_distance_scores(
         raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
 
     cont_string = "continuation_" if only_continuations else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     if not dir_prefix:
         dir_prefix = metric
@@ -341,7 +353,7 @@ def get_distance_scores(
     model_name2 = f"{checkpoint_base_name}{checkpoint}" if checkpoint else model_name2
 
     score_dir = Path(score_dir) / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
-    score_path = score_dir / f"{cont_string}scores.json"
+    score_path = score_dir / f"{cont_string}scores{noise_string}.json"
 
     if not isinstance(num_samples, list):
         num_samples = [num_samples]
@@ -519,11 +531,12 @@ def get_distance_scores(
             if not score_dir.exists():
                 score_dir.mkdir(parents=True, exist_ok=True)
 
-            dist_file = f"distance_scores"
+            dist_file = "distance_scores"
             nts_list = list(set(num_train_samples_list))
             for nts in nts_list:
                 dist_file += f"_{nts}"
             dist_file += f"_{num_runs}.csv"
+            dist_file += noise_string
 
             dist_path = score_dir / dist_file
 
@@ -585,6 +598,7 @@ def get_power_over_sequences_for_ranked_checkpoints(
     epsilon=0,
     test_dir="test_outputs",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     if not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
@@ -611,6 +625,7 @@ def get_power_over_sequences_for_ranked_checkpoints(
             num_runs=num_runs_distance,
             evaluate_wasserstein_on_full=True,  # the distance measure is currently hard coded
             only_continuations=only_continuations,
+            noise=noise,
         )
         dist = dist_df[f"{distance_measure}_full"].mean()
 
@@ -624,6 +639,7 @@ def get_power_over_sequences_for_ranked_checkpoints(
             epsilon=epsilon,
             test_dir=test_dir,
             dir_prefix=dir_prefix,
+            noise=noise,
         )
 
         result_df[f"Empirical {distance_measure} Distance"] = dist
@@ -651,6 +667,7 @@ def get_power_over_sequences_for_ranked_checkpoints_wrapper(
     num_runs_distance=1,
     test_dir="test_outputs",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     """
     This is a wrapper for get_power_over_sequences_for_ranked_checkpoints to use to multiple fold sizes and returns a concatenated dataframe.
@@ -673,6 +690,7 @@ def get_power_over_sequences_for_ranked_checkpoints_wrapper(
                 num_runs_distance=num_runs_distance,
                 test_dir=test_dir,
                 dir_prefix=dir_prefix,
+                noise=noise,
             )
         )
 
@@ -792,11 +810,13 @@ def get_mean_tox_scores(
     high_tox_file="high_toxicity_indices.json",
     only_continuations=False,
     diff=False,
+    noise: float = 0,
 ):
     if dir_prefix is None:
         dir_prefix = metric
 
     cont_string = "continuation_" if only_continuations else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
 
@@ -812,18 +832,18 @@ def get_mean_tox_scores(
     for model_file in model_files:
         try:
             if not diff:
-                score_path = score_dir / model_file / f"{metric}_{cont_string}scores.json"
+                score_path = score_dir / model_file / f"{cont_string}scores{noise_string}.json"
                 with open(score_path, "r") as f:
                     scores = json.load(f)
 
                 toxic_scores = scores[f"{metric}_scores"]
 
             else:
-                score_path = score_dir / model_file / f"{metric}_scores.json"
+                score_path = score_dir / model_file / f"scores{noise_string}.json"
                 with open(score_path, "r") as f:
                     scores = json.load(f)
 
-                cont_score_path = score_dir / model_file / f"{metric}_continuation_scores.json"
+                cont_score_path = score_dir / model_file / f"continuation_scores{noise_string}.json"
                 with open(cont_score_path, "r") as f:
                     cont_scores = json.load(f)
 
@@ -848,15 +868,15 @@ def get_mean_tox_scores(
     if all_scores:
         if diff:
             file_name = (
-                f"mean_{metric}_diff_scores.json"
+                f"mean_{metric}_diff_scores{noise_string}.json"
                 if not only_on_toxic_prompts
-                else f"mean_{metric}_diff_scores_on_toxic_prompts.json"
+                else f"mean_{metric}_diff_scores_on_toxic_prompts{noise_string}.json"
             )
         else:
             if only_on_toxic_prompts:
-                file_name = f"mean_{metric}_{cont_string}scores_on_toxic_prompts.json"
+                file_name = f"mean_{metric}_{cont_string}scores_on_toxic_prompts{noise_string}.json"
             else:
-                file_name = f"mean_{metric}_{cont_string}scores.json"
+                file_name = f"mean_{metric}_{cont_string}scores{noise_string}.json"
 
         with open(score_dir / file_name, "w") as f:
             json.dump(all_scores, f, indent=4)
@@ -894,5 +914,6 @@ if __name__ == "__main__":
             num_samples=num_train_samples,
             evaluate_wasserstein_on_full=False,
             save=True,
-            overwrite=False,  # Set to True if you want to overwrite existing files
+            overwrite=False,
+            noise=0,  # Set to True if you want to overwrite existing files
         )

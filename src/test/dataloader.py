@@ -64,13 +64,16 @@ def load_into_scores_ds(
     score_dir="model_scores",
     gen_dir="model_outputs",
     only_continuations=True,
+    noise: float = 0,
 ):
     """ """
     cont_string = "continuation_" if only_continuations else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
+
     file_path = (
-        f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores_fold_{fold_num}.json"
+        f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores{noise_string}_fold_{fold_num}.json"
         if fold_num or fold_num == 0
-        else f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores.json"
+        else f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores{noise_string}.json"
     )
 
     try:
@@ -92,6 +95,7 @@ def load_into_scores_ds(
             test_dir=test_dir,
             score_dir=score_dir,
             gen_dir=gen_dir,
+            noise=noise,
         )
 
         with open(file_path, "r") as file:

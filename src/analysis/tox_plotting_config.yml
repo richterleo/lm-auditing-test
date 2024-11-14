@@ -52,3 +52,4 @@ fold_sizes:
   - 2000
 metric: "perspective"
 only_continuations: true
+noise:0.01

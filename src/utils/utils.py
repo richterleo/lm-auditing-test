@@ -301,11 +301,16 @@ def cleanup_files(directory, pattern, verbose=True):
             logger.error(f"Error deleting file {file_path}: {e.strerror}")
 
 
-def load_entire_json(filepath, encoding="utf-8"):
+def load_entire_json(
+    filepath,
+    encoding="utf-8",
+    return_data=True,
+):
     try:
         with open(filepath, "r", encoding=encoding) as file:
             data = json.load(file)
-        return data
+        if return_data:
+            return data
     except FileNotFoundError:
         logger.error(f"File not found: {filepath}")
         raise

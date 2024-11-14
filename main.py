@@ -1,4 +1,3 @@
-import argparse
 import hydra
 import logging
 import os
@@ -8,21 +7,16 @@ from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 from typing import Optional, Dict, List
 
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
 # imports from other scripts
 from arguments import TrainCfg
 
 # from logging_config import setup_logging
-from utils.utils import load_config
-
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing"))
-
-# from auditing_test.test import (
-#     AuditingTest,
-#     CalibratedAuditingTest,
-#     DefaultEpsilonStrategy,
-#     CrossValEpsilonStrategy,
-#     IntervalEpsilonStrategy,
-# )
+from src.utils.utils import load_config
 
 os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
 
@@ -362,14 +356,14 @@ def main(cfg: DictConfig):
     # Determine which experiment to run based on cfg.exp
     if cfg.exp == "generation":
         # Instantiate and run the GenerationExperiment
-        from auditing_test.experiments import GenerationExperiment
+        from src.test.experiments import GenerationExperiment
 
         experiment = GenerationExperiment(cfg)
         experiment.run()
 
     elif cfg.exp == "test":
         # Instantiate and run the appropriate TestExperiment
-        from auditing_test.experiments import TestExperiment
+        from src.test.experiments import TestExperiment
 
         train_cfg = TrainCfg()
         experiment = TestExperiment(cfg, train_cfg)

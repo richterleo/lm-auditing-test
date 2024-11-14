@@ -6,12 +6,15 @@ from omegaconf import OmegaConf
 from pathlib import Path
 from typing import Optional, Dict
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep-anytime-testing"))
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
 # imports from other modules
-from evaluation.eval import eval_model
-from test.test import AuditingTest, CalibratedAuditingTest
-from test.calibration_strategies import (
+from src.evaluation.generate import generate
+from src.test.test import AuditingTest, CalibratedAuditingTest
+from src.test.calibration_strategies import (
     DefaultStrategy,
     StdStrategy,
     IntervalStrategy,
@@ -53,7 +56,7 @@ class GenerationExperiment(Experiment):
         """
         # Call eval_model with the config and any overrides
 
-        eval_model(
+        generate(
             OmegaConf.to_container(self.cfg, resolve=True),
             model_id=model_id,
             hf_prefix=hf_prefix,
@@ -85,6 +88,7 @@ class TestExperiment(Experiment):
         overwrite = self.cfg.test_params.get("overwrite", False)
         dir_prefix = self.cfg.dir_prefix
         only_continuations = self.cfg.test_params.only_continuations
+        noise = self.cfg.test_params.noise
 
         if calibrate:
             calibration_strategy = self.cfg.calibration_params.get("calibration_strategy", "default")
@@ -106,6 +110,7 @@ class TestExperiment(Experiment):
                 eps,
                 use_wandb=use_wandb,
                 only_continuations=only_continuations,
+                noise=noise,
             )
 
         else:
@@ -115,6 +120,7 @@ class TestExperiment(Experiment):
                 dir_prefix,
                 use_wandb=use_wandb,
                 only_continuations=only_continuations,
+                noise=noise,
             )
 
         exp.run(

@@ -10,6 +10,7 @@ import wandb
 from datasets import load_dataset
 from pathlib import Path
 from peft import AutoPeftModelForCausalLM
+from scipy.stats import wasserstein_distance, ks_2samp
 from sklearn.model_selection import train_test_split, KFold
 from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
@@ -34,8 +35,6 @@ Trainer = getattr(orig_models, "Trainer")
 
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-
 
 class OfflineTrainer(Trainer):
     def __init__(
@@ -56,6 +55,8 @@ class OfflineTrainer(Trainer):
         test_dir="test_outputs",
         score_dir="model_scores",
         gen_dir="model_outputs",
+        calc_stats=True,
+        noise=0,
     ):
         super().__init__(
             train_cfg,
@@ -103,6 +104,7 @@ class OfflineTrainer(Trainer):
             test_dir=test_dir,
             score_dir=score_dir,
             gen_dir=gen_dir,
+            noise=noise,
         )
 
         # This is the batch size for the network. Should probably ideally be the same as the overall batch size
@@ -145,6 +147,10 @@ class OfflineTrainer(Trainer):
 
         # for fast analysis
         self.test_positive = False
+
+        self.calc_stats = calc_stats
+
+        self.noise = noise
 
     def add_epoch_data(self, sequence, epoch, train_loss, val_loss):
         row = {
@@ -234,9 +240,11 @@ class OfflineTrainer(Trainer):
         kf = KFold(n_splits=self.num_batches, shuffle=True, random_state=self.seed)
 
         valid_size = self.num_batches * self.bs
+        logger.info(f"Size of all batches: {valid_size}")
         if valid_size < len(self.dataset):
             rng = np.random.RandomState(self.seed)
             self.dataset = rng.permutation(self.dataset)[:valid_size]
+            logger.info(f"Whole dataset has been trimmed to length: {len(self.dataset)}")
 
         batches = []
         for _, batch_indices in kf.split(self.dataset):
@@ -392,6 +400,12 @@ class OfflineTrainer(Trainer):
         self.data["fold_number"] = self.fold_num
         self.data["test_positive"] = self.data["test_positive"].astype(int)
 
+        if self.calc_stats:
+            stat_dict = self.calculate_statistics()
+            # Add statistics to self.data DataFrame
+            for key, value in stat_dict.items():
+                self.data[key] = value
+
         return self.data, self.test_positive
 
     def train_evaluate_epoch(self, data_loader, mode="train"):
@@ -444,6 +458,27 @@ class OfflineTrainer(Trainer):
             int(self.current_epoch == 0),
         )
         return aggregated_loss / num_samples, betting_score
+
+    def calculate_statistics(self):
+        """ """
+        scores1 = [self.dataset.data[i][0] for i in range(len(self.dataset))]
+        scores2 = [self.dataset.data[i][1] for i in range(len(self.dataset))]
+
+        stats_dict = {}
+
+        # Calculate the mean and standard deviation of the scores
+        stats_dict["mean1"] = np.mean(scores1)
+        stats_dict["mean2"] = np.mean(scores2)
+        stats_dict["std1"] = np.std(scores1)
+        stats_dict["std2"] = np.std(scores2)
+
+        # Calculate the Wasserstein distance
+        stats_dict["ws"] = wasserstein_distance(scores1, scores2)
+
+        # calculate the result of KS-test
+        stats_dict["ks_dist"], stats_dict["p-value"] = ks_2samp(scores1, scores2)
+
+        return stats_dict
 
 
 class OnlineTrainer(Trainer):

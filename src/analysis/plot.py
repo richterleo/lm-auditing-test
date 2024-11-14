@@ -50,6 +50,7 @@ from src.analysis.analyze import (
     extract_power_from_sequence_df,
     get_alpha_wrapper,
     get_mean_and_std_for_nn_distance,
+    get_mean_tox_scores,
 )
 
 pd.set_option("display.max_rows", 1000)
@@ -58,7 +59,7 @@ pd.set_option("display.width", 1000)
 
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 TASK_CLUSTER = [
     ["Program Execution", "Pos Tagging", "Mathematics"],
@@ -80,18 +81,23 @@ def distance_box_plot(
     plot_dir: str = "test_outputs",
     dir_prefix: Optional[str] = None,
     overwrite: bool = False,
+    noise: float = 0,
 ):
     """ """
 
     if dir_prefix is None:
         dir_prefix = metric
 
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     if pre_shuffled:
-        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_unpaired.pdf"
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_unpaired{noise_string}.pdf"
     else:
-        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot.pdf"
+        file_path = (
+            f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot{noise_string}.pdf"
+        )
 
     if not overwrite and Path(file_path).exists():
         logger.info(f"File already exists at {file_path}. Skipping...")
@@ -167,14 +173,17 @@ def plot_power_over_number_of_sequences(
     epsilon: Union[float, List[float]] = 0,
     overwrite=False,
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     if dir_prefix is None:
         dir_prefix = metric
 
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
-    test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+    test_dir = ROOT_DIR / dir_prefix / test_dir
 
     use_models = model_names is not None
+
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     if group_by == "Checkpoint" or use_models:
         if use_models:
@@ -189,6 +198,7 @@ def plot_power_over_number_of_sequences(
                 test_dir=test_dir,
                 metric=metric,
                 dir_prefix=dir_prefix,
+                noise=noise,
             )
         else:
             result_df = get_power_over_sequences(
@@ -203,6 +213,7 @@ def plot_power_over_number_of_sequences(
                 test_dir=test_dir,
                 metric=metric,
                 dir_prefix=dir_prefix,
+                noise=noise,
             )
     elif group_by == "Rank based on Wasserstein Distance" or group_by == "Empirical Wasserstein Distance":
         result_df = get_power_over_sequences_for_ranked_checkpoints(
@@ -216,6 +227,7 @@ def plot_power_over_number_of_sequences(
             fold_size=fold_size,
             epsilon=epsilon,
             dir_prefix=dir_prefix,
+            noise=noise,
         )
 
         result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
@@ -301,9 +313,9 @@ def plot_power_over_number_of_sequences(
 
     if save_as_pdf:
         if use_models:
-            file_name = "power_over_number_of_sequences.pdf"
+            file_name = f"power_over_number_of_sequences{noise_string}.pdf"
         else:
-            file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.pdf"
+            file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}{noise_string}.pdf"
         plt.savefig(
             f"{directory}/{file_name}",
             bbox_inches="tight",
@@ -311,9 +323,9 @@ def plot_power_over_number_of_sequences(
         )
     else:
         if use_models:
-            file_name = "power_over_number_of_sequences.png"
+            file_name = f"power_over_number_of_sequences{noise_string}.png"
         else:
-            file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.png"
+            file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}{noise_string}.png"
 
         plt.savefig(
             f"{directory}/{file_name}",
@@ -344,14 +356,17 @@ def plot_power_over_number_of_sequences_for_models(
     model_labels: Optional[List[str]] = None,
     model_name_to_label: Optional[Dict[str, str]] = None,
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     if dir_prefix is None:
         dir_prefix = metric
 
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
-    test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+    test_dir = ROOT_DIR / dir_prefix / test_dir
 
     use_models = model_names is not None
+
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     # Retrieve the result DataFrame based on the parameters
     if group_by == "Checkpoint" or use_models:
@@ -364,6 +379,7 @@ def plot_power_over_number_of_sequences_for_models(
                 only_continuations=only_continuations,
                 fold_size=fold_size,
                 epsilon=epsilon,
+                noise=noise,
             )
         else:
             result_df = get_power_over_sequences(
@@ -375,6 +391,7 @@ def plot_power_over_number_of_sequences_for_models(
                 only_continuations=only_continuations,
                 fold_size=fold_size,
                 epsilon=epsilon,
+                noise=noise,
             )
     elif group_by in ["Rank based on Wasserstein Distance", "Empirical Wasserstein Distance"]:
         result_df = get_power_over_sequences_for_ranked_checkpoints(
@@ -387,6 +404,7 @@ def plot_power_over_number_of_sequences_for_models(
             only_continuations=only_continuations,
             fold_size=fold_size,
             epsilon=epsilon,
+            noise=noise,
         )
         result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
 
@@ -556,9 +574,7 @@ def plot_power_over_number_of_sequences_for_models(
         Path(directory).mkdir(parents=True, exist_ok=True)
 
     file_extension = "pdf" if save_as_pdf else "png"
-    file_name = (
-        f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}.{file_extension}"
-    )
+    file_name = f"power_over_number_of_sequences_grouped_by_{group_by}_{base_model_name}_{base_model_seed}{noise_string}.{file_extension}"
     plt.savefig(
         f"{directory}/{file_name}",
         bbox_inches="tight",
@@ -585,6 +601,7 @@ def plot_power_over_epsilon(
     epsilon=0,
     only_continuations=True,
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     """
     This plots power over distance measure, potentially for different fold_sizes and models.
@@ -593,7 +610,9 @@ def plot_power_over_epsilon(
     if dir_prefix is None:
         dir_prefix = metric
 
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     if isinstance(fold_sizes, list):
         result_df = get_power_over_sequences_for_ranked_checkpoints_wrapper(
@@ -607,6 +626,7 @@ def plot_power_over_epsilon(
             fold_sizes=fold_sizes,
             epsilon=epsilon,
             only_continuations=only_continuations,
+            noise=noise,
         )
     else:
         result_df = get_power_over_sequences_for_ranked_checkpoints(
@@ -619,6 +639,7 @@ def plot_power_over_epsilon(
             distance_measure=distance_measure,
             epsilon=epsilon,
             only_continuatinos=only_continuations,
+            noise=noise,
         )
 
     smaller_df = extract_power_from_sequence_df(result_df, distance_measure=distance_measure, by_checkpoints=True)
@@ -682,27 +703,27 @@ def plot_power_over_epsilon(
     if "Samples per Test" in smaller_df.columns:
         if save_as_pdf:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
+                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}{noise_string}.pdf",
                 bbox_inches="tight",
                 format="pdf",
             )
 
         else:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
+                f"{directory}/power_over_{distance_measure.lower()}_distance_grouped_by_fold_size_{base_model_name}_{base_model_seed}{noise_string}.png",
                 dpi=300,
                 bbox_inches="tight",
             )
     else:
         if save_as_pdf:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.pdf",
+                f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}{noise_string}.pdf",
                 bbox_inches="tight",
                 format="pdf",
             )
         else:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}.png",
+                f"{directory}/power_over_{distance_measure.lower()}_distance_{base_model_name}_{base_model_seed}{noise_string}.png",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -752,26 +773,26 @@ def plot_power_over_epsilon(
     if "Samples per Test" in smaller_df.columns:
         if save_as_pdf:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.pdf",
+                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}{noise_string}.pdf",
                 bbox_inches="tight",
                 format="pdf",
             )
         else:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}.png",
+                f"{directory}/power_over_{distance_measure.lower()}_rank_grouped_by_fold_size_{base_model_name}_{base_model_seed}{noise_string}.png",
                 dpi=300,
                 bbox_inches="tight",
             )
     else:
         if save_as_pdf:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.pdf",
+                f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}{noise_string}.pdf",
                 bbox_inches="tight",
                 format="pdf",
             )
         else:
             plt.savefig(
-                f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}.png",
+                f"{directory}/power_over_{distance_measure.lower()}_rank_{base_model_name}_{base_model_seed}{noise_string}.png",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -791,13 +812,16 @@ def plot_alpha_over_sequences(
     dir_prefix: Optional[str] = None,
     metric: str = "perspective",
     test_dir: str = "test_outputs",
+    noise: float = 0,
 ):
-    # script_dir = os.path.dirname(__file__)
+    # ROOT_DIR = os.path.dirname(__file__)
     if dir_prefix is None:
         dir_prefix = metric
 
     # Construct the absolute path to "test_outputs"
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
     result_df = get_alpha_wrapper(
         model_names,
@@ -809,6 +833,7 @@ def plot_alpha_over_sequences(
         dir_prefix=dir_prefix,
         test_dir=test_dir,
         metric=metric,
+        noise=noise,
     )
     group_by_model = "model_id" in result_df.columns
 
@@ -874,7 +899,7 @@ def plot_alpha_over_sequences(
     directory = f"{plot_dir}/alpha_plots"
     if not Path(directory).exists():
         Path(directory).mkdir(parents=True, exist_ok=True)
-    fig_path = f"{directory}/alpha_error_over_number_of_sequences"
+    fig_path = f"{directory}/alpha_error_over_number_of_sequences{noise_string}"
     if isinstance(model_names, str):
         fig_path += f"_{model_names}"
     elif isinstance(model_names, list):
@@ -902,6 +927,7 @@ def plot_rejection_rate_matrix(
     save_as_pdf: bool = True,
     plot_dir: str = "plots",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     """ """
     assert (model_names2 is None and seeds2 is None) or (
@@ -911,7 +937,9 @@ def plot_rejection_rate_matrix(
     if dir_prefix is None:
         dir_prefix = metric
 
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    noise_string = f"_noise_{noise}" if noise else ""
+
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
     results_df = []
     if not model_names2:
@@ -919,11 +947,7 @@ def plot_rejection_rate_matrix(
             for model_name2, seed2 in zip(model_names1[i + 1 :], seeds1[i + 1 :]):
                 print(f"Checking model {model_name1}, {seed1} against {model_name2}, {seed2}")
                 result_df = get_power_over_sequences_for_models_or_checkpoints(
-                    model_name1,
-                    seed1,
-                    seed2,
-                    model_name2=model_name2,
-                    fold_size=fold_size,
+                    model_name1, seed1, seed2, model_name2=model_name2, fold_size=fold_size, noise=noise
                 )
                 if distance_measure:
                     dist = get_distance_scores(
@@ -935,6 +959,7 @@ def plot_rejection_rate_matrix(
                         distance_measure=distance_measure,
                         epoch1=epoch1,
                         epoch2=epoch2,
+                        noise=noise,
                     )
                     result_df[f"Empirical {distance_measure} Distance"] = dist
                 small_df = extract_power_from_sequence_df(
@@ -963,6 +988,7 @@ def plot_rejection_rate_matrix(
     file_name = "power_heatmap"
     for model_name, seed in zip(model_names1, seeds1):
         file_name += f"_{model_name}_{seed}"
+        file_name += noise_string
 
     if save_as_pdf:
         file_name += ".pdf"
@@ -997,6 +1023,7 @@ def plot_rejection_rate_matrix(
         file_name = "distance_heatmap"
         for model_name, seed in zip(model_names1, seeds1):
             file_name += f"_{model_name}_{seed}"
+            file_name += noise_string
 
         if save_as_pdf:
             file_name += ".pdf"
@@ -1028,8 +1055,8 @@ def plot_rejection_rate_matrix(
 # ):
 #     """Plot calibrated detection rate with a standard legend (opaque background, no 3D effects)."""
 
-#     script_dir = os.path.dirname(__file__)
-#     test_dir = os.path.join(script_dir, "..", test_dir)
+#     ROOT_DIR = os.path.dirname(__file__)
+#     test_dir = os.path.join(ROOT_DIR, "..", test_dir)
 #     plot_dir = os.path.join(test_dir, f"{model_name1}_{seed1}_{model_name2}_{seed2}")
 
 #     if result_file is not None:
@@ -1165,13 +1192,16 @@ def plot_calibrated_detection_rate(
     only_continuations=True,
     dir_prefix: Optional[str] = None,
     metric="perspective",
+    noise: float = 0,
 ):
     """Plot calibrated detection rate without legend and with a text label for the vertical line."""
     if dir_prefix is None:
         dir_prefix = metric
 
-    test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / "plots"
+    test_dir = ROOT_DIR / dir_prefix / test_dir
+    plot_dir = ROOT_DIR / dir_prefix / "plots"
+
+    noise_string = f"_noise_{noise}" if noise else ""
 
     if result_file is not None:
         result_file_path = Path(result_file)
@@ -1180,11 +1210,11 @@ def plot_calibrated_detection_rate(
         continuations_str = "_continuations" if only_continuations else ""
         result_file_path = os.path.join(
             plot_dir,
-            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}.csv",
+            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}{noise_string}.csv",
         )
 
     if not true_epsilon:
-        distance_path = os.path.join(plot_dir, f"distance_scores_{fold_size-bs}_{num_runs}.csv")
+        distance_path = os.path.join(plot_dir, f"distance_scores_{fold_size-bs}_{num_runs}{noise_string}.csv")
         try:
             distance_df = pd.read_csv(distance_path)
             true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(distance_df)
@@ -1281,7 +1311,7 @@ def plot_calibrated_detection_rate(
         spine.set_visible(True)
         spine.set_linewidth(1.5)
 
-    plot_path = os.path.join(plot_dir, f"calibrated_detection_rate_{fold_size}.pdf")
+    plot_path = os.path.join(plot_dir, f"calibrated_detection_rate_{fold_size}{noise_string}.pdf")
 
     if not overwrite and Path(plot_path).exists():
         logger.info(f"File already exists at {plot_path}. Skipping...")
@@ -1309,6 +1339,7 @@ def plot_multiple_calibrated_detection_rates(
     only_continuations=True,
     metric="perspective",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
 ):
     """
     Plot calibrated detection rates for multiple models on the same graph using seaborn lineplot.
@@ -1317,8 +1348,10 @@ def plot_multiple_calibrated_detection_rates(
     if dir_prefix is None:
         dir_prefix = metric
 
-    test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    test_dir = ROOT_DIR / dir_prefix / test_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    noise_string = f"_noise_{noise}" if noise else ""
 
     plt.figure(figsize=(18, 7))
 
@@ -1333,9 +1366,9 @@ def plot_multiple_calibrated_detection_rates(
         continuations_str = "_continuations" if only_continuations else ""
         result_file_path = os.path.join(
             result_dir,
-            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}.csv",
+            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}{noise_string}.csv",
         )
-        distance_path = os.path.join(result_dir, f"distance_scores_{fold_size-bs}_{num_runs}.csv")
+        distance_path = os.path.join(result_dir, f"distance_scores_{fold_size-bs}_{num_runs}{noise_string}.csv")
 
         try:
             distance_df = pd.read_csv(distance_path)
@@ -1390,7 +1423,7 @@ def plot_multiple_calibrated_detection_rates(
                 os.path.join(
                     test_dir,
                     f"{base_model}_{base_seed}_{model_name}_{seed}",
-                    f"distance_scores_{fold_size-bs}_{num_runs}.csv",
+                    f"distance_scores_{fold_size-bs}_{num_runs}{noise_string}.csv",
                 )
             )
         )
@@ -1437,7 +1470,7 @@ def plot_multiple_calibrated_detection_rates(
         spine.set_linewidth(1.5)
 
     # Save the plot
-    plot_path = os.path.join(plot_dir, f"multi_model_calibrated_detection_rate_{fold_size}.pdf")
+    plot_path = os.path.join(plot_dir, f"multi_model_calibrated_detection_rate_{fold_size}{noise_string}.pdf")
     if not overwrite and Path(plot_path).exists():
         logger.info(f"File already exists at {plot_path}. Skipping...")
     else:
@@ -1465,6 +1498,8 @@ def plot_scores(
     save_as_pdf=True,
     plot_dir: str = "plots",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
+    only_continuations: bool = True,
 ):
     """ """
 
@@ -1472,10 +1507,13 @@ def plot_scores(
         dir_prefix = metric
 
     # Construct the absolute path to "test_outputs"
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
+    cont_string = "continuations_" if only_continuations else ""
 
     directory = f"{plot_dir}/{model_name}_{seed}"
-    file_path = f"{directory}/{metric}_scores.json"
+    file_path = f"{directory}/{cont_string}scores{noise_string}.json"
     with open(file_path, "r") as f:
         data = json.load(f)
 
@@ -1546,17 +1584,17 @@ def plot_scores(
     if save:
         if use_log_scale:
             if save_as_pdf:
-                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}_log.pdf")
+                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}{noise_string}_log.pdf")
                 plt.savefig(output_path, format="pdf", bbox_inches="tight")
             else:
-                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}_log.png")
+                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}{noise_string}_log.png")
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
         else:
             if save_as_pdf:
-                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}.pdf")
+                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}{noise_string}.pdf")
                 plt.savefig(output_path, format="pdf", bbox_inches="tight")
             else:
-                output_path = os.path.join(directory, f"{metric}_{model_name}_{seed}_scores.png")
+                output_path = os.path.join(directory, f"{metric}_{model_name}_{seed}_scores{noise_string}.png")
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
     else:
         plt.show()
@@ -1583,6 +1621,8 @@ def plot_scores_base_most_extreme(
     save_as_pdf=True,
     plot_dir: str = "plots",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
+    only_continuations: bool = True,
 ):
     if not epochs:
         epochs = [0 for i in checkpoints]
@@ -1590,11 +1630,14 @@ def plot_scores_base_most_extreme(
     if dir_prefix is None:
         dir_prefix = metric
 
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
+    cont_string = "continuations_" if only_continuations else ""
+
     # Construct the absolute path to "test_outputs"
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
     directory = f"{plot_dir}/{base_model_name}_{base_model_seed}"
-    file_path = f"{directory}/{metric}_scores.json"
+    file_path = f"{directory}/{cont_string}scores{noise_string}.json"
     print(f"This is the original model: {file_path}")
     with open(file_path, "r") as f:
         data = json.load(f)
@@ -1605,7 +1648,7 @@ def plot_scores_base_most_extreme(
 
     for ckpt, seed, epoch in zip(checkpoints, checkpoint_seeds, epochs):
         checkpoint_directory = f"{plot_dir}/{checkpoint_base_name}{ckpt}_{seed}"
-        file_path = f"{checkpoint_directory}/{metric}_scores.json"
+        file_path = f"{checkpoint_directory}/{cont_string}scores{noise_string}.json"
         with open(file_path, "r") as f:
             checkpoint_data = json.load(f)
             scores_ckpt = checkpoint_data[str(epoch)][f"{metric}_scores"]
@@ -1688,26 +1731,26 @@ def plot_scores_base_most_extreme(
             if save_as_pdf:
                 output_path = os.path.join(
                     directory,
-                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}_log.pdf",
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}_log.pdf",
                 )
                 plt.savefig(output_path, bbox_inches="tight", format="pdf")
             else:
                 output_path = os.path.join(
                     directory,
-                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}_log.png",
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}_log.png",
                 )
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
         else:
             if save_as_pdf:
                 output_path = os.path.join(
                     directory,
-                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}.pdf",
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}.pdf",
                 )
                 plt.savefig(output_path, bbox_inches="tight", format="pdf")
             else:
                 output_path = os.path.join(
                     directory,
-                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}.png",
+                    f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}.png",
                 )
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
     else:
@@ -1735,18 +1778,23 @@ def plot_scores_two_models(
     score_dir: str = "model_scores",
     plot_dir: str = "plots",
     dir_prefix: Optional[str] = None,
+    noise: float = 0,
+    only_continuations: bool = True,
 ):
     if dir_prefix is None:
         dir_prefix = metric
 
     # Construct the absolute path to "test_outputs"
-    score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
-    plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+    score_dir = ROOT_DIR / dir_prefix / score_dir
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
+    cont_string = "continuations_" if only_continuations else ""
 
     score_dir1 = f"{score_dir}/{model_name1}_{seed1}"
-    score_path1 = f"{score_dir1}/{metric}_scores.json"
+    score_path1 = f"{score_dir1}/{cont_string}scores{noise_string}.json"
     score_dir2 = f"{score_dir}/{model_name2}_{seed2}"
-    score_path2 = f"{score_dir2}/{metric}_scores.json"
+    score_path2 = f"{score_dir2}/{cont_string}scores{noise_string}.json"
     save_dir1 = f"{plot_dir}/{model_name1}_{seed1}"
     save_dir2 = f"{plot_dir}/{model_name2}_{seed2}"
 
@@ -1827,32 +1875,86 @@ def plot_scores_two_models(
             if save_as_pdf:
                 output_path = os.path.join(
                     save_dir1,
-                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}_log.pdf",
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}_log.pdf",
                 )
                 plt.savefig(output_path, bbox_inches="tight", format="pdf")
             else:
                 output_path = os.path.join(
                     save_dir1,
-                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}_log.png",
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}_log.png",
                 )
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
         else:
             if save_as_pdf:
                 output_path = os.path.join(
                     save_dir1,
-                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}.pdf",
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}.pdf",
                 )
                 plt.savefig(output_path, bbox_inches="tight", format="pdf")
             else:
                 output_path = os.path.join(
                     save_dir1,
-                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}.png",
+                    f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}.png",
                 )
                 plt.savefig(output_path, dpi=300, bbox_inches="tight")
     else:
         plt.show()
 
     plt.close()
+
+
+def plot_mean_scores_for_checkpoints(
+    base_model_name: str = "Meta-Llama-3-8B-Instruct",
+    base_seed="seed1000",
+    seeds: List[str] = ["seed1000", "seed1000", "seed1000", "seed1000", "seed1000", "seed1000"],
+    checkpoints: List[int] = [1, 2, 3, 4, 5, 6],
+    checkpoint_base_name: str = "Llama-3-8B-ckpt",
+    metric="perspective",
+    plot_dir: str = "plots",
+    dir_prefix: Optional[str] = None,
+    noise: float = 0,
+    only_continuations: bool = True,
+):
+    """
+    Plot the mean scores for the base model and the most extreme checkpoint.
+    """
+    if dir_prefix is None:
+        dir_prefix = metric
+
+    # Construct the absolute path to "test_outputs"
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+
+    cont_string = "continuations_" if only_continuations else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
+
+    directory = f"{plot_dir}/{base_model_name}_{base_seed}"
+    file_path = f"{directory}/{cont_string}scores{noise_string}.json"
+    with open(file_path, "r") as f:
+        data = json.load(f)
+
+    scores = data[str(0)][f"{metric}_scores"]
+    scores_dict = {}
+    wasserstein_distances = {}
+
+    for ckpt, seed in zip(checkpoints, seeds):
+        checkpoint_directory = f"{plot_dir}/{checkpoint_base_name}{ckpt}_{seed}"
+        file_path = f"{checkpoint_directory}/{cont_string}scores{noise_string}.json"
+        with open(file_path, "r") as f:
+            checkpoint_data = json.load(f)
+            scores_ckpt = checkpoint_data[str(0)][f"{metric}_scores"]
+            scores_dict[(ckpt, seed)] = scores_ckpt
+            wasserstein_distances[(ckpt, seed)] = empirical_wasserstein_distance_p1(scores, scores_ckpt)
+
+    max_distance_ckpt, max_distance_seed = max(wasserstein_distances, key=wasserstein_distances.get)
+    print(f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}")
+    max_distance = wasserstein_distances[(max_distance_ckpt, max_distance_seed)]
+    print(f"This is the max distance: {max_distance:.4f}")
+
+    ckpt_scores = scores_dict[(max_distance_ckpt, max_distance_seed)]
+
+    array_ckpt_scores = np.array(ckpt_scores)
+    skewness = skew(array_ckpt_scores)
+    # print(f
 
 
 @hydra.main(
@@ -1899,6 +2001,7 @@ def plot_toxicity(cfg: DictConfig):
             group_by="Empirical Wasserstein Distance",
             only_continuations=cfg.only_continuations,
             marker=bm.marker,
+            noise=cfg.noise,
         )
 
         # Create power plot over distance:
@@ -1912,9 +2015,12 @@ def plot_toxicity(cfg: DictConfig):
             marker=bm.marker,
             metric=cfg.metric,
             only_continuations=True,
+            noise=cfg.noise,
         )
 
-    plot_alpha_over_sequences(base_models, base_seeds, base_seeds2)
+    plot_alpha_over_sequences(
+        base_models, base_seeds, base_seeds2, noise=cfg.noise, only_continuations=cfg.only_continuations
+    )
 
 
 if __name__ == "__main__":
@@ -1985,7 +2091,7 @@ if __name__ == "__main__":
     line_styles = {label: "" for label in model_labels}
     line_styles["LLama-3-8b-Uncensored"] = (5, 2)
 
-    plot_all()
+    plot_toxicity()
 
     # # # Call the plotting function
     # plot_power_over_number_of_sequences_for_models(
@@ -2007,7 +2113,7 @@ if __name__ == "__main__":
     net_cfg = load_config("config.yml")["net"]
     train_cfg = TrainCfg()
 
-    plot_all()
+    plot_toxicity()
 
     # plot_multiple_calibrated_detection_rates(model_names, seeds, overwrite=True)
 

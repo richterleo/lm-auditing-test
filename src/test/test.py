@@ -22,19 +22,16 @@ from logging_config import setup_logging
 
 from src.test.calibration_strategies import CalibrationStrategy
 from src.test.evaltrainer import OfflineTrainer
-from test.preprocessing import create_folds_from_evaluations, cleanup_files
-# from auditing_test.preprocessing_SuperNI import process_translation
+from src.test.preprocessing import create_folds_from_evaluations
 
 from src.analysis.nn_distance import CMLP
 from src.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 from src.analysis.plot import distance_box_plot, plot_calibrated_detection_rate
 
-from src.utils.utils import (
-    create_run_string,
-)
+from src.utils.utils import create_run_string, cleanup_files
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 class Test:
@@ -59,10 +56,10 @@ class Test:
 
         self.dir_prefix = dir_prefix
 
-        self.test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
-        self.score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
-        self.gen_dir = SCRIPT_DIR.parent / dir_prefix / gen_dir
-        self.plot_dir = SCRIPT_DIR.parent / dir_prefix / plot_dir
+        self.test_dir = ROOT_DIR / dir_prefix / test_dir
+        self.score_dir = ROOT_DIR / dir_prefix / score_dir
+        self.gen_dir = ROOT_DIR / dir_prefix / gen_dir
+        self.plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
         self.overwrite = overwrite
 
@@ -121,6 +118,7 @@ class AuditingTest(Test):
         use_wandb: Optional[bool] = None,
         metric: Optional[bool] = None,
         only_continuations: bool = True,
+        noise: float = 0,
     ):
         super().__init__(
             config,
@@ -137,6 +135,7 @@ class AuditingTest(Test):
         self.model_name2 = None
         self.seed2 = None
         self.fold_size = None
+        self.noise = noise
 
     def initialize_wandb(self, tags: List[str] = ["kfold"]):
         """ """
@@ -203,6 +202,7 @@ class AuditingTest(Test):
             score_dir=self.score_dir,
             gen_dir=self.gen_dir,
             only_continuations=self.only_continuations,
+            noise=self.noise,
         )
 
         return trainer.train()
@@ -211,9 +211,11 @@ class AuditingTest(Test):
         """ """
 
         cont_string = "_continuations" if self.only_continuations else ""
+        noise_string = f"_noise_{self.noise}" if self.noise > 0 else ""
 
         file_path = (
-            Path(self.directory) / f"kfold_test_results{cont_string}_{self.fold_size}_epsilon_{self.epsilon}.csv"
+            Path(self.directory)
+            / f"kfold_test_results{cont_string}_{self.fold_size}_epsilon_{self.epsilon}{noise_string}.csv"
         )
 
         if Path(file_path).exists() and not self.overwrite:
@@ -246,6 +248,7 @@ class AuditingTest(Test):
                 gen_dir=self.gen_dir,
                 test_dir=self.test_dir,
                 only_continuations=self.only_continuations,
+                noise=self.noise,
             )
 
             for file_name in os.listdir(self.directory):
@@ -277,7 +280,7 @@ class AuditingTest(Test):
             all_folds_data.to_csv(file_path, index=False)
             positive_rate = sum_positive / len(folds)
 
-        cleanup_files(self.directory, f"*scores_fold_*.json")
+        cleanup_files(self.directory, f"*scores_fold{noise_string}_*.json")
 
         self.logger.info(f"Positive tests: {positive_rate}, {round(positive_rate*100, 2)}%.")
 
@@ -296,7 +299,9 @@ class AuditingTest(Test):
 
         num_runs = self.config["analysis"]["num_runs"]
 
-        dist_path = Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}.csv"
+        noise_string = f"_noise_{self.noise}" if self.noise > 0 else ""
+
+        dist_path = Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}{noise_string}.csv"
         if dist_path.exists():
             self.logger.info(f"Skipping distance analysis as results file {dist_path} already exists.")
             distance_df = pd.read_csv(dist_path)
@@ -314,6 +319,7 @@ class AuditingTest(Test):
                 num_test_samples=self.train_cfg.batch_size,
                 only_continuations=self.only_continuations,
                 score_dir=self.score_dir,
+                noise=self.noise,
             )
 
             distance_df.to_csv(dist_path, index=False)
@@ -398,6 +404,7 @@ class CalibratedAuditingTest(AuditingTest):
         # num_samples: Optional[int] = 0,
         # use_full_ds_for_nn_distance: bool = False,
         only_continuations: bool = True,
+        noise: float = 0,
     ):
         super().__init__(
             config,
@@ -408,6 +415,7 @@ class CalibratedAuditingTest(AuditingTest):
             metric=metric,
             # use_full_ds_for_nn_distance=use_full_ds_for_nn_distance,
             only_continuations=only_continuations,
+            noise=noise,
         )
 
         # self.num_samples = num_samples if num_samples else config["analysis"]["num_samples"]
@@ -451,6 +459,7 @@ class CalibratedAuditingTest(AuditingTest):
         self.directory.mkdir(parents=True, exist_ok=True)
 
         cont_string = "_continuations" if self.only_continuations else ""
+        noise_string = f"_noise_{self.noise}" if self.noise > 0 else ""
 
         self.setup_logger(tag="calibrated_test_results" if not calibrate_only else "calbrations")
 
@@ -458,11 +467,15 @@ class CalibratedAuditingTest(AuditingTest):
             self.fold_size // self.train_cfg.batch_size
         ) * self.train_cfg.batch_size - self.train_cfg.batch_size
 
-        epsilon_path = self.directory / f"power_over_epsilon{cont_string}_{num_train_samples}_{self.num_runs}.csv"
+        epsilon_path = (
+            self.directory / f"power_over_epsilon{cont_string}_{num_train_samples}_{self.num_runs}{noise_string}.csv"
+        )
 
         if epsilon_path.exists() and not self.overwrite:
             self.logger.info(f"Calibrated testing results already exist in {epsilon_path}.")
-            dist_path = Path(self.directory) / f"distance_scores_{self.num_train_samples}_{self.num_runs}.csv"
+            dist_path = (
+                Path(self.directory) / f"distance_scores_{self.num_train_samples}_{self.num_runs}{noise_string}.csv"
+            )
             try:
                 distance_df = pd.read_csv(dist_path)
                 true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(distance_df)
@@ -477,6 +490,7 @@ class CalibratedAuditingTest(AuditingTest):
                 "train_cfg": self.train_cfg,
                 "num_test_samples": self.train_cfg.batch_size,
                 "only_continuations": self.only_continuations,
+                "noise": self.noise,
             }
 
             epsilons, true_epsilon, std_epsilon = self.calibration_strategy.calculate_epsilons(
@@ -525,5 +539,6 @@ class CalibratedAuditingTest(AuditingTest):
             draw_in_first_checkpoint=False,
             draw_in_lowest_and_highest=True,
             fold_size=self.fold_size,
+            noise=self.noise,
             # overwrite=True,
         )

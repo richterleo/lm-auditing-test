@@ -1,7 +1,16 @@
+import sys
+
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Dict, Optional
 
-from utils.utils import create_run_string
+
+# Add paths to sys.path if not already present
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+from src.utils.utils import create_run_string
 
 
 @dataclass

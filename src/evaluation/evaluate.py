@@ -13,13 +13,13 @@ if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
 from src.utils.utils import (
-    download_file_from_wandb,
     time_block,
     create_run_string,
     load_config,
     load_entire_json,
     cleanup_files,
 )
+from src.utils.wandb_utils import download_file_from_wandb
 from src.evaluation.score import eval_on_metric
 from src.utils.legacy_utils import remove_zero_key_and_flatten
 from logging_config import setup_logging
@@ -46,6 +46,7 @@ def evaluate_single_model(
     verbose=True,
     only_continuation=False,
     short=False,
+    noise=0,
 ):
     """
     Evaluate a single model and save the scores.
@@ -86,8 +87,9 @@ def evaluate_single_model(
 
     short_string = "_short" if short else ""
     cont_string = "continuation_" if only_continuation else ""
+    noise_string = f"_noise{noise}" if noise > 0 else ""
 
-    model_score_path = model_score_dir / f"{cont_string}scores{short_string}.json"
+    model_score_path = model_score_dir / f"{cont_string}scores{short_string}{noise_string}.json"
 
     # get continuation file
     if overwrite or not model_score_path.exists():
@@ -151,13 +153,21 @@ def evaluate_single_model(
                 ground_truths=batch_ground_truths,
                 asynchronously=asynchronously,
                 batch_size=model_batch_size,
+                noise=noise,
             )
 
             scores.extend(new_scores)
 
             if i > 0 and i % 10000 == 0 and save_intermittently:
                 _save_intermittently(
-                    scores, model_score_dir, metric, i, metadata, ds_batch_size, only_continuation=only_continuation
+                    scores,
+                    model_score_dir,
+                    metric,
+                    i,
+                    metadata,
+                    ds_batch_size,
+                    only_continuation=only_continuation,
+                    noise=noise,
                 )
 
             end = time.time()
@@ -171,7 +181,7 @@ def evaluate_single_model(
         logger.info(f"Evaluation completed. File stored in {model_score_path} ")
 
         if remove_intermediate_files:
-            pattern = f"{cont_string}scores_*.json"
+            pattern = f"{cont_string}scores{short_string}{noise_string}_*.json"
             cleanup_files(model_score_dir, pattern)
 
 
@@ -186,6 +196,7 @@ def evaluate_all_models(
     gen_dir="model_outputs",
     score_dir="model_scores",
     only_continuations=True,
+    noise=0,
 ):
     gen_path = Path(gen_dir)
     for model_gen_dir in tqdm(list(gen_path.iterdir())):
@@ -206,6 +217,7 @@ def evaluate_all_models(
                 score_dir=score_dir,
                 verbose=False,
                 only_continuation=only_continuations,
+                noise=noise,
             )
             end = time.time()
             logger.info(f"Model {model_gen_dir} took {round(end-start, 3)} seconds to evaluate.")
@@ -215,9 +227,10 @@ def evaluate_all_models(
             continue
 
 
-def _save_intermittently(scores, model_score_dir, metric, i, metadata, ds_batch_size, only_continuation=False):
+def _save_intermittently(scores, model_score_dir, metric, i, metadata, ds_batch_size, only_continuation=False, noise=0):
     cont_str = "continuation_" if only_continuation else ""
-    current_scores_path = Path(model_score_dir) / f"{cont_str}scores_{i}.json"
+    noise_string = f"_noise{noise}" if noise > 0 else ""
+    current_scores_path = Path(model_score_dir) / f"{cont_str}scores{noise_string}_{i}.json"
     temp_data = {
         "metadata": metadata,
         f"{metric}_scores": scores,

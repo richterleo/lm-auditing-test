@@ -22,7 +22,12 @@ SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def eval_on_metric(
-    metric, continuations, ground_truths: Optional[List] = None, asynchronously: bool = True, batch_size: int = 8
+    metric,
+    continuations,
+    ground_truths: Optional[List] = None,
+    asynchronously: bool = True,
+    batch_size: int = 8,
+    noise=0,
 ):
     """
     Evaluate continuations on the specified metric.
@@ -94,6 +99,9 @@ def eval_on_metric(
     else:
         logger.error(f"Invalid metric provided. Supported metrics are: {', '.join(supported_metrics)}.")
         sys.exit(1)
+
+    noisy_scores = [score + np.random.normal(0, noise) for score in scores]
+    scores = np.clip(noisy_scores, 0, 1)
 
     return scores
 
