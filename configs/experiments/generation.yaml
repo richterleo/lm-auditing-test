@@ -16,7 +16,7 @@ tau1:
   high_temp: false #true # if this is true, we will use high_temp_gen_kwargs instead of gen_kwargs from original config file
 
 
-# Override metric configurations if needed
+#Override metric configurations if needed
 metric:
   behavior: toxicity  
   metric: perspective # toxicity, perspective
@@ -29,7 +29,7 @@ metric:
 #   metric: bleu # bleu, rouge
 #   lower_lim: 0.0                   
 #   upper_lim: 1.0                   
-#   dataset_name: translation_data/translation_data.jsonl 
+#   dataset_name: data/translation/translation_data.jsonl 
 #   few_shot: true
 
 
