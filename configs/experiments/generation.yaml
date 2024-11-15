@@ -4,33 +4,33 @@ exp: generation  # Specifies the type of experiment
 
 # Override tau1 configurations
 tau1:
-  model_id: aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
+  model_id: Meta-Llama-3-8B-Instruct #aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 
   gen_seed: seed1000  # Specify the generation seed
-  hf_prefix: CohereForAI #meta-llama #CohereForAI #meta-llama #LLMAccountability # Specify the Hugging Face prefix
+  hf_prefix: meta-llama #CohereForAI #meta-llama #CohereForAI #meta-llama #LLMAccountability # Specify the Hugging Face prefix
   chat_style: default # for the chat format # default, no_safeguards 
   # All other tau1 parameters inherit from the base config.yaml
   use_peft: null # use peft for models that are finetuned with lora; 
   # currently set automatically but you can override this
-  high_temp: true # if this is true, we will use high_temp_gen_kwargs instead of gen_kwargs from original config file
+  high_temp: false #true # if this is true, we will use high_temp_gen_kwargs instead of gen_kwargs from original config file
 
 
-# # Override metric configurations if needed
-# metric:
-#   behavior: toxicity  
-#   metric: perspective # toxicity, perspective
-#   lower_lim: 0.0                   
-#   upper_lim: 1.0                   
-#   dataset_name: allenai/real-toxicity-prompts
-
+# Override metric configurations if needed
 metric:
-  behavior: translation_performance 
-  metric: bleu # bleu, rouge
+  behavior: toxicity  
+  metric: perspective # toxicity, perspective
   lower_lim: 0.0                   
   upper_lim: 1.0                   
-  dataset_name: translation_data/translation_data.jsonl 
-  few_shot: true
+  dataset_name: allenai/real-toxicity-prompts
+
+# metric:
+#   behavior: translation_performance 
+#   metric: bleu # bleu, rouge
+#   lower_lim: 0.0                   
+#   upper_lim: 1.0                   
+#   dataset_name: translation_data/translation_data.jsonl 
+#   few_shot: true
 
 
 # Override evaluation configurations if needed

@@ -6,6 +6,8 @@ import sys
 
 from collections import defaultdict
 from datasets import load_dataset
+from huggingface_hub import login
+from os import getenv
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
@@ -33,6 +35,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
+
+hf_token = getenv("HF_TOKEN")
+login(hf_token, add_to_git_credential=False)
 
 
 def generate_on_dataset(
@@ -265,7 +270,7 @@ def generate(
     # Initialize wandb with the updated cfg
     if cfg["logging"]["use_wandb"]:
         wandb.init(
-            project=cfg["logging"]["wandb_project_name"],
+            project=cfg["wandb_project_name"],
             entity=cfg["logging"]["entity"],
             name=create_run_string(),
             config=cfg,

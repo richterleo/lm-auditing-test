@@ -1,7 +1,7 @@
 
 defaults:
   - _self_
-  - experiments: test_toxicity #generation #test_toxicity  # generation # test_toxicity
+  - experiments: generation #generation #test_toxicity  # generation # test_toxicity
   - peft_models
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled 
@@ -14,7 +14,7 @@ hydra:
 
 # Global logging configuration
 logging:
-  use_wandb: false
+  use_wandb: true
   api_key: # put your api key here
   entity: LLM_Accountability
 
@@ -72,7 +72,7 @@ epsilon: 0
 # Evaluation configuration
 eval:
   epochs: 1
-  num_samples: 80000  # Can be overridden per experiment if needed
+  num_samples: 100000  # Can be overridden per experiment if needed
   num_bins: 10
   batch_size: 16
   use_vllm: false
