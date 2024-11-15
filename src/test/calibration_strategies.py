@@ -59,7 +59,7 @@ class CalibrationStrategy(ABC):
         test_result_dir = SCRIPT_DIR / dir_prefix / self.test_dir / f"{model_name1}_{seed1}_{model_name2}_{seed2}"
         test_result_dir.mkdir(parents=True, exist_ok=True)
 
-        noise_string = f"_noise{dist_kwargs.get('noise', 0)}" if dist_kwargs.get("noise", 0) > 0 else ""
+        noise_string = f"_noise_{dist_kwargs.get('noise', 0)}" if dist_kwargs.get("noise", 0) > 0 else ""
 
         dist_path = test_result_dir / f"distance_scores_{num_train_samples}_{self.num_runs}{noise_string}.csv"
         if dist_path.exists() and not self.overwrite:

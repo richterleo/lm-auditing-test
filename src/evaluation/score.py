@@ -134,7 +134,7 @@ def call_perspective_synchronously(continuations):
 
 
 async def fetch_toxicity(session, text, retries=10):
-    from utils.keys import PERSPECTIVE_API_KEY
+    # from utils.keys import PERSPECTIVE_API_KEY
 
     url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
     params = {

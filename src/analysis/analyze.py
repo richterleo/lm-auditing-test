@@ -33,7 +33,7 @@ pd.set_option("display.width", 1000)
 
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parents[2]
 
 
 def extract_data_for_models(
@@ -57,10 +57,10 @@ def extract_data_for_models(
 
     if dir_prefix is None:
         dir_prefix = metric
-    test_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
+    test_dir = SCRIPT_DIR / dir_prefix / test_dir
 
     continuation_str = "_continuations" if only_continuations else ""
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     if model_name2:
         base_path = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
@@ -344,11 +344,11 @@ def get_distance_scores(
         raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
 
     cont_string = "continuation_" if only_continuations else ""
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     if not dir_prefix:
         dir_prefix = metric
-    score_dir = SCRIPT_DIR.parent / dir_prefix / test_dir
+    score_dir = SCRIPT_DIR / dir_prefix / test_dir
 
     model_name2 = f"{checkpoint_base_name}{checkpoint}" if checkpoint else model_name2
 
@@ -535,8 +535,8 @@ def get_distance_scores(
             nts_list = list(set(num_train_samples_list))
             for nts in nts_list:
                 dist_file += f"_{nts}"
-            dist_file += f"_{num_runs}.csv"
             dist_file += noise_string
+            dist_file += f"_{num_runs}.csv"
 
             dist_path = score_dir / dist_file
 
@@ -816,9 +816,9 @@ def get_mean_tox_scores(
         dir_prefix = metric
 
     cont_string = "continuation_" if only_continuations else ""
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
-    score_dir = SCRIPT_DIR.parent / dir_prefix / score_dir
+    score_dir = SCRIPT_DIR / dir_prefix / score_dir
 
     if model_names:
         if not isinstance(model_names, list):

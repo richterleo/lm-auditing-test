@@ -68,7 +68,7 @@ def load_into_scores_ds(
 ):
     """ """
     cont_string = "continuation_" if only_continuations else ""
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     file_path = (
         f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores{noise_string}_fold_{fold_num}.json"

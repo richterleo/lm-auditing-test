@@ -12,10 +12,10 @@ tau1:
 
 # Override tau2 configurations
 tau2:
-  model_id: Llama-3-8B-ckpt1
+  model_id: Llama-3-8B-ckpt10
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 #Meta-Llama-3-8B-Instruct_hightemp
-  gen_seed: seed2000  # Specify the generation seed
+  gen_seed: seed1000  # Specify the generation seed
   # All other tau2 parameters inherit from the base config.yaml
 
 # Override metric configurations if needed

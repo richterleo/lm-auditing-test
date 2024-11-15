@@ -53,7 +53,7 @@ def create_common_json(
     new_folder_path.mkdir(parents=True, exist_ok=True)
 
     cont_string = "continuation_" if only_continuations else ""
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     common_scores_file_path = new_folder_path / f"{cont_string}scores{noise_string}.json"
     if overwrite or not common_scores_file_path.exists():
@@ -105,7 +105,7 @@ def create_folds(
     random.seed(fold_size)
 
     cont_string = "continuation_" if only_continuations else ""
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     directory = f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}"
     file_pattern = f"{cont_string}scores{noise_string}_fold_*.json"

@@ -90,7 +90,7 @@ def distance_box_plot(
 
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     if pre_shuffled:
         file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_unpaired{noise_string}.pdf"
@@ -183,7 +183,7 @@ def plot_power_over_number_of_sequences(
 
     use_models = model_names is not None
 
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     if group_by == "Checkpoint" or use_models:
         if use_models:
@@ -366,7 +366,7 @@ def plot_power_over_number_of_sequences_for_models(
 
     use_models = model_names is not None
 
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     # Retrieve the result DataFrame based on the parameters
     if group_by == "Checkpoint" or use_models:
@@ -612,7 +612,7 @@ def plot_power_over_epsilon(
 
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     if isinstance(fold_sizes, list):
         result_df = get_power_over_sequences_for_ranked_checkpoints_wrapper(
@@ -821,7 +821,7 @@ def plot_alpha_over_sequences(
     # Construct the absolute path to "test_outputs"
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
-    noise_string = f"_noise{noise}" if noise > 0 else ""
+    noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     result_df = get_alpha_wrapper(
         model_names,
