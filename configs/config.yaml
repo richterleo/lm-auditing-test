@@ -1,7 +1,7 @@
 
 defaults:
   - _self_
-  - experiments: generation #generation #test_toxicity  # generation # test_toxicity
+  - experiments: generation # test_toxicity #generation #test_toxicity  # generation # test_toxicity
   - peft_models
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled 
@@ -36,8 +36,8 @@ metric:
 # Default configurations for tau models using YAML anchors
 tau_defaults: &tau_defaults
   model_kwargs:
-    torch_dtype: torch.bfloat16
-    load_in_4bit: true
+    torch_dtype: torch.float16 #torch.bfloat16
+    # load_in_4bit: true
     device_map: auto
     low_cpu_mem_usage: true
   gen_kwargs:

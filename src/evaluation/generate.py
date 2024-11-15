@@ -11,7 +11,7 @@ from os import getenv
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Subset
-from transformers import pipeline, AutoTokenizer
+from transformers import pipeline, AutoTokenizer, BitsAndBytesConfig
 from transformers.utils import is_flash_attn_2_available
 from typing import Optional, Dict, List
 from peft import AutoPeftModelForCausalLM
@@ -159,6 +159,8 @@ def generate_on_dataset(
         )
 
     else:
+        quantization_config = BitsAndBytesConfig(load_in_4bit=True, llm_int8_threshold=100.0)
+        model_kwargs.update({"quantization_config": quantization_config})
         generator = pipeline(
             "text-generation",
             model=model_id,

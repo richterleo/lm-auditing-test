@@ -8,10 +8,10 @@ declare -a combinations=(
 )
 
 # Define noise values
-declare -a noise_values=(0.01 0.05 0.1)
+declare -a noise_values=(0)
 
 # Define fold sizes
-declare -a fold_sizes=(2000 4000)
+declare -a fold_sizes=(2000 3000 4000)
 
 # Loop through noise values first
 for noise in "${noise_values[@]}"; do
