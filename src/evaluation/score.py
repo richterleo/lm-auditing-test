@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 
 PERSPECTIVE_API_KEY = getenv("PERSPECTIVE_API_KEY", None)
 
-SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
-
 
 def eval_on_metric(
     metric,

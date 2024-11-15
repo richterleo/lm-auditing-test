@@ -34,7 +34,7 @@ from src.utils.utils import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parents[2]
 
 hf_token = getenv("HF_TOKEN")
 login(hf_token, add_to_git_credential=False)
@@ -111,7 +111,7 @@ def generate_on_dataset(
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
     # for output
-    output_dir = SCRIPT_DIR.parent / dir_prefix / output_dir
+    output_dir = SCRIPT_DIR / dir_prefix / output_dir
     file_name = "continuations"
     if num_samples == -1:
         file_name += ".json"
@@ -126,7 +126,7 @@ def generate_on_dataset(
         return
 
     # for dataset
-    data_path = SCRIPT_DIR.parent / ds_name
+    data_path = SCRIPT_DIR / ds_name
     local_data_path = data_path.parent / f"{data_path.stem}{few_shot_string}{data_path.suffix}"
 
     # translation dataset (or more generally, task dataset)

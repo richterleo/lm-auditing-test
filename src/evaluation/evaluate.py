@@ -27,9 +27,6 @@ from logging_config import setup_logging
 # setup_logging()
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-
-
 # def evaluate_single_model(
 #     model_name: Optional[str] = None,
 #     seed: Optional[str] = None,
