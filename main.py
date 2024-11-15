@@ -7,11 +7,6 @@ from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 from typing import Optional, Dict, List
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
 # imports from other scripts
 from arguments import TrainCfg
 
@@ -19,8 +14,6 @@ from arguments import TrainCfg
 from src.utils.utils import load_config
 
 os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
-
-SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
 
 logger = logging.getLogger(__name__)
 
