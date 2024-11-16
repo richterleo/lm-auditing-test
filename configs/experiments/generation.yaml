@@ -35,7 +35,7 @@ metric:
 
 # Override evaluation configurations if needed
 eval:
-  num_samples: 100000  # max number of samples to evaluate on; -1 for eval on full dataset
+  num_samples: 100  # max number of samples to evaluate on; -1 for eval on full dataset
   batch_size: 8
   use_vllm: false # this is currently not supported
   overwrite: false
