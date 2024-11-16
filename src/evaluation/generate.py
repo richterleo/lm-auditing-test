@@ -159,8 +159,15 @@ def generate_on_dataset(
         )
 
     else:
-        quantization_config = BitsAndBytesConfig(load_in_4bit=True, llm_int8_threshold=100.0)
-        model_kwargs.update({"quantization_config": quantization_config})
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
+
+        # TODO: put this in the config file instead
+        model_kwargs.update({"quantization_config": quant_config})
         generator = pipeline(
             "text-generation",
             model=model_id,
