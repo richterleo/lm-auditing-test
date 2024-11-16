@@ -32,6 +32,8 @@ from logging_config import setup_logging
 # setup_logging()
 logger = logging.getLogger(__name__)
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+
 
 def create_common_json(
     model_name1,
@@ -274,3 +276,38 @@ def create_toxic_prompt_mask(dataset_name="allenai/real-toxicity-prompts", imput
         file_name = "high_toxicity_indices.json"
     with open(file_name, "w") as f:
         json.dump(high_toxicity_indices, f)
+
+
+if __name__ == "__main__":
+    model_name1 = "Meta-Llama-3-8B-Instruct"
+    seed1 = "seed1000"
+    model_names2 = [f"Llama-3-8B-ckpt{i}" for i in range(1, 10)]
+    seeds = [
+        "seed2000",
+        "seed2000",
+        "seed2000",
+        "seed2000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+    ]
+
+    score_dir = ROOT_DIR / "perspective" / "model_scores"
+    test_dir = ROOT_DIR / "perspective" / "test_outputs"
+
+    for mname2, seed2 in zip(model_names2, seeds):
+        create_common_json(
+            model_name1,
+            seed1,
+            mname2,
+            seed2,
+            metric="perspective",
+            overwrite=True,
+            score_dir=score_dir,
+            test_dir=test_dir,
+            only_continuations=True,
+            noise=0.1,
+        )

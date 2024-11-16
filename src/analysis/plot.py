@@ -333,6 +333,8 @@ def plot_power_over_number_of_sequences(
             bbox_inches="tight",
         )
 
+    logger.info(f"File saved at {directory}/{file_name}")
+
 
 def plot_power_over_number_of_sequences_for_models(
     base_model_name: str,
@@ -2024,36 +2026,36 @@ def plot_toxicity(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    model_name1 = "Meta-Llama-3-8B-Instruct"
-    model_name2 = "1-Meta-Llama-3-8B-Instruct"
-    model_name3 = "LLama-3-8b-Uncensored"
-    seed1 = "seed1000"
-    seed2 = "seed1000"
-    metric = "perspective"
-    epsilon1 = 0.0043025975821365135
-    epsilon2 = 0.06611211877316236
+    # model_name1 = "Meta-Llama-3-8B-Instruct"
+    # model_name2 = "1-Meta-Llama-3-8B-Instruct"
+    # model_name3 = "LLama-3-8b-Uncensored"
+    # seed1 = "seed1000"
+    # seed2 = "seed1000"
+    # metric = "perspective"
+    # epsilon1 = 0.0043025975821365135
+    # epsilon2 = 0.06611211877316236
 
-    model_names = [
-        "1-Meta-Llama-3-8B-Instruct",
-        "2-Meta-Llama-3-8B-Instruct",
-        "3-Meta-Llama-3-8B-Instruct",
-        "4-Meta-Llama-3-8B-Instruct",
-        "5-Meta-Llama-3-8B-Instruct",
-        "LLama-3-8b-Uncensored",
-    ]
+    # model_names = [
+    #     "1-Meta-Llama-3-8B-Instruct",
+    #     "2-Meta-Llama-3-8B-Instruct",
+    #     "3-Meta-Llama-3-8B-Instruct",
+    #     "4-Meta-Llama-3-8B-Instruct",
+    #     "5-Meta-Llama-3-8B-Instruct",
+    #     "LLama-3-8b-Uncensored",
+    # ]
 
-    seeds = ["seed1000" for i in model_names]
+    # seeds = ["seed1000" for i in model_names]
 
-    custom_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#000000"]
+    # custom_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#000000"]
 
-    # # Create a sizes dictionary mapping each model to a line width
-    sizes = {model: 1 for model in model_names}  # Default line width for first five models
-    sizes["LLama-3-8b-Uncensored"] = 3  # Thicker line for the 6th model
+    # # # Create a sizes dictionary mapping each model to a line width
+    # sizes = {model: 1 for model in model_names}  # Default line width for first five models
+    # sizes["LLama-3-8b-Uncensored"] = 3  # Thicker line for the 6th model
 
-    marker = ["X", "X", "X", "X", "X", "s"]
+    # marker = ["X", "X", "X", "X", "X", "s"]
 
-    dash_patterns = {model: "" for model in model_names}  # Solid lines for first five models
-    dash_patterns["LLama-3-8b-Uncensored"] = (5, 2)
+    # dash_patterns = {model: "" for model in model_names}  # Solid lines for first five models
+    # dash_patterns["LLama-3-8b-Uncensored"] = (5, 2)
 
     # plot_power_over_number_of_sequences(
     #     model_name1,
@@ -2069,51 +2071,51 @@ if __name__ == "__main__":
     #     line_styles=dash_patterns,
     # )
 
-    # Generate labels for the first five models and include the 6th model as is
-    model_labels = [", ".join(tasks) for tasks in TASK_CLUSTER] + ["LLama-3-8b-Uncensored"]
-    model_name_to_label = dict(zip(model_names, model_labels))
+    # # Generate labels for the first five models and include the 6th model as is
+    # model_labels = [", ".join(tasks) for tasks in TASK_CLUSTER] + ["LLama-3-8b-Uncensored"]
+    # model_name_to_label = dict(zip(model_names, model_labels))
 
     # Define custom palette
     # custom_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#17becf"]
-    muted_palette = ["#94b3d8", "#ffbb78", "#6dc66d", "#e99393", "#b9a0d1", "#106c79"]
+    # muted_palette = ["#94b3d8", "#ffbb78", "#6dc66d", "#e99393", "#b9a0d1", "#106c79"]
 
-    palette = dict(zip(model_labels, custom_palette))
+    # palette = dict(zip(model_labels, custom_palette))
 
-    # Define sizes
-    sizes = {label: 1 for label in model_labels}
-    sizes["LLama-3-8b-Uncensored"] = 3  # Thicker line for the 6th model
+    # # Define sizes
+    # sizes = {label: 1 for label in model_labels}
+    # sizes["LLama-3-8b-Uncensored"] = 3  # Thicker line for the 6th model
 
-    # Define markers
-    markers = {label: "X" for label in model_labels}
-    markers["LLama-3-8b-Uncensored"] = "p"
+    # # Define markers
+    # markers = {label: "X" for label in model_labels}
+    # markers["LLama-3-8b-Uncensored"] = "p"
 
-    # Define line styles
-    line_styles = {label: "" for label in model_labels}
-    line_styles["LLama-3-8b-Uncensored"] = (5, 2)
+    # # Define line styles
+    # line_styles = {label: "" for label in model_labels}
+    # line_styles["LLama-3-8b-Uncensored"] = (5, 2)
 
-    plot_toxicity()
+    # plot_toxicity()
 
-    # # # Call the plotting function
-    # plot_power_over_number_of_sequences_for_models(
-    #     base_model_name="Meta-Llama-3-8B-Instruct",
-    #     base_model_seed="seed1000",
-    #     seeds=seeds,
-    #     model_names=model_names,
-    #     epsilon=0.003769684169348329,
-    #     group_by="model",
-    #     fold_size=2000,
-    #     palette=palette,
-    #     marker=markers,
-    #     sizes=sizes,
-    #     line_styles=line_styles,
-    #     model_labels=model_labels,
-    #     model_name_to_label=model_name_to_label,
-    # )
+    # # # # Call the plotting function
+    # # plot_power_over_number_of_sequences_for_models(
+    # #     base_model_name="Meta-Llama-3-8B-Instruct",
+    # #     base_model_seed="seed1000",
+    # #     seeds=seeds,
+    # #     model_names=model_names,
+    # #     epsilon=0.003769684169348329,
+    # #     group_by="model",
+    # #     fold_size=2000,
+    # #     palette=palette,
+    # #     marker=markers,
+    # #     sizes=sizes,
+    # #     line_styles=line_styles,
+    # #     model_labels=model_labels,
+    # #     model_name_to_label=model_name_to_label,
+    # # )
 
-    net_cfg = load_config("config.yml")["net"]
-    train_cfg = TrainCfg()
+    # net_cfg = load_config("config.yml")["net"]
+    # train_cfg = TrainCfg()
 
-    plot_toxicity()
+    # plot_toxicity()
 
     # plot_multiple_calibrated_detection_rates(model_names, seeds, overwrite=True)
 
@@ -2139,3 +2141,31 @@ if __name__ == "__main__":
     #     true_epsilon=0.06798638751206451,
     #     overwrite=True,
     # )
+
+    seeds = [
+        "seed2000",
+        "seed2000",
+        "seed2000",
+        "seed2000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+    ]
+
+    checkpoints = [i for i in range(1, int(10))]
+
+    plot_power_over_number_of_sequences(
+        "Meta-Llama-3-8B-Instruct",
+        "seed1000",
+        seeds,
+        checkpoints,
+        checkpoint_base_name="Llama-3-8B-ckpt",
+        fold_size=2000,
+        group_by="Empirical Wasserstein Distance",
+        only_continuations=True,
+        marker="X",
+        noise=0.1,
+    )

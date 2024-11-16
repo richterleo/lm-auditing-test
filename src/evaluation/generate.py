@@ -86,7 +86,8 @@ def generate_on_dataset(
         dir_prefix = metric_cfg["metric"]
 
     # wandb only logs strings, floats, ... so need to modify torch_dtype
-    model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    # model_kwargs = translate_model_kwargs(model_cfg["model_kwargs"])
+    model_kwargs = model_cfg["model_kwargs"]
     if is_flash_attn_2_available():
         model_kwargs.update({"attn_implementation": "flash_attention_2"})
     gen_kwargs = model_cfg["gen_kwargs"]

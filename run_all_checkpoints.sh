@@ -2,16 +2,16 @@
 
 # Define the model combinations
 declare -a combinations=(
-    "Meta-Llama-3-8B-Instruct Llama-3-8B-ckpt"
-    "gemma-1.1-7b-it gemma-1.1-7b-it-ckpt"
-    "Mistral-7B-Instruct-v0.2 Mistral-7B-Instruct-ckpt"
-)
+    "Meta-Llama-3-8B-Instruct Llama-3-8B-ckpt")
+#     "gemma-1.1-7b-it gemma-1.1-7b-it-ckpt"
+#     "Mistral-7B-Instruct-v0.2 Mistral-7B-Instruct-ckpt"
+# )
 
 # Define noise values
-declare -a noise_values=(0)
+declare -a noise_values=(0.01 0.05 0.1)
 
 # Define fold sizes
-declare -a fold_sizes=(2000 3000 4000)
+declare -a fold_sizes=(2000 4000)
 
 # Loop through noise values first
 for noise in "${noise_values[@]}"; do
@@ -26,7 +26,7 @@ for noise in "${noise_values[@]}"; do
             read -r model_name1 model_name2 <<< "$combination"
             
             # Run all iterations for this combination in parallel
-            for i in {1..10}; do
+            for i in {6..9}; do
                 echo "Launching experiment: Model1=$model_name1, Model2=${model_name2}${i}, Fold=$fold_size, Noise=$noise"
                 
                 if [[ $model_name2 == "Llama-3-8B-ckpt" && $i -le 4 ]]; then
