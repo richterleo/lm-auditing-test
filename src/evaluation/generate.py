@@ -283,11 +283,13 @@ def generate(
         cfg["logging"]["use_wandb"] = use_wandb
 
     if cfg["eval"]["eval_in_parts"]:
+        logger.info(f"Generating samples in parts")
         # TODO: remove this hardcoded stuff
         lower_index = cfg["eval"]["part"] * 10000
         upper_index = (cfg["eval"]["part"] + 1) * 10000
         # override num_samples
         num_samples = -1
+        logger.info(f"Generating samples from {lower_index} to {upper_index}")
     else:
         lower_index = None
         upper_index = None
