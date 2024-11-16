@@ -1,5 +1,6 @@
 import json
 import logging
+import numpy as np
 import sys
 import time
 
@@ -226,8 +227,6 @@ def evaluate_single_model(
     Returns:
         None
     """
-    import numpy as np
-
     data = None
     if (model_name is None or seed is None) and model_gen_dir is None:
         raise ValueError("Either model_name and seed or dir must be provided.")

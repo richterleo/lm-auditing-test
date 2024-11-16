@@ -280,7 +280,7 @@ class AuditingTest(Test):
             all_folds_data.to_csv(file_path, index=False)
             positive_rate = sum_positive / len(folds)
 
-        cleanup_files(self.directory, f"*scores_fold{noise_string}_*.json")
+        cleanup_files(self.directory, f"*scores{noise_string}_fold*.json")
 
         self.logger.info(f"Positive tests: {positive_rate}, {round(positive_rate*100, 2)}%.")
 

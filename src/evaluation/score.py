@@ -41,7 +41,7 @@ def eval_on_metric(
         List[float]: A list of scores corresponding to each continuation.
 
     """
-    supported_metrics = {"perspective", "toxicity", "bleu", "rouge"}
+    supported_metrics = {"perspective", "toxicity", "bleu", "rouge", "sentiment"}
 
     if metric == "perspective":
         if asynchronously:
@@ -93,6 +93,10 @@ def eval_on_metric(
                 scores.append(score["bleu"])
             else:
                 scores.append(score["rougleLsum"])
+
+    elif metric == "sentiment":
+        sentiment_classifier = pipeline("sentiment-analysis", device_map="auto")
+        scores = [sentiment_classifier(cont)[0]["score"] for cont in continuations]
 
     else:
         logger.error(f"Invalid metric provided. Supported metrics are: {', '.join(supported_metrics)}.")

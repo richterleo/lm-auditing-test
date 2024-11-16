@@ -188,7 +188,7 @@ def generate_on_dataset(
         else:
             dataset = Subset(dataset, range(num_samples))
     elif lower_index and upper_index:
-        dataset = Subset(dataset, range(lower_index, upper_index))
+        dataset = Subset(dataset, range(lower_index, min(upper_index, len(dataset))))
 
     logs = defaultdict(list)
     logs["metadata"] = {
@@ -285,7 +285,7 @@ def generate(
     if cfg["eval"]["eval_in_parts"]:
         # TODO: remove this hardcoded stuff
         lower_index = cfg["eval"]["part"] * 10000
-        upper_index = min((cfg["eval"]["part"] + 1) * 10000, 99442)
+        upper_index = (cfg["eval"]["part"] + 1) * 10000
         # override num_samples
         num_samples = -1
     else:

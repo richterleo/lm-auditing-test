@@ -4,7 +4,7 @@ exp: generation  # Specifies the type of experiment
 
 # Override tau1 configurations
 tau1:
-  model_id: Meta-Llama-3-70B-Instruct #aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
+  model_id: Meta-Llama-3-8B-Instruct #aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 
   gen_seed: seed1000  # Specify the generation seed
@@ -16,21 +16,21 @@ tau1:
   high_temp: false #true # if this is true, we will use high_temp_gen_kwargs instead of gen_kwargs from original config file
 
 
-#Override metric configurations if needed
-metric:
-  behavior: toxicity  
-  metric: perspective # toxicity, perspective
-  lower_lim: 0.0                   
-  upper_lim: 1.0                   
-  dataset_name: allenai/real-toxicity-prompts
-
+# #Override metric configurations if needed
 # metric:
-#   behavior: translation_performance 
-#   metric: bleu # bleu, rouge
+#   behavior: toxicity  
+#   metric: perspective # toxicity, perspective
 #   lower_lim: 0.0                   
 #   upper_lim: 1.0                   
-#   dataset_name: data/translation/translation_data.jsonl 
-#   few_shot: true
+#   dataset_name: allenai/real-toxicity-prompts
+
+metric:
+  behavior: translation_performance 
+  metric: bleu # bleu, rouge
+  lower_lim: 0.0                   
+  upper_lim: 1.0                   
+  dataset_name: data/translation/translation_data.jsonl 
+  few_shot: true
 
 
 # Override evaluation configurations if needed
@@ -39,7 +39,7 @@ eval:
   batch_size: 8
   use_vllm: false # this is currently not supported
   overwrite: false
-  eval_in_parts: true
+  eval_in_parts: false # if true, evaluate in parts
   part: 1
 
 wandb_project_name: Continuations
