@@ -57,6 +57,7 @@ class OfflineTrainer(Trainer):
         gen_dir="model_outputs",
         calc_stats=True,
         noise=0,
+        drift=False,
     ):
         super().__init__(
             train_cfg,
@@ -120,7 +121,8 @@ class OfflineTrainer(Trainer):
                 f"{len(self.dataset) - self.num_batches * self.bs} samples will be discarded as they don't fit into a full batch."
             )
 
-        self.batches = self.get_kfold_sequence_batches()
+        self.drift = drift
+        self.batches, self.batch_indices = self.get_kfold_sequence_batches()
         logger.info(f"Number of sequence batches created: {len(self.batches)}")
 
         # Epsilon for tolerance test
@@ -169,7 +171,7 @@ class OfflineTrainer(Trainer):
         new_data = pd.DataFrame([row])
         self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
 
-    def add_sequence_data(self, sequence, test_loss, betting_score, wealth):
+    def add_sequence_data(self, sequence, test_loss, betting_score, wealth, ks_p_value: Optional[None] = None):
         """Update test_loss and betting score/wealth for the given sequence and epoch"""
         self.data.loc[
             (self.data["sequence"] == sequence),
@@ -180,6 +182,12 @@ class OfflineTrainer(Trainer):
             (self.data["sequence"] == sequence),
             "wealth",
         ] = wealth
+
+        if ks_p_value is not None:
+            self.data.loc[
+                (self.data["sequence"] == sequence),
+                "seq_p-value",
+            ] = ks_p_value
 
     def update_epochs_until_end_of_sequence(self, sequence):
         max_epoch = self.data[(self.data["sequence"] == sequence)]["epoch"].max()
@@ -247,10 +255,22 @@ class OfflineTrainer(Trainer):
             logger.info(f"Whole dataset has been trimmed to length: {len(self.dataset)}")
 
         batches = []
+        batch_indices_list = []
         for _, batch_indices in kf.split(self.dataset):
             batches.append(Subset(self.dataset, batch_indices))
+            batch_indices_list.append(batch_indices)
 
-        return batches
+        if self.drift:
+            # add drift to all batches
+            num_batches = len(batches)
+            drift_per_batch = 0.2 / num_batches
+            for i, batch in enumerate(batches):
+                batch = list(batch)
+                for j in range(len(batch)):
+                    batch[j] = (min(1, batch[j][0] + drift_per_batch * i), min(1, batch[j][1] + drift_per_batch * i))
+                batches[i] = ScoresDataset(*zip(*batch))
+
+        return batches, batch_indices_list
 
     def train(self):
         """ """
@@ -263,6 +283,9 @@ class OfflineTrainer(Trainer):
 
         # In the first sequence, we don't train our model, directly evaluate
         test_ds = self.batches[0]
+
+        ks_p_value = self.calc_ks_p_value(0)
+
         self.num_samples = len(test_ds)
         test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
         test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
@@ -286,6 +309,7 @@ class OfflineTrainer(Trainer):
             "epochs_until_end_of_sequence": np.nan,
             "sequences_until_end_of_experiment": np.nan,
             "test_positive": int(0),
+            "seq_p-value": ks_p_value,
         }
         new_data = pd.DataFrame([row])
         self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
@@ -353,11 +377,14 @@ class OfflineTrainer(Trainer):
                                 int(self.current_epoch == 0),
                             )
 
+                            ks_p_value = self.calc_ks_p_value(k)
+
                             self.add_sequence_data(
                                 self.current_seq,
                                 test_loss.detach().cpu().item(),
                                 betting_scores[-1],
                                 wealth,
+                                ks_p_value=ks_p_value,
                             )
 
                             # former train_ds and val_ds become the new train set
@@ -479,6 +506,17 @@ class OfflineTrainer(Trainer):
         stats_dict["ks_dist"], stats_dict["p-value"] = ks_2samp(scores1, scores2)
 
         return stats_dict
+
+    def calc_ks_p_value(self, k):
+        scores1 = []
+        scores2 = []
+
+        for i in range(0, k + 1):
+            batch_indices = self.batch_indices[i]
+            scores1 += [self.dataset.data[i][0] for i in batch_indices]
+            scores2 += [self.dataset.data[i][1] for i in batch_indices]
+
+        return ks_2samp(scores1, scores2)[1]
 
 
 class OnlineTrainer(Trainer):

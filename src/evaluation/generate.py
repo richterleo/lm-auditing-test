@@ -283,7 +283,7 @@ def generate(
         cfg["logging"]["use_wandb"] = use_wandb
 
     if cfg["eval"]["eval_in_parts"]:
-        logger.info(f"Generating samples in parts")
+        logger.info("Generating samples in parts")
         # TODO: remove this hardcoded stuff
         lower_index = cfg["eval"]["part"] * 10000
         upper_index = (cfg["eval"]["part"] + 1) * 10000
@@ -291,6 +291,7 @@ def generate(
         num_samples = -1
         logger.info(f"Generating samples from {lower_index} to {upper_index}")
     else:
+        num_samples = cfg["eval"]["num_samples"]
         lower_index = None
         upper_index = None
 
@@ -312,7 +313,7 @@ def generate(
     generate_on_dataset(
         cfg["tau1"],
         cfg["metric"],
-        num_samples=cfg["eval"]["num_samples"],
+        num_samples=num_samples,
         batch_size=cfg["eval"]["batch_size"],
         use_wandb=cfg["logging"]["use_wandb"],
         overwrite=cfg["eval"]["overwrite"],

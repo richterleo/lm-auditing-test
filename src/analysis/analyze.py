@@ -88,20 +88,33 @@ def extract_data_for_models(
     return data
 
 
-def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 4000):
+def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 4000, keep_all_data=False):
     """ """
     bs = data.loc[0, "samples"]
 
     max_sequences = (fold_size + bs - 1) // bs
-    selected_columns = data[
-        [
-            "fold_number",
-            "sequence",
-            "wealth",
-            "sequences_until_end_of_experiment",  # TODO: can remove this later, just a sanity check!
-            "test_positive",
+    if keep_all_data:
+        selected_columns = data[
+            [
+                "fold_number",
+                "sequence",
+                "wealth",
+                "sequences_until_end_of_experiment",  # TODO: can remove this later, just a sanity check!
+                "test_positive",
+                "p-value",
+            ]
         ]
-    ]
+
+    else:
+        selected_columns = data[
+            [
+                "fold_number",
+                "sequence",
+                "wealth",
+                "sequences_until_end_of_experiment",
+                "test_positive",
+            ]
+        ]
 
     filtered_df = selected_columns.drop_duplicates(subset=["sequence", "fold_number"])
 
@@ -114,9 +127,16 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
     # Initialize a dictionary to store the counts
     sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
 
+    num_pos_ks_tests = 0
+
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
+
+        if keep_all_data:
+            if fold_data["p-value"][0] < 0.05:
+                num_pos_ks_tests += 1
+
         for sequence in range(max_sequences):  # sequence_counts.keys()
             if sequence in fold_data.index and fold_data.loc[sequence, "sequences_until_end_of_experiment"] == sequence:
                 try:
@@ -134,6 +154,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
     result_df["Power"] = result_df["Count"] / num_folds
     result_df["Samples per Test"] = fold_size
     result_df["Samples"] = result_df["Sequence"] * bs
+    result_df["pos_ks_tests"] = num_pos_ks_tests
 
     result_df.reset_index()
 
@@ -155,6 +176,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
     dir_prefix: Optional[str] = None,
     metric="perspective",
     noise: float = 0,
+    keep_all_data=False,
 ):
     """ """
     assert model_name2 or (
@@ -175,7 +197,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
             metric=metric,
             noise=noise,
         )
-        result_df = get_power_over_sequences_from_whole_ds(data, fold_size=fold_size)
+        result_df = get_power_over_sequences_from_whole_ds(data, fold_size=fold_size, keep_all_data=keep_all_data)
         result_df["model_name1"] = model_name1
         result_df["seed1"] = seed1
         result_df["model_name2"] = model_name2
@@ -195,7 +217,7 @@ def get_power_over_sequences_for_models_or_checkpoints(
             dir_prefix=dir_prefix,
             noise=noise,
         )
-        result_df = get_power_over_sequences_from_whole_ds(data, fold_size)
+        result_df = get_power_over_sequences_from_whole_ds(data, fold_size, keep_all_data=keep_all_data)
         result_df["Checkpoint"] = checkpoint
         result_df["epsilon"] = epsilon
 
@@ -215,6 +237,61 @@ def get_matrix_for_models(model_names, seeds, fold_size=2000):
 
     all_scores_df = pd.concat(all_scores, ignore_index=True)
     logger.info(all_scores_df)
+
+
+def get_true_false_pos_neg(
+    base_model_name: Union[str, List[str]],
+    base_model_seed: Union[str, List[str]],
+    seeds: Union[str, List[str]],
+    checkpoints: Optional[Union[str, List[str]]] = None,
+    model_names: Optional[Union[str, List[str]]] = None,
+    checkpoint_base_name: str = "Llama-3-8B-ckpt",
+    fold_size: int = 2000,
+    only_continuations=True,
+    epsilon: Union[float, List[float]] = 0,
+    bs=100,
+    test_dir="test_outputs",
+    dir_prefix: Optional[str] = None,
+    metric="perspective",
+    noise: float = 0,
+):
+    results_df = []
+
+    for checkpoint, seed in zip(checkpoints, seeds):
+        logger.info(
+            f"Base_model: {base_model_name}, base_model_seed: {base_model_seed}, checkpoint: {checkpoint_base_name}{checkpoint}, seed: {seed}"
+        )
+        try:
+            result_df = get_power_over_sequences_for_models_or_checkpoints(
+                base_model_name,
+                base_model_seed,
+                seed,
+                checkpoint=checkpoint,
+                checkpoint_base_name=checkpoint_base_name,
+                fold_size=fold_size,
+                only_continuations=only_continuations,
+                epsilon=0,
+                bs=bs,
+                test_dir=test_dir,
+                dir_prefix=dir_prefix,
+                metric=metric,
+                noise=noise,
+                keep_all_data=True,
+            )
+
+            results_df.append(result_df)
+
+        except FileNotFoundError:
+            logger.error(f"File for checkpoint {checkpoint} and seed {seed} does not exist yet")
+            sys.exit(1)
+
+    final_df = pd.concat(results_df, ignore_index=True)
+
+    smaller_df = extract_power_from_sequence_df(
+        final_df, distance_measure=None, by_checkpoints=True, keep_all_data=True
+    )
+
+    print("bla")
 
 
 def get_power_over_sequences(
@@ -702,6 +779,7 @@ def extract_power_from_sequence_df(
     df: pd.DataFrame,
     distance_measure: Optional[str] = "Wasserstein",
     by_checkpoints=True,
+    keep_all_data=False,
 ):
     """ """
     cols_to_filter = ["Samples per Test"]
@@ -901,19 +979,36 @@ if __name__ == "__main__":
     train_cfg = TrainCfg()
     net_config = {"input_size": 1, "hidden_layer_size": [32, 32], "layer_norm": True, "bias": True}
 
-    for model_name, seed in zip(model_names, seeds):
-        df = get_distance_scores(
-            base_model_name,
-            base_seed,
-            seed,
-            train_cfg=train_cfg,
-            net_cfg=net_config,
-            model_name2=model_name,
-            distance_measures=["NeuralNet"],
-            num_runs=5,
-            num_samples=num_train_samples,
-            evaluate_wasserstein_on_full=False,
-            save=True,
-            overwrite=False,
-            noise=0,  # Set to True if you want to overwrite existing files
-        )
+    # for model_name, seed in zip(model_names, seeds):
+    #     df = get_distance_scores(
+    #         base_model_name,
+    #         base_seed,
+    #         seed,
+    #         train_cfg=train_cfg,
+    #         net_cfg=net_config,
+    #         model_name2=model_name,
+    #         distance_measures=["NeuralNet"],
+    #         num_runs=5,
+    #         num_samples=num_train_samples,
+    #         evaluate_wasserstein_on_full=False,
+    #         save=True,
+    #         overwrite=False,
+    #         noise=0,  # Set to True if you want to overwrite existing files
+    #     )
+
+    seeds = [
+        "seed2000",
+        "seed2000",
+        "seed2000",
+        "seed2000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+    ]
+
+    checkpoints = [i for i in range(1, int(10))]
+
+    get_true_false_pos_neg("Meta-Llama-3-8B-Instruct", "seed1000", seeds, checkpoints=checkpoints)

@@ -1761,6 +1761,9 @@ def plot_scores_base_most_extreme(
     plt.close()
 
 
+# def plot_ks_result_vs_our_result()
+
+
 def plot_power_over_number_of_sequences_for_different_levels_of_noise(
     base_model_name: str,
     base_model_seed: str,
@@ -2289,13 +2292,13 @@ if __name__ == "__main__":
     #     noise=0.05,
     # )
 
-    plot_power_over_number_of_sequences_for_different_levels_of_noise(
-        "Meta-Llama-3-8B-Instruct",
-        "seed1000",
-        seeds,
-        checkpoints,
-        checkpoint_base_name="Llama-3-8B-ckpt",
-        fold_size=2000,
-        only_continuations=True,
-        marker="X",
-    )
+    # plot_power_over_number_of_sequences_for_different_levels_of_noise(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed1000",
+    #     seeds,
+    #     checkpoints,
+    #     checkpoint_base_name="Llama-3-8B-ckpt",
+    #     fold_size=2000,
+    #     only_continuations=True,
+    #     marker="X",
+    # )
