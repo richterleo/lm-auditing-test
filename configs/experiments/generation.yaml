@@ -39,5 +39,7 @@ eval:
   batch_size: 8
   use_vllm: false # this is currently not supported
   overwrite: false
+  eval_in_parts: true
+  part: 1
 
 wandb_project_name: Continuations

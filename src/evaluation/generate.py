@@ -52,6 +52,8 @@ def generate_on_dataset(
     split: str = "train",
     meta_data: Optional[bool] = None,
     dir_prefix: Optional[str] = None,
+    lower_index: Optional[int] = None,
+    upper_index: Optional[int] = None,
 ):
     """
     Evaluates a model on a dataset and saves the results to a json file.
@@ -116,6 +118,8 @@ def generate_on_dataset(
     file_name = "continuations"
     if num_samples == -1:
         file_name += ".json"
+    elif upper_index and lower_index:
+        file_name += f"_{lower_index}_{upper_index}.json"
     else:
         file_name += f"_{num_samples}.json"
     folder_path = output_dir / f"{model_id.split('/')[-1]}{few_shot_string}{high_temp_string}_seed{seed}"
@@ -177,12 +181,14 @@ def generate_on_dataset(
             pad_token_id=tokenizer.pad_token_id,
         )
 
-    if num_samples < len(dataset):
+    if num_samples < len(dataset) and num_samples != -1:
         if sample_randomly:
             subset_indices = torch.randperm(len(dataset))[:num_samples]
             dataset = Subset(dataset, subset_indices.tolist())
         else:
             dataset = Subset(dataset, range(num_samples))
+    elif lower_index and upper_index:
+        dataset = Subset(dataset, range(lower_index, upper_index))
 
     logs = defaultdict(list)
     logs["metadata"] = {
@@ -276,6 +282,16 @@ def generate(
     if use_wandb is not None:
         cfg["logging"]["use_wandb"] = use_wandb
 
+    if cfg["eval"]["eval_in_parts"]:
+        # TODO: remove this hardcoded stuff
+        lower_index = cfg["eval"]["part"] * 10000
+        upper_index = min((cfg["eval"]["part"] + 1) * 10000, 99442)
+        # override num_samples
+        num_samples = -1
+    else:
+        lower_index = None
+        upper_index = None
+
     # Now, cfg_updated contains the updated parameters
     # Initialize wandb with the updated cfg
     if cfg["logging"]["use_wandb"]:
@@ -299,6 +315,8 @@ def generate(
         use_wandb=cfg["logging"]["use_wandb"],
         overwrite=cfg["eval"]["overwrite"],
         dir_prefix=cfg["dir_prefix"],
+        lower_index=lower_index,
+        upper_index=upper_index,
     )
 
     if cfg["logging"]["use_wandb"]:
