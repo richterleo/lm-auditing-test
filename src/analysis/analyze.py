@@ -50,6 +50,7 @@ def extract_data_for_models(
     metric="perspective",
     dir_prefix: Optional[str] = None,
     noise: float = 0,
+    extract_stats: bool = False,
 ):
     assert model_name2 or (
         checkpoint and checkpoint_base_name
@@ -85,36 +86,42 @@ def extract_data_for_models(
 
     logger.info(f"Number of folds: {data['fold_number'].max()}")
 
+    if extract_stats:
+        file_path = f"{base_path}/kfold_test_stats{continuation_str}_{fold_size}_epsilon_{epsilon}{noise_string}.csv"
+        df = pd.read_csv(file_path)
+        df["ks_pos_result"] = df["ks_p-value"] < 0.05
+
+        # Group by sequence and calculate mean p-value across all fold numbers
+        sequence_avg_pvalues = df.groupby("sequence")["ks_pos_result"].mean()
+
+        # Create a DataFrame for better formatting
+        result_df = pd.DataFrame(
+            {"sequence": sequence_avg_pvalues.index, "average_p_value": sequence_avg_pvalues.values}
+        )
+
+        # Add formatted scientific notation for small p-values
+        result_df["average_p_value_formatted"] = result_df["average_p_value"].apply(lambda x: f"{x:.2e}")
+
+        # Sort by sequence number
+        result_df = result_df.sort_values("sequence")
+
     return data
 
 
-def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 4000, keep_all_data=False):
+def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 4000):
     """ """
     bs = data.loc[0, "samples"]
 
     max_sequences = (fold_size + bs - 1) // bs
-    if keep_all_data:
-        selected_columns = data[
-            [
-                "fold_number",
-                "sequence",
-                "wealth",
-                "sequences_until_end_of_experiment",  # TODO: can remove this later, just a sanity check!
-                "test_positive",
-                "p-value",
-            ]
+    selected_columns = data[
+        [
+            "fold_number",
+            "sequence",
+            "wealth",
+            "sequences_until_end_of_experiment",  # TODO: can remove this later, just a sanity check!
+            "test_positive",
         ]
-
-    else:
-        selected_columns = data[
-            [
-                "fold_number",
-                "sequence",
-                "wealth",
-                "sequences_until_end_of_experiment",
-                "test_positive",
-            ]
-        ]
+    ]
 
     filtered_df = selected_columns.drop_duplicates(subset=["sequence", "fold_number"])
 
@@ -127,15 +134,9 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
     # Initialize a dictionary to store the counts
     sequence_counts = {sequence: 0 for sequence in range(max_sequences)}
 
-    num_pos_ks_tests = 0
-
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
-
-        if keep_all_data:
-            if fold_data["p-value"][0] < 0.05:
-                num_pos_ks_tests += 1
 
         for sequence in range(max_sequences):  # sequence_counts.keys()
             if sequence in fold_data.index and fold_data.loc[sequence, "sequences_until_end_of_experiment"] == sequence:
@@ -146,6 +147,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
                 except AssertionError as e:
                     logger.error(e)
                 sequence_counts[sequence] += 1
+
             elif sequence not in fold_data.index:
                 sequence_counts[sequence] += 1
 
@@ -154,7 +156,6 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
     result_df["Power"] = result_df["Count"] / num_folds
     result_df["Samples per Test"] = fold_size
     result_df["Samples"] = result_df["Sequence"] * bs
-    result_df["pos_ks_tests"] = num_pos_ks_tests
 
     result_df.reset_index()
 
@@ -176,7 +177,6 @@ def get_power_over_sequences_for_models_or_checkpoints(
     dir_prefix: Optional[str] = None,
     metric="perspective",
     noise: float = 0,
-    keep_all_data=False,
 ):
     """ """
     assert model_name2 or (
@@ -1011,4 +1011,19 @@ if __name__ == "__main__":
 
     checkpoints = [i for i in range(1, int(10))]
 
-    get_true_false_pos_neg("Meta-Llama-3-8B-Instruct", "seed1000", seeds, checkpoints=checkpoints)
+    # get_true_false_pos_neg("Meta-Llama-3-8B-Instruct", "seed1000", seeds, checkpoints=checkpoints)
+
+    ds = extract_data_for_models(
+        "Meta-Llama-3-8B-Instruct",
+        "seed1000",
+        "seed2000",
+        model_name2="Meta-Llama-3-8B-Instruct",
+        fold_size=4000,
+        test_dir="test_outputs",
+        epsilon=0,
+        only_continuations=True,
+        metric="perspective",
+        extract_stats=True,
+    )
+
+    # result_df = get_power_over_sequences_from_whole_ds(ds, fold_size=2000)

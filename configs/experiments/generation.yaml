@@ -30,7 +30,7 @@ metric:
   lower_lim: 0.0                   
   upper_lim: 1.0                   
   dataset_name: data/translation/translation_data.jsonl 
-  few_shot: true
+  few_shot: false
 
 
 # Override evaluation configurations if needed

@@ -217,6 +217,10 @@ class AuditingTest(Test):
             Path(self.directory)
             / f"kfold_test_results{cont_string}_{self.fold_size}_epsilon_{self.epsilon}{noise_string}.csv"
         )
+        stat_file_path = (
+            Path(self.directory)
+            / f"kfold_test_stats{cont_string}_{self.fold_size}_epsilon_{self.epsilon}{noise_string}.csv"
+        )
 
         if Path(file_path).exists() and not self.overwrite:
             self.logger.info(f"Skipping test as results file {file_path} already exists.")
@@ -269,16 +273,22 @@ class AuditingTest(Test):
 
             # Iterate over the folds and call test
             all_folds_data = pd.DataFrame()
+            all_folds_stats = pd.DataFrame()
 
             for fold_num in folds:
                 self.logger.info(f"Now starting experiment for fold {fold_num}.")
-                data, test_positive = self.davtt(fold_num)
+                data, test_positive, stat_df = self.davtt(fold_num)
                 all_folds_data = pd.concat([all_folds_data, data], ignore_index=True)
+                if stat_df is not None:
+                    all_folds_stats = pd.concat([all_folds_stats, stat_df], ignore_index=True)
                 if test_positive:
                     sum_positive += 1
 
             all_folds_data.to_csv(file_path, index=False)
             positive_rate = sum_positive / len(folds)
+
+            if all_folds_stats.shape[0] > 0:
+                all_folds_stats.to_csv(stat_file_path, index=False)
 
         cleanup_files(self.directory, f"*scores{noise_string}_fold*.json")
 

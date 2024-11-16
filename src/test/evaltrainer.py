@@ -151,6 +151,20 @@ class OfflineTrainer(Trainer):
         self.test_positive = False
 
         self.calc_stats = calc_stats
+        if self.calc_stats:
+            self.stat_dict = {
+                "mean1": [],
+                "mean2": [],
+                "std1": [],
+                "std2": [],
+                "ws": [],
+                "ks_p-value": [],
+                "fold_number": [],
+                "sequence": [],
+                "num_samples": [],
+            }
+        else:
+            self.stat_dict = None
 
         self.noise = noise
 
@@ -171,7 +185,7 @@ class OfflineTrainer(Trainer):
         new_data = pd.DataFrame([row])
         self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
 
-    def add_sequence_data(self, sequence, test_loss, betting_score, wealth, ks_p_value: Optional[None] = None):
+    def add_sequence_data(self, sequence, test_loss, betting_score, wealth):
         """Update test_loss and betting score/wealth for the given sequence and epoch"""
         self.data.loc[
             (self.data["sequence"] == sequence),
@@ -182,12 +196,6 @@ class OfflineTrainer(Trainer):
             (self.data["sequence"] == sequence),
             "wealth",
         ] = wealth
-
-        if ks_p_value is not None:
-            self.data.loc[
-                (self.data["sequence"] == sequence),
-                "seq_p-value",
-            ] = ks_p_value
 
     def update_epochs_until_end_of_sequence(self, sequence):
         max_epoch = self.data[(self.data["sequence"] == sequence)]["epoch"].max()
@@ -284,8 +292,6 @@ class OfflineTrainer(Trainer):
         # In the first sequence, we don't train our model, directly evaluate
         test_ds = self.batches[0]
 
-        ks_p_value = self.calc_ks_p_value(0)
-
         self.num_samples = len(test_ds)
         test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
         test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
@@ -309,7 +315,6 @@ class OfflineTrainer(Trainer):
             "epochs_until_end_of_sequence": np.nan,
             "sequences_until_end_of_experiment": np.nan,
             "test_positive": int(0),
-            "seq_p-value": ks_p_value,
         }
         new_data = pd.DataFrame([row])
         self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
@@ -377,14 +382,11 @@ class OfflineTrainer(Trainer):
                                 int(self.current_epoch == 0),
                             )
 
-                            ks_p_value = self.calc_ks_p_value(k)
-
                             self.add_sequence_data(
                                 self.current_seq,
                                 test_loss.detach().cpu().item(),
                                 betting_scores[-1],
                                 wealth,
-                                ks_p_value=ks_p_value,
                             )
 
                             # former train_ds and val_ds become the new train set
@@ -428,12 +430,12 @@ class OfflineTrainer(Trainer):
         self.data["test_positive"] = self.data["test_positive"].astype(int)
 
         if self.calc_stats:
-            stat_dict = self.calculate_statistics()
-            # Add statistics to self.data DataFrame
-            for key, value in stat_dict.items():
-                self.data[key] = value
+            self.calculate_statistics()
+            stat_df = pd.DataFrame(self.stat_dict)
+        else:
+            stat_df = None
 
-        return self.data, self.test_positive
+        return self.data, self.test_positive, stat_df
 
     def train_evaluate_epoch(self, data_loader, mode="train"):
         """ """
@@ -488,35 +490,38 @@ class OfflineTrainer(Trainer):
 
     def calculate_statistics(self):
         """ """
-        scores1 = [self.dataset.data[i][0] for i in range(len(self.dataset))]
-        scores2 = [self.dataset.data[i][1] for i in range(len(self.dataset))]
-
-        stats_dict = {}
+        all_scores1 = [self.dataset.data[i][0] for i in range(len(self.dataset))]
+        all_scores2 = [self.dataset.data[i][1] for i in range(len(self.dataset))]
 
         # Calculate the mean and standard deviation of the scores
-        stats_dict["mean1"] = np.mean(scores1)
-        stats_dict["mean2"] = np.mean(scores2)
-        stats_dict["std1"] = np.std(scores1)
-        stats_dict["std2"] = np.std(scores2)
+        mean1 = np.mean(all_scores1)
+        mean2 = np.mean(all_scores2)
+        std1 = np.std(all_scores1)
+        std2 = np.std(all_scores2)
 
         # Calculate the Wasserstein distance
-        stats_dict["ws"] = wasserstein_distance(scores1, scores2)
+        ws = wasserstein_distance(all_scores1, all_scores2)
 
-        # calculate the result of KS-test
-        stats_dict["ks_dist"], stats_dict["p-value"] = ks_2samp(scores1, scores2)
-
-        return stats_dict
-
-    def calc_ks_p_value(self, k):
         scores1 = []
         scores2 = []
 
-        for i in range(0, k + 1):
-            batch_indices = self.batch_indices[i]
+        for seq_num in range(0, len(self.batches)):
+            batch_indices = self.batch_indices[seq_num]
             scores1 += [self.dataset.data[i][0] for i in batch_indices]
             scores2 += [self.dataset.data[i][1] for i in batch_indices]
+            assert len(scores1) == len(scores2), "Length of scores1 and scores2 should be the same"
+            num_samples = len(scores1)
+            p_value = ks_2samp(scores1, scores2)[1]
 
-        return ks_2samp(scores1, scores2)[1]
+            self.stat_dict["mean1"].append(mean1)
+            self.stat_dict["mean2"].append(mean2)
+            self.stat_dict["std1"].append(std1)
+            self.stat_dict["std2"].append(std2)
+            self.stat_dict["ws"].append(ws)
+            self.stat_dict["ks_p-value"].append(p_value)
+            self.stat_dict["fold_number"].append(self.fold_num)
+            self.stat_dict["sequence"].append(seq_num)
+            self.stat_dict["num_samples"].append(num_samples)
 
 
 class OnlineTrainer(Trainer):
