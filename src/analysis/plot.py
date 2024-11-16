@@ -1761,6 +1761,125 @@ def plot_scores_base_most_extreme(
     plt.close()
 
 
+def plot_power_over_number_of_sequences_for_different_levels_of_noise(
+    base_model_name: str,
+    base_model_seed: str,
+    seeds: List[str],
+    checkpoints: Optional[List[str]] = None,
+    checkpoint_base_name: str = "LLama-3-8B-ckpt",
+    marker: Union[str, List[str], Dict[str, str]] = "X",
+    save_as_pdf: bool = True,
+    test_dir: str = "test_outputs",
+    plot_dir: str = "plots",
+    metric: str = "perspective",
+    only_continuations=True,
+    fold_size=2000,
+    epsilon: Union[float, List[float]] = 0,
+    palette: Optional[Union[List[str], Dict[str, str]]] = ["#E49B0F", "#C46210", "#B7410E", "#A81C07"],
+    sizes: Optional[Dict[str, int]] = None,
+    line_styles: Optional[Dict[str, Union[str, Tuple[int, int]]]] = None,
+    dir_prefix: Optional[str] = None,
+    noise_levels: List[float] = [0, 0.01, 0.05, 0.1],
+):
+    if dir_prefix is None:
+        dir_prefix = metric
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+    test_dir = ROOT_DIR / dir_prefix / test_dir
+    result_dfs = []
+    for noise_level in noise_levels:
+        noise_string = f"_noise_{noise_level}" if noise_level > 0 else ""
+        result_df = get_power_over_sequences(
+            base_model_name,
+            base_model_seed,
+            seeds=seeds,
+            checkpoints=checkpoints,
+            checkpoint_base_name=checkpoint_base_name,
+            only_continuations=only_continuations,
+            fold_size=fold_size,
+            epsilon=epsilon,
+            noise=noise_level,
+        )
+        result_df["noise"] = noise_level
+        result_dfs.append(result_df)
+
+    final_df = pd.concat(result_dfs, ignore_index=True)
+    noise_df = (
+        final_df.groupby(["Sequence", "Samples per Test", "Samples", "epsilon", "noise"])["Power"].mean().reset_index()
+    )
+
+    # Create the plot
+    plt.figure(figsize=(12, 6))
+
+    # Get unique noise levels
+    noise_levels = sorted(noise_df["noise"].unique())
+
+    # Create custom palette that uses black for 0 noise and original colors for others
+    if palette is None:
+        palette = sns.color_palette("viridis", len(noise_levels) - 1)  # -1 because we handle 0 separately
+    custom_palette = {0: "black"}  # Set 0 noise to black
+    for i, noise in enumerate([n for n in noise_levels if n != 0]):
+        custom_palette[noise] = palette[i] if isinstance(palette, list) else palette
+
+    # Create custom line styles
+    # custom_styles = {0: '--'}  # Set 0 noise to dashed
+    custom_styles = {0: "-"}
+    for noise in [n for n in noise_levels if n != 0]:
+        custom_styles[noise] = "-"  # Set other noise levels to solid
+
+    # Create plot for each noise level separately to control styles
+    for noise in noise_levels:
+        data = noise_df[noise_df["noise"] == noise]
+        # Create custom label: "no noise" for 0, and formatted float for others
+        label = "no noise" if noise == 0 else f"$\mathcal{{N}}(0, {noise:.2f})$"
+        sns.lineplot(
+            data=data,
+            x="Samples",
+            y="Power",
+            label=label,
+            marker=marker,
+            markersize=10,
+            color=custom_palette[noise],
+            linestyle=custom_styles[noise],
+        )
+
+    # Customize the plot
+    plt.xlabel("samples", fontsize=18)
+    plt.ylabel("proportion of triggered tests", fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(np.arange(0, 1.1, 0.1), fontsize=14)
+
+    # Legend
+    plt.legend(
+        title="noise level",
+        loc="center right",
+        bbox_to_anchor=(1.0, 0.5),
+        fontsize=14,
+        title_fontsize=16,
+    )
+
+    # Grid
+    plt.grid(True, linewidth=0.5, color="#ddddee")
+
+    # Make plot borders thicker
+    for spine in plt.gca().spines.values():
+        spine.set_linewidth(1.5)
+
+    # Save plot
+    if save_as_pdf:
+        plt.savefig(
+            f"{plot_dir}/power_over_sequences_noise_comparison.pdf",
+            bbox_inches="tight",
+            format="pdf",
+        )
+    else:
+        plt.savefig(
+            f"{plot_dir}/power_over_sequences_noise_comparison.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
+    plt.close()
+
+
 def plot_scores_two_models(
     model_name1,
     seed1,
@@ -2157,15 +2276,26 @@ if __name__ == "__main__":
 
     checkpoints = [i for i in range(1, int(10))]
 
-    plot_power_over_number_of_sequences(
+    # plot_power_over_number_of_sequences(
+    #     "Meta-Llama-3-8B-Instruct",
+    #     "seed1000",
+    #     seeds,
+    #     checkpoints,
+    #     checkpoint_base_name="Llama-3-8B-ckpt",
+    #     fold_size=2000,
+    #     group_by="Empirical Wasserstein Distance",
+    #     only_continuations=True,
+    #     marker="X",
+    #     noise=0.05,
+    # )
+
+    plot_power_over_number_of_sequences_for_different_levels_of_noise(
         "Meta-Llama-3-8B-Instruct",
         "seed1000",
         seeds,
         checkpoints,
         checkpoint_base_name="Llama-3-8B-ckpt",
         fold_size=2000,
-        group_by="Empirical Wasserstein Distance",
         only_continuations=True,
         marker="X",
-        noise=0.1,
     )

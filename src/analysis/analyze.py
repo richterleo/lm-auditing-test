@@ -267,7 +267,7 @@ def get_power_over_sequences(
                     epsilon=epsilon,
                     bs=bs,
                     test_dir=test_dir,
-                    dir_prefi=dir_prefix,
+                    dir_prefix=dir_prefix,
                     metric=metric,
                     noise=noise,
                 )

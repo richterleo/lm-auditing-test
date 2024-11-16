@@ -309,5 +309,5 @@ if __name__ == "__main__":
             score_dir=score_dir,
             test_dir=test_dir,
             only_continuations=True,
-            noise=0.1,
+            noise=0,
         )
