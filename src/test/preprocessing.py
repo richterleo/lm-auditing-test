@@ -105,7 +105,7 @@ def create_folds(
 
     # Fix random seed to be different for each fold_size, such that the folds always have different samples.
     # random.seed(fold_size)
-    random.seed(0)
+    random.seed(10)
 
     cont_string = "continuation_" if only_continuations else ""
     noise_string = f"_noise_{noise}" if noise > 0 else ""

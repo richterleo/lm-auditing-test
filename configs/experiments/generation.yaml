@@ -4,11 +4,11 @@ exp: generation  # Specifies the type of experiment
 
 # Override tau1 configurations
 tau1:
-  model_id: aya-23-35B #Meta-Llama-3-70B-Instruct #aya-23-35B #aya-23-8b #Meta-Llama-3-70B-Instruct #aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
+  model_id: Meta-Llama-3-70B-Instruct #aya-23-35B #Meta-Llama-3-70B-Instruct #aya-23-35B #aya-23-8b #Meta-Llama-3-70B-Instruct #aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 
   gen_seed: seed1000  # Specify the generation seed
-  hf_prefix: CohereForAI #CohereForAI #CohereForAI #meta-llama #CohereForAI #meta-llama #LLMAccountability # Specify the Hugging Face prefix
+  hf_prefix: meta-llama #CohereForAI #meta-llama #CohereForAI #meta-llama #LLMAccountability # Specify the Hugging Face prefix
   chat_style: default # for the chat format # default, no_safeguards 
   # All other tau1 parameters inherit from the base config.yaml
   use_peft: null # use peft for models that are finetuned with lora; 
