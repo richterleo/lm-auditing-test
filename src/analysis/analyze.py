@@ -89,21 +89,35 @@ def extract_data_for_models(
     if extract_stats:
         file_path = f"{base_path}/kfold_test_stats{continuation_str}_{fold_size}_epsilon_{epsilon}{noise_string}.csv"
         df = pd.read_csv(file_path)
-        df["ks_pos_result"] = df["ks_p-value"] < 0.05
 
-        # Group by sequence and calculate mean p-value across all fold numbers
-        sequence_avg_pvalues = df.groupby("sequence")["ks_pos_result"].mean()
+        # Group by fold_number
+        grouped = df.groupby("fold_number")
 
-        # Create a DataFrame for better formatting
-        result_df = pd.DataFrame(
-            {"sequence": sequence_avg_pvalues.index, "average_p_value": sequence_avg_pvalues.values}
-        )
+        false_positives = 0
 
-        # Add formatted scientific notation for small p-values
-        result_df["average_p_value_formatted"] = result_df["average_p_value"].apply(lambda x: f"{x:.2e}")
+        # For each fold, check if any p-value is < 0.05
+        for fold, fold_data in grouped:
+            if (fold_data["ks_p-value"] < 0.05).any():
+                count = (fold_data["ks_p-value"] < 0.05).sum()
+                logger.info(f"Fold {fold} has {count} p-values < 0.05")
+                false_positives += 1
 
-        # Sort by sequence number
-        result_df = result_df.sort_values("sequence")
+        logger.info(f"Number of false positives: {false_positives}")
+        # df["ks_pos_result"] = df["ks_p-value"] < 0.05
+
+        # # Group by sequence and calculate mean p-value across all fold numbers
+        # sequence_avg_pvalues = df.groupby("sequence")["ks_pos_result"].mean()
+
+        # # Create a DataFrame for better formatting
+        # result_df = pd.DataFrame(
+        #     {"sequence": sequence_avg_pvalues.index, "average_p_value": sequence_avg_pvalues.values}
+        # )
+
+        # # Add formatted scientific notation for small p-values
+        # result_df["average_p_value_formatted"] = result_df["average_p_value"].apply(lambda x: f"{x:.2e}")
+
+        # # Sort by sequence number
+        # result_df = result_df.sort_values("sequence")
 
     return data
 

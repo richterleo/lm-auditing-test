@@ -66,7 +66,8 @@ class OfflineTrainer(Trainer):
             (model_name2, seed2),
             None,
             None,
-            train_cfg.seed,
+            1,
+            # train_cfg.seed,
         )
 
         # remove unnecessary attributes
