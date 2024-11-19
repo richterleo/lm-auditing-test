@@ -1028,10 +1028,10 @@ if __name__ == "__main__":
     # get_true_false_pos_neg("Meta-Llama-3-8B-Instruct", "seed1000", seeds, checkpoints=checkpoints)
 
     ds = extract_data_for_models(
-        "gemma-1.1-7b-it",
+        "Mistral-7B-Instruct-v0.2",
         "seed1000",
         "seed2000",
-        model_name2="gemma-1.1-7b-it",
+        model_name2="Mistral-7B-Instruct-v0.2",
         fold_size=4000,
         test_dir="test_outputs",
         epsilon=0,

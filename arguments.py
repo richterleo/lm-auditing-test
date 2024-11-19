@@ -86,7 +86,7 @@ class TrainCfg:
     seqs: int = field(default=60, metadata={"help": "Number of mini-batches to go through in total."})
     alpha: float = field(default=0.05, metadata={"help": "Significance level."})  # significance level
     T: int = field(default=0, metadata={"help": "Warm start."})
-    batch_size: int = field(default=25, metadata={"help": "Batch size for sequences in test."})  # 64 (they use 90)
+    batch_size: int = field(default=100, metadata={"help": "Batch size for sequences in test."})  # 64 (they use 90)
     save_dir: Optional[str] = field(default="models", metadata={"help": "Directoy to save regression network to."})
     save: Optional[bool] = field(default=True, metadata={"help": "Whether to save regression network."})
     l1_lambda: float = field(default=0.0)

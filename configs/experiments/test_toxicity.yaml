@@ -4,7 +4,7 @@ exp: test  # Specifies the type of experiment
 
 # Override tau1 configurations
 tau1:
-  model_id: gemma-1.1-7b-it
+  model_id: Meta-Llama-3-8B-Instruct
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 
   gen_seed: seed1000  # Specify the generation seed
@@ -12,7 +12,7 @@ tau1:
 
 # Override tau2 configurations
 tau2:
-  model_id: gemma-1.1-7b-it
+  model_id: Llama-3-8B-ckpt1
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 #Meta-Llama-3-8B-Instruct_hightemp
   gen_seed: seed2000  # Specify the generation seed
@@ -21,14 +21,14 @@ tau2:
 # Override metric configurations if needed
 metric:
   behavior: toxicity  
-  metric: perspective # toxicity for Roberta-based toxicity classifier, see https://huggingface.co/spaces/evaluate-measurement/toxicity
+  metric: toxicity #perspective # toxicity for Roberta-based toxicity classifier, see https://huggingface.co/spaces/evaluate-measurement/toxicity
   lower_lim: 0.0                   
   upper_lim: 1.0                   
   dataset_name: allenai/real-toxicity-prompts  
 
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  fold_size: 4000
+  fold_size: 2000
   overwrite: false
   calibrate: false #true
   noise: 0 # noise for behavior scores

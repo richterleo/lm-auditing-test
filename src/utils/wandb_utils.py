@@ -19,7 +19,7 @@ wandb_api_key = getenv("WANDB_API_KEY")
 
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parents[2]
 
 
 def download_from_wandb(run_name: str, file_name: str = "test_outputs.zip") -> None:
@@ -120,6 +120,7 @@ def download_file_from_wandb(
     entity: str = "LLM_Accountability",
     return_file_path: bool = True,
     get_save_path: Optional[Callable] = None,
+    metric: str = "perspective",
 ) -> Optional[Path]:
     """
     Helper function for downloading the scores file from a W&B run.
@@ -162,7 +163,7 @@ def download_file_from_wandb(
     try:
         # Define the path to the folder where the file will be saved
         if get_save_path:
-            file_path = get_save_path(file.name)
+            file_path = get_save_path(file.name, metric=metric)
         else:
             if not run_id:
                 run_id = Path(run_path).name
@@ -195,10 +196,9 @@ def folder_from_model_and_seed(
         dir_prefix = metric
 
     save_path = SCRIPT_DIR / dir_prefix / save_path
-
     file_path = Path(file_name)
 
-    folder_name = file_path.stem.replace("_continuations", "")
+    folder_name = file_path.parent.stem.replace("_continuations", "")
     folder_path = save_path / folder_name
     new_file_path = folder_path / file_path.name
 
@@ -206,12 +206,9 @@ def folder_from_model_and_seed(
 
 
 if __name__ == "__main__":
-    run_paths = ["LLM_Accountability/continuations/gp0si9wk"]
+    run_paths = ["LLM_Accountability/continuations/3yflpcqd"]
     pattern = "continuations"
-    file_name = "aya-23-8b_continuations_seed1000.json"
 
     download_file_from_wandb(
-        run_path=run_paths[0],
-        file_name=file_name,
-        get_save_path=folder_from_model_and_seed,
+        run_path=run_paths[0], pattern=pattern, get_save_path=folder_from_model_and_seed, metric="bleu"
     )
