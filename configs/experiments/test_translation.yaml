@@ -1,28 +1,71 @@
 # @package _global_
 
-exp: test  # Specifies the type of experiment
+exp: test 
 
 # Override tau1 configurations
 tau1:
-  model_id: Meta-Llama-3-8B-Instruct # Meta-Llama-3-8B-Instruct_fewshot # aya-23-8b
-  gen_seed: seed1000  # Specify the generation seed
-  # All other tau1 parameters inherit from the base config.yaml
+  model_id: Meta-Llama-3-8B-Instruct
+  gen_seed: seed1000
 
-# Override tau2 configurations
+# Define tau2 configuration, inheriting tau_defaults from base config
 tau2:
-  model_id: Meta-Llama-3-8B-Instruct_fewshot # Meta-Llama-3-8B-Instruct # aya-23-8b
-  gen_seed: seed1000  # Specify the generation seed
-  # All other tau2 parameters inherit from the base config.yaml
+  <<: ${tau_defaults}  # This will inherit from the base config tau_defaults
+  model_id: Meta-Llama-3-8B-Instruct_fewshot
+  gen_seed: seed1000
 
-# Override evaluation configurations if needed
+metric:
+  behavior: translation_performance  
+  metric: bleu #rouge                               
+  dataset_name: allenai/real-toxicity-prompts  
+
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  epsilon_strategy: default # crossval # strategy to derive epsilon in test; only relevant if calibrate==True
-  epsilon_ticks: 10 # number of epsilon values to try; only relevant if calibrate==True
-  bias: 0 # if calibrate==True, bias for epsilon values
   fold_size: 2000
   overwrite: false
+  calibrate: false
+  noise: 0
+  track_c2st: true
+  analyze_distance: true
+  calibrate_only: false
 
-wandb_project_name: Test_Translation
 
-calibrate: false # whether to do calibrated test or "normal" test
+# Shared betting network configuration
+net:
+  input_size: 1
+  hidden_layer_size: [32, 32]
+  layer_norm: true
+  bias: true
+  model_type: "CMLP"  # Options: "CMLP", "HighCapacityCMLP"
+  # Additional params for HighCapacityCMLP
+  num_layers: 3
+  batch_size: 64
+
+calibration_params: 
+  epsilon_strategy: default # std # interval # if calibrate==True, strategy to derive epsilon in test
+  epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
+  bias: 0 # if calibrate==True, bias for epsilon values
+  lower_interval_end: 0 
+  upper_interval_end: 0.2
+  lower_model_name: Meta-Llama-3-8B-Instruct_hightemp
+  lower_model_seed: seed1000
+  upper_model_name: LLama-3-8b-Uncensored
+  upper_model_seed: seed1000
+  num_runs: 20
+
+epsilon: 0 # use exact test by default
+
+# Analysis configuration
+analysis:
+  calculate_distance: true
+  unpaired: false
+  num_runs: 20
+  num_samples: 0
+  multiples_of_epsilon: 3
+  bias: 0
+  use_full_ds_for_nn_distance: false
+  epsilon_ticks: 10
+
+logging:
+  use_wandb: false
+  wandb_project_name: Test_Translation
+

@@ -19,8 +19,12 @@ if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
 # Now you can import everything relative to project root
-from arguments import TrainCfg
-from src.utils.utils import initialize_from_config, time_block, load_config
+# from train_cfg import TrainCfg
+from src.utils.utils import (
+    initialize_from_config,
+    time_block,
+    load_config,
+)
 from src.test.dataloader import ScoresDataset, collate_fn
 from src.analysis.nn_distance import CMLP
 
@@ -30,10 +34,19 @@ if str(submodule_path) not in sys.path:
     sys.path.append(str(submodule_path))
 
 
-def get_hist_distribution(data, num_bins=9, lower_lim=0, upper_lim=1):
+def get_hist_distribution(
+    data, num_bins=9, lower_lim=0, upper_lim=1
+):
     """ """
     count = len(data)
-    hist_data = np.histogram(data, bins=num_bins, range=(lower_lim, upper_lim))[0] / count
+    hist_data = (
+        np.histogram(
+            data,
+            bins=num_bins,
+            range=(lower_lim, upper_lim),
+        )[0]
+        / count
+    )
 
     return hist_data
 
@@ -87,10 +100,14 @@ def empirical_quantile_function(samples, q):
         upper_index = int(np.ceil(rank))
         lower_value = sorted_samples[lower_index]
         upper_value = sorted_samples[upper_index]
-        return lower_value + (upper_value - lower_value) * (rank - lower_index)
+        return lower_value + (upper_value - lower_value) * (
+            rank - lower_index
+        )
 
 
-def empirical_wasserstein_distance_p1(samples1: List, samples2: List) -> float:
+def empirical_wasserstein_distance_p1(
+    samples1: List, samples2: List
+) -> float:
     """
     Computes the empirical Wasserstein distance between two samples of probability distributions.
 
@@ -108,14 +125,23 @@ def empirical_wasserstein_distance_p1(samples1: List, samples2: List) -> float:
     sorted_samples2 = np.sort(samples2)
 
     # Combine and sort all samples
-    combined_samples = np.sort(np.concatenate([sorted_samples1, sorted_samples2]))
+    combined_samples = np.sort(
+        np.concatenate([sorted_samples1, sorted_samples2])
+    )
 
     # Compute empirical CDFs at each point in the combined sample list
-    cdf1 = np.searchsorted(sorted_samples1, combined_samples, side="right") / len(samples1)
-    cdf2 = np.searchsorted(sorted_samples2, combined_samples, side="right") / len(samples2)
+    cdf1 = np.searchsorted(
+        sorted_samples1, combined_samples, side="right"
+    ) / len(samples1)
+    cdf2 = np.searchsorted(
+        sorted_samples2, combined_samples, side="right"
+    ) / len(samples2)
 
     # Calculate the Wasserstein distance
-    wasserstein_dist = np.sum(np.abs(cdf1 - cdf2) * np.diff(np.concatenate(([0], combined_samples))))
+    wasserstein_dist = np.sum(
+        np.abs(cdf1 - cdf2)
+        * np.diff(np.concatenate(([0], combined_samples)))
+    )
 
     return wasserstein_dist
 
@@ -133,19 +159,41 @@ def empirical_wasserstein_distance(samples1, samples2, p=1):
     - The p-Wasserstein distance between the two distributions.
     """
 
-    assert p >= 1, "The order of the Wasserstein distance must be greater than or equal to 1."
+    assert p >= 1, (
+        "The order of the Wasserstein distance must be greater than or equal to 1."
+    )
 
     if p == 1:
-        wasserstein_dist = empirical_wasserstein_distance_p1(samples1, samples2)
+        wasserstein_dist = (
+            empirical_wasserstein_distance_p1(
+                samples1, samples2
+            )
+        )
     else:
         n = len(samples1)
         m = len(samples2)
 
-        quantiles = np.linspace(0, 1, max(n, m), endpoint=True)
+        quantiles = np.linspace(
+            0, 1, max(n, m), endpoint=True
+        )
 
-        q1 = np.array([empirical_quantile_function(samples1, q) for q in quantiles])
-        q2 = np.array([empirical_quantile_function(samples2, q) for q in quantiles])
-        wasserstein_dist = (np.sum(np.abs(q1 - q2) ** p * (1 / len(quantiles)))) ** (1 / p)
+        q1 = np.array(
+            [
+                empirical_quantile_function(samples1, q)
+                for q in quantiles
+            ]
+        )
+        q2 = np.array(
+            [
+                empirical_quantile_function(samples2, q)
+                for q in quantiles
+            ]
+        )
+        wasserstein_dist = (
+            np.sum(
+                np.abs(q1 - q2) ** p * (1 / len(quantiles))
+            )
+        ) ** (1 / p)
 
     return wasserstein_dist
 
@@ -182,7 +230,9 @@ class NeuralNetDistance:
         self.delta = train_cfg.earlystopping.delta
         self.alpha = train_cfg.alpha
         self.net_bs = train_cfg.net_batch_size
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = (
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
         self.pre_shuffle = pre_shuffle
 
         # L1 and L2 regularization parameters
@@ -204,11 +254,20 @@ class NeuralNetDistance:
         self.net.to(self.device)
 
         # Initialize optimizer and early stopper
-        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        self.optimizer = torch.optim.Adam(
+            self.net.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
 
-        models = importlib.import_module("deep-anytime-testing.models.earlystopping", package="deep-anytime-testing")
+        models = importlib.import_module(
+            "deep-anytime-testing.models.earlystopping",
+            package="deep-anytime-testing",
+        )
         EarlyStopper = getattr(models, "EarlyStopper")
-        self.early_stopper = EarlyStopper(patience=self.patience, min_delta=self.delta)
+        self.early_stopper = EarlyStopper(
+            patience=self.patience, min_delta=self.delta
+        )
 
         # samples from distribution 1 and 2
         self.samples1 = samples1
@@ -224,34 +283,75 @@ class NeuralNetDistance:
             np.random.shuffle(self.test_samples2)
 
     def l1_regularization(self):
-        l1_regularization = torch.tensor(0.0, requires_grad=True)
+        l1_regularization = torch.tensor(
+            0.0, requires_grad=True
+        )
         for name, param in self.net.named_parameters():
             if "bias" not in name:
-                l1_regularization = l1_regularization + torch.norm(param, p=1)
+                l1_regularization = (
+                    l1_regularization
+                    + torch.norm(param, p=1)
+                )
         return l1_regularization
 
     def train(self):
-        train_val_ds = ScoresDataset(self.samples1, self.samples2)
-        test_ds = ScoresDataset(self.test_samples1, self.test_samples2)
+        train_val_ds = ScoresDataset(
+            self.samples1, self.samples2
+        )
+        test_ds = ScoresDataset(
+            self.test_samples1, self.test_samples2
+        )
 
-        train_ds, val_ds = train_test_split(train_val_ds, test_size=0.2, random_state=self.random_seed)
+        train_ds, val_ds = train_test_split(
+            train_val_ds,
+            test_size=0.2,
+            random_state=self.random_seed,
+        )
 
-        train_loader = DataLoader(train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=self.net_bs,
+            shuffle=True,
+            collate_fn=collate_fn,
+        )
 
-        val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
-        test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+        val_loader = DataLoader(
+            val_ds,
+            batch_size=self.net_bs,
+            shuffle=True,
+            collate_fn=collate_fn,
+        )
+        test_loader = DataLoader(
+            test_ds,
+            batch_size=self.net_bs,
+            shuffle=True,
+            collate_fn=collate_fn,
+        )
 
         for epoch in tqdm(range(self.epochs)):
             self.train_evaluate_epoch(train_loader)
-            val_loss = self.train_evaluate_epoch(val_loader, mode="val")
+            val_loss = self.train_evaluate_epoch(
+                val_loader, mode="val"
+            )
 
             # Check for early stopping or end of epochs
-            if self.early_stopper.early_stop(val_loss.detach()) or (epoch + 1) == self.epochs:
-                neural_net_distance = self.train_evaluate_epoch(test_loader, mode="test")
+            if (
+                self.early_stopper.early_stop(
+                    val_loss.detach()
+                )
+                or (epoch + 1) == self.epochs
+            ):
+                neural_net_distance = (
+                    self.train_evaluate_epoch(
+                        test_loader, mode="test"
+                    )
+                )
 
                 return neural_net_distance
 
-    def train_evaluate_epoch(self, data_loader, mode="train"):
+    def train_evaluate_epoch(
+        self, data_loader, mode="train"
+    ):
         """
         Train or evaluate the neural network for one epoch.
 
@@ -279,7 +379,10 @@ class NeuralNetDistance:
                 self.net.eval()
                 out = self.net(tau1, tau2).detach()
 
-            loss = -out.mean() + self.l1_lambda * self.l1_regularization()
+            loss = (
+                -out.mean()
+                + self.l1_lambda * self.l1_regularization()
+            )
             aggregated_loss += -out.sum()
 
             if mode == "train":
@@ -294,7 +397,9 @@ class NeuralNetDistance:
 
         if mode == "test":
             # 1 + g(X)- g(Y) -1 = g(X) - g(Y)
-            distance = torch.abs(aggregated_diff) / num_samples
+            distance = (
+                torch.abs(aggregated_diff) / num_samples
+            )
             # TODO: check if abs is correct
             return distance
 
@@ -322,7 +427,9 @@ if __name__ == "__main__":
 
     # Generate 100,000 samples from Exponential(λ=0.9804)
     # Note: The scale parameter of np.random.exponential is the inverse of lambda.
-    samples_exp09804 = np.random.exponential(1 / 0.9804, 100000)
+    samples_exp09804 = np.random.exponential(
+        1 / 0.9804, 100000
+    )
 
     data = []
 
@@ -331,20 +438,46 @@ if __name__ == "__main__":
         samples2 = np.random.normal(0, 1, i)
 
         w_dist = wasserstein_distance(samples1, samples2)
-        nn_dist_class = NeuralNetDistance(net_cfg, samples1, samples2, train_cfg)
+        nn_dist_class = NeuralNetDistance(
+            net_cfg, samples1, samples2, train_cfg
+        )
         nn_dist = nn_dist_class.train().item()
 
-        data.append({"samples": i, "Distance": w_dist, "Type": "Wasserstein"})
-        data.append({"samples": i, "Distance": nn_dist, "Type": "Neural Net"})
+        data.append(
+            {
+                "samples": i,
+                "Distance": w_dist,
+                "Type": "Wasserstein",
+            }
+        )
+        data.append(
+            {
+                "samples": i,
+                "Distance": nn_dist,
+                "Type": "Neural Net",
+            }
+        )
 
     df = pd.DataFrame(data)
 
     # Plotting using Seaborn
     plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="samples", y="Distance", hue="Type", marker="o")
+    sns.lineplot(
+        data=df,
+        x="samples",
+        y="Distance",
+        hue="Type",
+        marker="o",
+    )
     plt.xscale("log")
     plt.xlabel("Number of Samples")
     plt.ylabel("Distance")
-    plt.title("Distance Comparison as a Function of Sample Size")
+    plt.title(
+        "Distance Comparison as a Function of Sample Size"
+    )
     plt.grid(True)
-    plt.savefig("distance_comparison.pdf", bbox_inches="tight", format="pdf")
+    plt.savefig(
+        "distance_comparison.pdf",
+        bbox_inches="tight",
+        format="pdf",
+    )

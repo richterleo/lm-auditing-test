@@ -4,13 +4,15 @@ import numpy as np
 import pandas as pd
 import random
 import sys
+import time
 import torch
 import wandb
+import warnings
 
 from datasets import load_dataset
 from pathlib import Path
 from peft import AutoPeftModelForCausalLM
-from scipy.stats import wasserstein_distance, ks_2samp
+from scipy.stats import wasserstein_distance, ks_2samp, ttest_ind, anderson_ksamp
 from sklearn.model_selection import train_test_split, KFold
 from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from transformers import pipeline, AutoTokenizer
@@ -33,8 +35,12 @@ from src.utils.utils import translate_model_kwargs, time_block, NestedKeyDataset
 orig_models = importlib.import_module("deep-anytime-testing.trainer.trainer", package="deep-anytime-testing")
 Trainer = getattr(orig_models, "Trainer")
 
+early_stopping = importlib.import_module("deep-anytime-testing.models.earlystopping", package="deep-anytime-testing")
+EarlyStopper = getattr(early_stopping, "EarlyStopper")
 logger = logging.getLogger(__name__)
 
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
 
 class OfflineTrainer(Trainer):
     def __init__(
@@ -58,6 +64,7 @@ class OfflineTrainer(Trainer):
         calc_stats=True,
         noise=0,
         drift=False,
+        quiet=True,
     ):
         super().__init__(
             train_cfg,
@@ -82,18 +89,6 @@ class OfflineTrainer(Trainer):
         if not (self.device == "cuda"):
             logger.warning("CUDA is not available. Using CPU.")
         self.net.to(self.device)
-
-        # self.test_on_task = test_on_task
-        # self.test_on_waterbirds = test_on_waterbirds
-
-        # if self.test_on_waterbirds:
-        #     output_dir = (
-        #         "/root/Auditing_test_for_LMs/Auditing_test_for_LMs/Auditing_test_for_LMs/BalancingGroups/outputs"
-        #     )
-        # elif self.test_on_task:
-        #     output_dir = "processed_data/translation_test_outputs"
-        # else:
-        #     output_dir = "test_outputs"
 
         self.dataset = load_into_scores_ds(
             model_name1,
@@ -135,16 +130,12 @@ class OfflineTrainer(Trainer):
         self.current_total_epoch = 0
         self.columns = [
             "sequence",
-            "epoch",
             "samples",
-            "train_loss",
-            "val_loss",
-            "test_loss",
             "betting_score",
             "wealth",
-            "epochs_until_end_of_sequence",
-            "sequences_until_end_of_experiment",
             "test_positive",
+            "epochs",
+            "time"
         ]
         self.data = pd.DataFrame(columns=self.columns)
 
@@ -163,92 +154,29 @@ class OfflineTrainer(Trainer):
                 "fold_number": [],
                 "sequence": [],
                 "num_samples": [],
+                "t_pvalue": [],
+                "ad_pvalue": [],
             }
         else:
             self.stat_dict = None
 
         self.noise = noise
 
-    def add_epoch_data(self, sequence, epoch, train_loss, val_loss):
-        row = {
+        self.quiet = quiet
+
+    def add_sequence_data(self, sequence, betting_score, wealth, samples, epochs, time_taken):
+        """Add a new row of sequence-specific data"""
+        new_row = pd.DataFrame([{
             "sequence": sequence,
-            "epoch": epoch,
-            "samples": self.bs * (epoch + 1),
-            "train_loss": train_loss,
-            "val_loss": val_loss,
-            "test_loss": np.nan,
-            "betting_score": np.nan,
-            "wealth": np.nan,
-            "epochs_until_end_of_sequence": np.nan,
-            "sequences_until_end_of_experiment": np.nan,
-            "test_positive": int(0),
-        }
-        new_data = pd.DataFrame([row])
-        self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
-
-    def add_sequence_data(self, sequence, test_loss, betting_score, wealth):
-        """Update test_loss and betting score/wealth for the given sequence and epoch"""
-        self.data.loc[
-            (self.data["sequence"] == sequence),
-            "test_loss",
-        ] = test_loss
-        self.data.loc[(self.data["sequence"] == sequence), "betting_score"] = betting_score
-        self.data.loc[
-            (self.data["sequence"] == sequence),
-            "wealth",
-        ] = wealth
-
-    def update_epochs_until_end_of_sequence(self, sequence):
-        max_epoch = self.data[(self.data["sequence"] == sequence)]["epoch"].max()
-        self.data.loc[
-            (self.data["sequence"] == sequence),
-            "epochs_until_end_of_sequence",
-        ] = max_epoch
-
-    def update_sequences_until_end_of_experiment(self):
-        """
-        In case of positive test result, update the number of sequences until the end of the experiment
-        """
-        max_sequence = self.data["sequence"].max()
-        self.data["sequences_until_end_of_experiment"] = max_sequence
-        self.data["test_positive"] = int(1)
-
-    def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
-        """
-        Log metrics for visualization and monitoring.
-
-        Args:
-        - logs (dict): Dictionary containing metrics to be logged.
-        """
-
-        for key, value in logs.items():
-            if self.use_wandb:
-                if self.fold_num:
-                    wandb.log(
-                        {
-                            key: value,
-                            "sequence": seq,
-                            "epoch": epoch,
-                            "epoch_total": total_epoch,
-                            "new_start_sequence": new_start_sequence,
-                            "fold_num": self.fold_num,
-                        }
-                    )
-                else:
-                    wandb.log(
-                        {
-                            key: value,
-                            "sequence": seq,
-                            "epoch": epoch,
-                            "epoch_total": total_epoch,
-                            "new_start_sequence": new_start_sequence,
-                        }
-                    )
-
-            if self.fold_num and self.verbose:
-                logger.info(
-                    f"Fold_num: {self.fold_num}, Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}"
-                )
+            "samples": samples,
+            "betting_score": betting_score,
+            "wealth": wealth,
+            "test_positive": int(self.test_positive),
+            "epochs": epochs,
+            "time": time_taken
+        }])
+        
+        self.data = pd.concat([self.data, new_row], ignore_index=True)
 
     def get_kfold_sequence_batches(self):
         """
@@ -287,148 +215,105 @@ class OfflineTrainer(Trainer):
         np.random.seed(self.seed)
         betting_scores = []
 
-        self.current_seq = 0
-        self.current_epoch = 0
-
-        # In the first sequence, we don't train our model, directly evaluate
+        # First sequence evaluation
         test_ds = self.batches[0]
-
-        self.num_samples = len(test_ds)
+        num_samples = len(test_ds)
         test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
-        test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
+        _, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
         betting_scores.append(betting_score.item())
-        self.log(
-            {"aggregated_test_e-value": betting_score},
-            self.current_seq,
-            self.current_epoch,
-            self.current_total_epoch,
-            int(self.current_epoch == 0),
+        
+        # For first sequence
+        self.test_positive = betting_score > (1.0 / self.alpha)
+        self.add_sequence_data(
+            0,
+            betting_score.cpu().item(),
+            betting_score.cpu().item(),  # For first sequence, wealth equals betting score
+            num_samples,
+            0,  # No epochs for first sequence
+            0   # No training time for first sequence
         )
-        row = {
-            "sequence": 0,
-            "epoch": 0,
-            "samples": self.bs,
-            "train_loss": np.nan,
-            "val_loss": np.nan,
-            "test_loss": test_loss.detach().cpu().item(),
-            "betting_score": betting_score.cpu().item(),
-            "wealth": betting_score.cpu().item(),  # wealth is the same as betting score in the first sequence
-            "epochs_until_end_of_sequence": np.nan,
-            "sequences_until_end_of_experiment": np.nan,
-            "test_positive": int(0),
-        }
-        new_data = pd.DataFrame([row])
-        self.data = new_data.copy() if self.data.empty else pd.concat([self.data, new_data], ignore_index=True)
 
-        # Log information if wealth exceeds the threshold TODO: not sure we need this for first batch??
-        if betting_score > (1.0 / self.alpha):
+        if self.test_positive:
             logger.info("Reject null at %f", betting_score)
-            self.test_positive = True
-
-            self.log(
-                {"aggregated_test_e-value": betting_score},
-                self.current_seq,
-                self.current_epoch,
-                self.current_total_epoch,
-                int(self.current_epoch == 0),
-            )
-
+            # Fill remaining sequences with placeholder data
+            for remaining_seq in range(1, min(self.seqs, self.num_batches)):
+                self.add_sequence_data(
+                    remaining_seq,
+                    np.nan,  # betting_score
+                    np.nan,  # wealth
+                    np.nan,  # samples
+                    np.nan,  # epochs
+                    np.nan   # time
+                )
         else:
-            # In first sequence, we need to distribute the data into train and val set
+            # Split first batch into train/val
             train_ds, val_ds = train_test_split(self.batches[0], test_size=0.2, random_state=self.seed)
             train_loader = DataLoader(train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
             val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
             # Iterate over sequences
-            for k in tqdm(range(1, min(self.seqs, self.num_batches))):
-                self.current_seq = k
-                self.current_epoch = 0
+            for k in tqdm(range(1, min(self.seqs, self.num_batches)), disable=self.quiet):
+                sequence_start_time = time.time()
 
-                with time_block(f"Sequence {k}/{self.num_batches}"):
-                    for i in range(self.epochs):
-                        self.current_epoch = i
-                        self.current_total_epoch += 1
-                        loss_train, _ = self.train_evaluate_epoch(train_loader)
-                        loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
-                        self.add_epoch_data(
-                            self.current_seq,
-                            self.current_epoch,
-                            loss_train.detach().cpu().item(),
-                            loss_val.detach().cpu().item(),
+                test_ds = self.batches[k]
+                test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+                num_samples += len(test_ds)
+
+                for i in range(self.epochs):
+                    _, _ = self.train_evaluate_epoch(train_loader)
+                    loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
+
+
+                    # Check for early stopping or end of epochs
+                    if self.early_stopper.early_stop(loss_val.detach()) or (i + 1) == self.epochs:
+                        # Get S_t value on current batch
+                        _, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
+                        betting_scores.append(betting_score.detach().cpu().item())
+                        wealth = np.prod(np.array(betting_scores[self.T:])) if k >= self.T else 1
+                        
+                        sequence_time = time.time() - sequence_start_time
+                        
+                        self.test_positive = wealth > (1.0 / self.alpha)
+                        self.add_sequence_data(
+                            k,
+                            betting_score.cpu().item(),
+                            wealth,
+                            num_samples,
+                            i,
+                            sequence_time
                         )
 
-                        # Check for early stopping or end of epochs
-                        if self.early_stopper.early_stop(loss_val.detach()) or (i + 1) == self.epochs:
-                            # Now define new test data from current batch
-
-                            self.update_epochs_until_end_of_sequence(self.current_seq)
-                            test_ds = self.batches[k]
-                            self.num_samples += len(test_ds)
-                            test_loader = DataLoader(
-                                test_ds,
-                                batch_size=self.net_bs,
-                                shuffle=True,
-                                collate_fn=collate_fn,
-                            )
-
-                            # Get S_t value on current batch
-                            test_loss, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
-                            betting_scores.append(betting_score.item())
-                            wealth = np.prod(np.array(betting_scores[self.T :])) if k >= self.T else 1
-                            self.log(
-                                {"wealth": wealth},
-                                self.current_seq,
-                                self.current_epoch,
-                                self.current_total_epoch,
-                                int(self.current_epoch == 0),
-                            )
-
-                            self.add_sequence_data(
-                                self.current_seq,
-                                test_loss.detach().cpu().item(),
-                                betting_scores[-1],
-                                wealth,
-                            )
-
-                            # former train_ds and val_ds become the new train set
-                            train_ds = ConcatDataset([train_ds, val_ds])
-                            train_loader = DataLoader(
-                                train_ds,
-                                batch_size=self.net_bs,
-                                shuffle=True,
-                                collate_fn=collate_fn,
-                            )
-
-                            # former test_loader (i.e. current batch) becomes validation set
-                            val_ds = test_ds
-                            val_loader = test_loader
-
+                        if self.test_positive:
+                            logger.info("Reject null at %f", wealth)
+                            # Fill remaining sequences with placeholder data
+                            for remaining_seq in range(k + 1, min(self.seqs, self.num_batches)):
+                                self.add_sequence_data(
+                                    remaining_seq,
+                                    np.nan,  # betting_score
+                                    np.nan,  # wealth
+                                    np.nan,  # samples
+                                    np.nan,  # epochs
+                                    np.nan   # time
+                                )
                             break
+
+                        # Update datasets for next sequence
+                        train_ds = ConcatDataset([train_ds, val_ds])
+                        train_loader = DataLoader(train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+                        val_ds = test_ds
+                        val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+                        break
 
                 # Reset the early stopper for the next sequence
                 self.early_stopper.reset()
 
-                # Log information if wealth exceeds the threshold
-                if wealth > (1.0 / self.alpha):
-                    logger.info("Reject null at %f", wealth)
-                    self.test_positive = True
-
-                    self.update_sequences_until_end_of_experiment()
-                    self.log(
-                        {"steps": k, "total_num_samples": self.num_samples},
-                        self.current_seq,
-                        self.current_epoch,
-                        self.current_total_epoch,
-                        int(self.current_epoch == 0),
-                    )
-
+                if self.test_positive:
                     break
 
         if not self.test_positive:
             logger.info(f"Null hypothesis not rejected. Final wealth at {wealth}.")
 
         self.data["fold_number"] = self.fold_num
-        self.data["test_positive"] = self.data["test_positive"].astype(int)
 
         if self.calc_stats:
             self.calculate_statistics()
@@ -444,15 +329,7 @@ class OfflineTrainer(Trainer):
         aggregated_loss = 0
         betting_score = 1  # This does not mean we are calculating wealth from scratch, just functions as blank slate for current betting score
         num_samples = len(data_loader.dataset)
-
-        self.log(
-            {"num_samples": num_samples},
-            self.current_seq,
-            self.current_epoch,
-            self.current_total_epoch,
-            int(self.current_epoch == 0),
-        )
-
+        
         for batch in data_loader:
             tau1, tau2 = torch.split(batch, 1, dim=1)
             tau1 = tau1.to(self.device)
@@ -477,16 +354,6 @@ class OfflineTrainer(Trainer):
                 loss.backward()
                 self.optimizer.step()
 
-        self.log(
-            {
-                f"{mode}_betting_score": betting_score.item(),
-                f"{mode}_loss": aggregated_loss.item() / num_samples,
-            },
-            self.current_seq,
-            self.current_epoch,
-            self.current_total_epoch,
-            int(self.current_epoch == 0),
-        )
         return aggregated_loss / num_samples, betting_score
 
     def calculate_statistics(self):
@@ -507,389 +374,441 @@ class OfflineTrainer(Trainer):
         scores2 = []
 
         for seq_num in range(0, len(self.batches)):
+            # Construct new datasets by concatenating all batches
             batch_indices = self.batch_indices[seq_num]
             scores1 += [self.dataset.data[i][0] for i in batch_indices]
             scores2 += [self.dataset.data[i][1] for i in batch_indices]
             assert len(scores1) == len(scores2), "Length of scores1 and scores2 should be the same"
             num_samples = len(scores1)
-            p_value = ks_2samp(scores1, scores2)[1]
+            
+            # t-test
+            t_pval = ttest_ind(scores1, scores2)
+
+            # KS test
+            ks_pval = ks_2samp(scores1, scores2)[1]
+            
+            # Anderson-Darling test
+            ad_pval = anderson_ksamp([scores1, scores2])[2]
+        
 
             self.stat_dict["mean1"].append(mean1)
             self.stat_dict["mean2"].append(mean2)
             self.stat_dict["std1"].append(std1)
             self.stat_dict["std2"].append(std2)
             self.stat_dict["ws"].append(ws)
-            self.stat_dict["ks_p-value"].append(p_value)
+            self.stat_dict["ks_p-value"].append(ks_pval)
+            self.stat_dict["t_pvalue"].append(t_pval)
+            self.stat_dict["ad_pvalue"].append(ad_pval)
             self.stat_dict["fold_number"].append(self.fold_num)
             self.stat_dict["sequence"].append(seq_num)
             self.stat_dict["num_samples"].append(num_samples)
 
 
-class OnlineTrainer(Trainer):
-    """deprecated, use OfflineTrainer instead"""
 
+class OfflineTrainerCombined(OfflineTrainer):
     def __init__(
         self,
         train_cfg,
-        net,
-        tau1_cfg,
-        dataset_name,
-        behavior,
-        metric,
-        use_wandb,
-        tau2_cfg=None,
+        net_davt,
+        net_c2st,  # Add second network for C2ST
+        model_name1,
+        seed1,
+        model_name2,
+        seed2,
+        metric="perspective",
+        use_wandb=True,
+        fold_num: Optional[int] = None,
+        verbose=False,
+        epsilon=1,
+        consistent_bs=True,
+        only_continuations=True,
+        test_dir="test_outputs",
+        score_dir="model_scores",
+        gen_dir="model_outputs",
+        calc_stats=True,
+        noise=0,
+        drift=False,
+        quiet=True,
     ):
         super().__init__(
             train_cfg,
-            net,
-            tau1_cfg,
-            tau2_cfg or tau1_cfg,
-            dataset_name,
-            None,
-            train_cfg.seed,
+            net_davt,
+            model_name1,
+            seed1,
+            model_name2,
+            seed2,
+            metric,
+            use_wandb,
+            fold_num,
+            verbose,
+            epsilon,
+            consistent_bs,
+            only_continuations,
+            test_dir,
+            score_dir,
+            gen_dir,
+            calc_stats,
+            noise,
+            drift,
+            quiet=quiet
         )
+        
+        # Add C2ST specific initialization
+        self.net_c2st = net_c2st.to(self.device)
+        self.loss = torch.nn.CrossEntropyLoss(reduction='sum')
+        self.opt_lmbd = 0  
+        self.run_mean = 0  
+        self.grad_sq_sum = 1  
+        self.truncation_level = 0.5
+        
+        # Add optimizer for C2ST network
+        self.optimizer_c2st = torch.optim.Adam(self.net_c2st.parameters(), lr=train_cfg.lr)
+        
+        # Track test positives separately
+        self.test_positive_davt = False
+        self.test_positive_c2st = False
 
-        self.use_same_tau = tau2_cfg is None
+        # Update columns for the DataFrame to include both DAVT and C2ST metrics
+        self.columns = [
+            "sequence",
+            "samples",
+            "betting_score_davt",
+            "wealth_davt",
+            "betting_score_c2st",
+            "wealth_c2st",
+            "test_positive_davt",
+            "test_positive_c2st",
+            "epochs_davt",
+            "epochs_c2st",
+            "time_davt",
+            "time_c2st"
+        ]
+        self.data = pd.DataFrame(columns=self.columns)
 
-        self.pipeline1, self.tokenizer1, self.terminators1 = self.setup_model(self.tau1)
-        self.pipeline2, self.tokenizer2, self.terminators2 = (
-            (self.pipeline1, self.tokenizer1, self.terminators1) if self.use_same_tau else self.setup_model(self.tau2)
-        )
+        # Create separate early stoppers for DAVT and C2ST
+        self.early_stopper_davt = EarlyStopper(patience=self.patience, min_delta=self.delta)
+        self.early_stopper_c2st = EarlyStopper(patience=self.patience, min_delta=self.delta)
 
-        self.gen1_kwargs = self.tau1["gen_kwargs"]
-        self.gen2_kwargs = self.tau1["gen_kwargs"] if self.use_same_tau else self.tau2["gen_kwargs"]
+        self.stop_davt = False
+        self.stop_c2st = False
 
-        self.behavior = behavior
-        self.metric = metric if metric else behavior
+        self.latest_wealth_davt = -1
+        self.latest_wealth_c2st = -1
 
-        # Load the dataset
-        with time_block("Loading the dataset"):
-            self.dataset = load_dataset(self.datagen, split="train")
-
-        self.use_wandb = use_wandb
-
-    def setup_model(self, tau_cfg):
-        """ """
-        tokenizer = AutoTokenizer.from_pretrained(tau_cfg["model_id"], padding_side="left")
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token_id = tokenizer.eos_token_id
-
-        model_kwargs = translate_model_kwargs(tau_cfg["model_kwargs"])
-        if is_flash_attn_2_available():
-            model_kwargs.update({"attn_implementation": "flash_attention_2"})
-
-        terminators = [tokenizer.eos_token_id]
-        terminator_key = self.get_terminator_key(tau_cfg["model_id"])
-        if terminator_key:
-            terminators.append(tokenizer.convert_tokens_to_ids(terminator[terminator_key]))
-
-        model = (
-            AutoPeftModelForCausalLM.from_pretrained(tau_cfg["model_id"], **model_kwargs)
-            if tau_cfg["model_id"].startswith("LLMAccountability")
-            else tau_cfg["model_id"]
-        )
-
-        pipeline_obj = pipeline(
-            "text-generation",
-            model=model,
-            model_kwargs=model_kwargs,
-            tokenizer=tokenizer,
-            pad_token_id=tokenizer.eos_token_id,
-        )
-
-        return pipeline_obj, tokenizer, terminators
-
-    def get_terminator_key(self, model_id):
-        """ """
-        if "Llama-3" in model_id:
-            return "llama3"
-        elif "Mistral" in model_id:
-            return "mistral"
-        elif "gemma" in model_id:
-            return "gemma"
-        return None
-
-    def log(self, logs, seq, epoch, total_epoch, new_start_sequence):
-        """
-        Log metrics for visualization and monitoring.
-
-        Args:
-        - logs (dict): Dictionary containing metrics to be logged.
-        """
-
-        for key, value in logs.items():
-            if self.use_wandb:
-                wandb.log(
-                    {
-                        key: value,
-                        "sequence": seq,
-                        "epoch": epoch,
-                        "epoch_total": total_epoch,
-                        "new_start_sequence": new_start_sequence,
-                    }
-                )
-            logger.info(f"Seq: {self.current_seq}, Epoch: {self.current_epoch}, {key}: {value}")
+    def add_sequence_data(self, sequence, betting_score_davt, betting_score_c2st, wealth_davt, wealth_c2st, samples, 
+                         epochs_davt, epochs_c2st, time_davt, time_c2st):
+        """Add a new row of sequence-specific data"""
+        new_row = pd.DataFrame([{
+            "sequence": sequence,
+            "samples": samples,
+            "betting_score_davt": betting_score_davt,
+            "wealth_davt": wealth_davt,
+            "betting_score_c2st": betting_score_c2st,
+            "wealth_c2st": wealth_c2st,
+            "test_positive_davt": int(self.test_positive_davt),
+            "test_positive_c2st": int(self.test_positive_c2st),
+            "epochs_davt": epochs_davt,
+            "epochs_c2st": epochs_c2st,
+            "time_davt": time_davt,
+            "time_c2st": time_c2st
+        }])
+        
+        self.data = pd.concat([self.data, new_row], ignore_index=True)
 
     def train(self):
-        """
-        Overwrite method from Trainer class
-        """
-
+        """ """
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
-        davts = []
+        
+        # Initialize lists to store betting scores
+        betting_scores_davt = []
+        betting_scores_c2st = []
 
-        self.current_seq = 0
-        self.current_epoch = 0
-        self.current_total_epoch = 0
+        # First sequence evaluation
+        test_ds = self.batches[0]
+        num_samples = len(test_ds)
+        test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+        
+        # Evaluate both networks
+        _, betting_score_davt = self.train_evaluate_epoch(test_loader, mode="test")
+        _, betting_score_c2st = self.train_evaluate_epoch_c2st(test_loader, mode="test")
+        
+        betting_scores_davt.append(betting_score_davt.item())
+        betting_scores_c2st.append(betting_score_c2st.item())
 
-        num_batches = (len(self.dataset) + self.bs - 1) // self.bs
+        # For logging
+        self.latest_wealth_davt = betting_score_davt.item()
+        self.latest_wealth_c2st = betting_score_c2st.item()
 
-        indices = list(range(len(self.dataset)))
-        random.shuffle(indices)
+        # Check initial thresholds
+        self.test_positive_davt = betting_score_davt > (1.0 / self.alpha)
+        self.test_positive_c2st = betting_score_c2st > (1.0 / self.alpha)
 
-        batches = [indices[i * self.bs : min((i + 1) * self.bs, len(self.dataset))] for i in range(num_batches)]
+        # Add sequence-specific data
+        self.add_sequence_data(
+            0,
+            betting_score_davt.cpu().item(),
+            betting_score_c2st.cpu().item(),
+            betting_score_davt.cpu().item(),
+            betting_score_c2st.cpu().item(),
+            num_samples,
+            0,
+            0,
+            0,
+            0
+        )
 
-        with time_block("Now evaluating on the first test_ds"):
-            # in the first sequence, we don't train our model
-            test_ds = self.get_score_ds(batches[0])
-            test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
-            _, davt = self.train_evaluate_epoch(test_loader, mode="test")
-            davts.append(davt.item())
-            self.log(
-                {"aggregated_test_e-value": davt},
-                self.current_seq,
-                self.current_epoch,
-                self.current_total_epoch,
-                int(self.current_epoch == 0),
-            )
+        if not (self.test_positive_davt and self.test_positive_c2st):
+            # Split first batch into train/val
+            train_ds, val_ds = train_test_split(self.batches[0], test_size=0.2, random_state=self.seed)
+            train_loader = DataLoader(train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+            val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
-        # Log information if davt exceeds the threshold TODO: not sure we need this for first batch??
-        if davt > (1.0 / self.alpha):
-            logging.info("Reject null at %f", davt)
-            self.log({"steps": 0}, self.current_seq, self.current_epoch, 0)
+            logger.info(f"Starting to iterate through {min(self.seqs, self.num_batches)} sequences.")
 
-        for k in range(1, min(self.seqs, num_batches)):
-            # This is the maximum number of mini-batches to sample from the data
+            # Loop through sequences
+            for k in tqdm(range(1, min(self.seqs, self.num_batches)), disable=self.quiet):
+                start_time = time.time()
 
-            self.current_seq = k
+                self.stop_davt = False
+                self.stop_c2st = False
+                
+                # Initialize counters and timers for this sequence
+                epochs_davt = 0
+                epochs_c2st = 0
+                time_davt = 0
+                time_c2st = 0
+                
+                for i in range(self.epochs):
+                    test_ds = self.batches[k]
+                    test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
-            # If k=1, we still need to define train and val set
-            if k == 1:
-                # in this case, we need to define val set as fraction of train set
-                batch_indices = batches[k - 1]
-                train_indices, val_indices = train_test_split(
-                    np.array(batch_indices), test_size=0.3, random_state=self.seed
+                    if self.test_positive_davt:
+                        betting_score_davt, wealth_davt = np.nan, np.nan
+                        self.stop_davt = True
+                    elif not self.stop_davt:
+                        start_time_davt = time.time()
+                        _, _ = self.train_evaluate_epoch(train_loader)
+                        loss_val_davt, _ = self.train_evaluate_epoch(val_loader, mode="val")
+                        if self.early_stopper_davt.early_stop(loss_val_davt.detach()) or i+1==self.epochs:
+                            self.stop_davt = True
+                            _, betting_score_davt = self.train_evaluate_epoch(test_loader, mode="test")
+                            betting_score_davt = betting_score_davt.item()
+                            betting_scores_davt.append(betting_score_davt)
+                            wealth_davt = np.prod(np.array(betting_scores_davt[self.T:])) if k >= self.T else 1
+                            self.latest_wealth_davt = wealth_davt
+                            self.test_positive_davt = wealth_davt > (1.0 / self.alpha)
+                            epochs_davt = i + 1
+                            time_davt = time.time() - start_time_davt
+                            if self.test_positive_davt:
+                                logger.info(f"DAVT test positive at sequence {k} with wealth {wealth_davt} and betting score {betting_score_davt}")
+
+                    if self.test_positive_c2st:
+                        betting_score_c2st, wealth_c2st = np.nan, np.nan
+                        self.stop_c2st = True
+                    elif not self.stop_c2st:
+                        start_time_c2st = time.time()
+                        _, _ = self.train_evaluate_epoch_c2st(train_loader)
+                        loss_val_c2st, _ = self.train_evaluate_epoch_c2st(val_loader, mode="val")
+                        if self.early_stopper_c2st.early_stop(loss_val_c2st.detach()) or i+1==self.epochs:
+                            self.stop_c2st = True
+                            _, betting_score_c2st = self.train_evaluate_epoch_c2st(test_loader, mode="test")
+                            betting_score_c2st = betting_score_c2st.item()
+                            betting_scores_c2st.append(betting_score_c2st)
+                            wealth_c2st = np.prod(np.array(betting_scores_c2st[self.T:])) if k >= self.T else 1
+                            self.latest_wealth_c2st = wealth_c2st
+                            self.test_positive_c2st = wealth_c2st > (1.0 / self.alpha)
+                            epochs_c2st = i + 1
+                            time_c2st = time.time() - start_time_c2st
+                            if self.test_positive_c2st:
+                                logger.info(f"C2ST test positive at sequence {k} with wealth {wealth_c2st} and betting score {betting_score_c2st}")
+                    
+
+                    if self.stop_davt and self.stop_c2st:
+                        break
+                logger.info(f"Sequence {k} took {round(time.time() - start_time, 3)} seconds. DAVT positive: {self.test_positive_davt} at latest wealth {self.latest_wealth_davt}, C2ST positive: {self.test_positive_c2st} at latest wealth {self.latest_wealth_c2st}.")
+
+                num_samples += len(test_ds)
+
+                self.add_sequence_data(
+                    k,
+                    betting_score_davt,
+                    betting_score_c2st,
+                    wealth_davt,
+                    wealth_c2st,
+                    num_samples,
+                    epochs_davt,
+                    epochs_c2st,
+                    time_davt,
+                    time_c2st
                 )
-                # TODO: make this smoother
-                train_indices = [ti.item() for ti in train_indices]
-                val_indices = [vi.item() for vi in val_indices]
-                train_ds = self.get_score_ds(train_indices)
-                val_ds = self.get_score_ds(val_indices)
-                train_loader = DataLoader(
-                    train_ds,
-                    batch_size=self.net_bs,
-                    shuffle=True,
-                    collate_fn=collate_fn,
-                )
-                val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
-            # Actual model training
-            for i in range(self.epochs):
-                self.current_epoch = i
-                self.current_total_epoch += 1
-                with time_block(f"Training epoch {i} on sequence {k}"):
-                    self.train_evaluate_epoch(train_loader)
-                with time_block(f"Validation epoch {i} on sequence {k}"):
-                    loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
-
-                # Check for early stopping or end of epochs
-                if self.early_stopper.early_stop(loss_val.detach()) or (i + 1) == self.epochs:
-                    # Now define test data from current batch
-                    batch_indices = batches[k]
-                    test_ds = self.get_score_ds(batch_indices)
-                    test_loader = DataLoader(
-                        test_ds,
-                        batch_size=self.net_bs,
-                        shuffle=True,
-                        collate_fn=collate_fn,
-                    )
-
-                    # Get S_t value on current batch
-                    _, conditional_davt = self.train_evaluate_epoch(test_loader, mode="test")
-                    davts.append(conditional_davt.item())
-                    davt = np.prod(np.array(davts[self.T :])) if k >= self.T else 1
-                    self.log(
-                        {"aggregated_test_e-value": davt},
-                        self.current_seq,
-                        self.current_epoch,
-                        self.current_total_epoch,
-                        int(self.current_epoch == 0),
-                    )
-
-                    # former train_ds and val_ds become the new train set
-                    train_ds = ConcatDataset([train_ds, val_ds])
-                    train_loader = DataLoader(
-                        train_ds,
-                        batch_size=self.net_bs,
-                        shuffle=True,
-                        collate_fn=collate_fn,
-                    )
-
-                    # former test_loader (i.e. current batch) becomes validation set
-                    val_loader = test_loader
-
+                if self.test_positive_davt and self.test_positive_c2st:
+                    # Fill remaining sequences with placeholder data
+                    for remaining_seq in range(k + 1, min(self.seqs, self.num_batches)):
+                        self.add_sequence_data(
+                            remaining_seq,
+                            np.nan,  # betting_score_davt
+                            np.nan,  # betting_score_c2st
+                            np.nan,  # wealth_davt
+                            np.nan,  # wealth_c2st
+                            np.nan,  # num_samples
+                            np.nan,  # epochs_davt
+                            np.nan,  # epochs_c2st
+                            np.nan,  # time_davt
+                            np.nan   # time_c2st
+                        )
+                    logger.info(f"Both DAVT and C2ST test positive at sequence {k}")
                     break
 
-            # Reset the early stopper for the next sequence
-            self.early_stopper.reset()
+                # Update datasets for next sequence
+                train_ds = ConcatDataset([train_ds, val_ds])
+                train_loader = DataLoader(train_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
+                val_ds = test_ds
+                val_loader = DataLoader(val_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
 
-            # Log information if davt exceeds the threshold
-            if davt > (1.0 / self.alpha):
-                logger.info("Reject null at %f", davt)
-                self.log(
-                    {"steps": k},
-                    self.current_seq,
-                    self.current_epoch,
-                    self.current_total_epoch,
-                    int(self.current_epoch == 0),
-                )
+                # Reset early stoppers
+                self.early_stopper_davt.reset()
+                self.early_stopper_c2st.reset()
 
-    def train_evaluate_epoch(self, data_loader, mode="train"):
-        """ """
+        if not self.test_positive_davt or not self.test_positive_c2st:
+            if not self.test_positive_davt and self.test_positive_c2st:
+                logger.info(f"Fold {self.fold_num}: C2ST positive at sequence with final wealth {self.latest_wealth_c2st}, but DAVT test negative with final wealth {self.latest_wealth_davt}.")
+            if not self.test_positive_c2st and self.test_positive_davt:
+                logger.info(f"Fold {self.fold_num}: DAVT positive at sequence with final wealth {self.latest_wealth_davt}, but C2ST test negative with final wealth {self.latest_wealth_c2st}.")
+            if not self.test_positive_davt and not self.test_positive_c2st:
+                logger.info(f"Fold {self.fold_num}: Null hypothesis not rejected by either test. Final wealth: DAVT {self.latest_wealth_davt}, C2ST {self.latest_wealth_c2st}.")
+        
+        self.data["fold_number"] = self.fold_num
 
+        if self.calc_stats:
+            self.calculate_statistics()
+            stat_df = pd.DataFrame(self.stat_dict)
+        else:
+            stat_df = None
+
+        return self.data, (self.test_positive_davt and self.test_positive_c2st), stat_df
+
+    def train_evaluate_epoch_c2st(self, loader, mode="train"):
+        """C2ST specific train/evaluate method"""
         aggregated_loss = 0
-        davt = 1
-        num_samples = len(data_loader.dataset)
-
-        self.log(
-            {"num_samples": num_samples},
-            self.current_seq,
-            self.current_epoch,
-            self.current_total_epoch,
-            int(self.current_epoch == 0),
-        )
-
-        for batch in data_loader:
+        e_val, tb_val_ons = 1, 1
+        num_samples = len(loader.dataset)
+        
+        for batch in loader:
+            # Current format: batch is split into tau1 and tau2 along dim=1
+            tau1, tau2 = torch.split(batch, 1, dim=1)
+            tau1 = tau1.squeeze(1).to(self.device)  # Remove the extra dimension
+            tau2 = tau2.squeeze(1).to(self.device)  # Remove the extra dimension
+            
+            # Create the two inputs needed for C2ST:
+            # z: concatenation of tau1 and tau2
+            # tau_z: concatenation of tau2 and tau1 (swapped order)
+            z = torch.stack([tau1, tau2], dim=1)
+            tau_z = torch.stack([tau2, tau1], dim=1)
+            
             if mode == "train":
-                self.net.train()
-                # values for tau1 and tau2
-                tau1, tau2 = torch.split(batch, 1, dim=1)
-                out = self.net(tau1, tau2)
+                self.net_c2st.train()
+                out1 = self.net_c2st(z)
+                out2 = self.net_c2st(tau_z)
             else:
-                self.net.eval()
-                tau1, tau2 = torch.split(batch, 1, dim=1)
-                out = self.net(tau1, tau2).detach()
+                self.net_c2st.eval()
+                with torch.no_grad():
+                    out1 = self.net_c2st(z)
+                    out2 = self.net_c2st(tau_z)
+                        
+            out = torch.concat((out1, out2))
+            # Labels: ones for first half (tau1), zeros for second half (tau2)
+            labels = torch.concat((torch.ones((z.shape[0], 1)), torch.zeros((z.shape[0], 1)))).squeeze(1).long().to(
+                self.device)
+            loss = self.loss(out, labels)
+            aggregated_loss += loss
 
-            loss = -out.mean() + self.l1_lambda * self.l1_regularization()
-            aggregated_loss += -out.sum()
-            davt *= torch.exp(out.sum())
             if mode == "train":
-                self.optimizer.zero_grad()
+                self.optimizer_c2st.zero_grad()
                 loss.backward()
-                self.optimizer.step()
+                self.optimizer_c2st.step()
 
-        self.log(
-            {
-                f"{mode}_e-value": davt.item(),
-                f"{mode}_loss": aggregated_loss.item() / num_samples,
-            },
-            self.current_seq,
-            self.current_epoch,
-            self.current_total_epoch,
-            int(self.current_epoch == 0),
-        )
-        return aggregated_loss / num_samples, davt
+            # Compute C2ST metrics for test mode
+            if mode == "test":
+                e_val *= self.e_c2st(labels, out.detach())
+                p_val, acc = self.s_c2st(labels, out.detach())
+                l_val = self.l_c2st(labels, out.detach())
+                results_tb = self.testing_by_betting(labels, out.detach())
+                tb_val_ons *= results_tb[1]
 
-    def get_score_ds(self, indices):  # TODO: make this batch_size a param in configuration
-        """
-        Querying the models for continuations and evaluating them on the metric.
-        """
-        continuations1 = []
-        continuations2 = []
+        return aggregated_loss / num_samples, tb_val_ons
 
-        subset = Subset(self.dataset, indices)
+    def testing_by_betting(self, y, logits):
+        """Copy implementation from TrainerC2ST"""
+        w = 2 * y - 1
+        f = torch.nn.Softmax(dim=1)
+        ft = 2 * f(logits)[:, 1] - 1
+        e_val = torch.exp(torch.sum(torch.log(1 + w * ft)))
+        payoffs = w * ft
 
-        with time_block(f"Generating continuations for {len(indices)} samples"):
-            # Get outputs from first pipeline
-            for out in tqdm(
-                self.pipeline1(
-                    NestedKeyDataset(
-                        subset,
-                        "prompt",
-                        "text",
-                        self.tau1["model_id"],
-                        self.tokenizer1,
-                    ),
-                    pad_token_id=self.tokenizer1.eos_token_id,
-                    batch_size=self.tau1["gen_batch_size"],
-                    **self.gen1_kwargs,
-                )
-            ):
-                cont1 = out[0]["generated_text"]
-                continuations1.append(cont1)
+        grad = self.run_mean / (1 + self.run_mean * self.opt_lmbd)
+        self.grad_sq_sum += grad ** 2
+        self.opt_lmbd = max(0, min(
+            self.truncation_level, self.opt_lmbd + 2 / (2 - np.log(3)) * grad / self.grad_sq_sum))
+        e_val_ons = torch.exp(torch.log(1 + self.opt_lmbd * payoffs.sum()))
+        self.run_mean = payoffs.mean()
 
-            # Get outputs from second pipeline
-            for out in tqdm(
-                self.pipeline2(
-                    NestedKeyDataset(
-                        subset,
-                        "prompt",
-                        "text",
-                        self.tau2["model_id"],
-                        self.tokenizer2,
-                    ),
-                    pad_token_id=self.tokenizer2.eos_token_id,
-                    batch_size=self.tau2["gen_batch_size"],
-                    **self.gen2_kwargs,
-                )
-            ):
-                cont2 = out[0]["generated_text"]
-                continuations2.append(cont2)
+        return e_val, e_val_ons
 
-        # Get metrics for batch
-        with time_block(f"Generating metric scores for {len(indices)} samples"):
-            scores1 = eval_on_metric(self.metric, continuations1)
-            scores2 = eval_on_metric(self.metric, continuations2)
+    def e_c2st(self, y, logits):
+        """Copy implementation from TrainerC2ST"""
+        emp_freq_class0 = 1 - (y[y == 1]).sum() / y.shape[0]
+        emp_freq_class1 = (y[y == 1]).sum() / y.shape[0]
 
-        # Make new dataset
-        score_ds = ScoresDataset(scores1, scores2)
+        f = torch.nn.Softmax(dim=1)
+        prob = f(logits)
+        pred_prob_class0 = prob[:, 0]
+        pred_prob_class1 = prob[:, 1]
+        log_eval = torch.sum(y * torch.log(pred_prob_class1 / emp_freq_class1) + 
+                   (1 - y) * torch.log(pred_prob_class0 / emp_freq_class0)).double()
+        eval = torch.exp(log_eval)
 
-        return score_ds
+        return eval
 
-    def get_score_ds_slow(self, indices):  # TODO: remove this, this was pre-batching
-        """
-        Querying the models for continuations and evaluating them on the metric.
-        """
-        continuations1 = []
-        continuations2 = []
+    def s_c2st(self, y, logits):
+        """Copy implementation from TrainerC2ST"""
+        y_hat = torch.argmax(logits, dim=1)
+        n = y.shape[0]
+        accuracy = torch.sum(y == y_hat) / n
+        stats = np.zeros(500)  # Using default n_per=500
+        permutations, n_per = self.first_k_unique_permutations(n, 500)
+        for r in range(n_per):
+            ind = np.asarray(permutations[r])
+            y_perm = y.clone()[ind]
+            stats[r] = torch.sum(y_perm == y_hat) / y.shape[0]
+        sorted_stats = np.sort(stats)
+        p_val = (np.sum(sorted_stats >= accuracy.item())+1) / (n_per+1)
 
-        with time_block(f"Generating continuations for {len(indices)} samples"):
-            for sample in list(indices):
-                with time_block(f"Generating continuation for sample {sample} out of {len(indices)}"):
-                    out1 = self.pipeline1(
-                        self.dataset[sample]["prompt"]["text"],
-                        pad_token_id=self.tokenizer1.eos_token_id,
-                        **self.gen1_kwargs,
-                    )
-                    out2 = self.pipeline2(
-                        self.dataset[sample]["prompt"]["text"],
-                        pad_token_id=self.tokenizer2.eos_token_id,
-                        **self.gen2_kwargs,
-                    )
+        return p_val, accuracy
 
-                    cont1 = out1[0]["generated_text"].replace(self.dataset[sample]["prompt"]["text"], "")
-                    cont2 = out2[0]["generated_text"].replace(self.dataset[sample]["prompt"]["text"], "")
+    def l_c2st(self, y, logits):
+        """Copy implementation from TrainerC2ST"""
+        y_hat = torch.argmax(logits, dim=1)
+        logit = logits[:,1] - logits[:,0]
+        n = y.shape[0]
+        true_stat = logit[y == 1].mean() - logit[y == 0].mean()
+        stats = np.zeros(500)  # Using default n_per=500
+        permutations, n_per = self.first_k_unique_permutations(n, 500)
+        for r in range(n_per):
+            ind = np.asarray(permutations[r])
+            logit_perm = logit.clone()[ind]
+            stats[r] = logit_perm[y == 1].mean() - logit_perm[y == 0].mean()
+        sorted_stats = np.sort(stats)
+        p_val = (np.sum(sorted_stats >= true_stat.item())+1) / (n_per+1)
 
-                    continuations1.append(cont1)
-                    continuations2.append(cont2)
+        return p_val
 
-        # Get metrics for batch
-        with time_block(f"Generating metric scores for {len(indices)} samples"):
-            scores1 = eval_on_metric(self.metric, continuations1)
-            scores2 = eval_on_metric(self.metric, continuations2)
-
-        # Make new dataset
-        score_ds = ScoresDataset(scores1, scores2)
-
-        return score_ds
+    def first_k_unique_permutations(self, n, k):
+        """Copy implementation from TrainerC2ST"""
+        if np.log(k) > n * (np.log(n) - 1) + 0.5 * (np.log(2 * np.pi * n)):
+            k = n
+        unique_perms = set()
+        while len(unique_perms) < k:
+            unique_perms.add(tuple(np.random.choice(n, n, replace=False)))
+        return list(unique_perms), k

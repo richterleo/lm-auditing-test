@@ -1,45 +1,44 @@
 # @package _global_
 
-exp: generation  # Specifies the type of experiment
+exp: generation # Specifies the type of experiment
 
 # Override tau1 configurations
 tau1:
-  model_id: Meta-Llama-3-70B-Instruct #aya-23-35B #Meta-Llama-3-70B-Instruct #aya-23-35B #aya-23-8b #Meta-Llama-3-70B-Instruct #aya-23-8b #Meta-Llama-3-8B-Instruct #aya-23-8b
+  model_id: Meta-Llama-3-8B-Instruct #Meta-Llama-3-70B-Instruct #Meta-Llama-3-8B-Instruct #aya-23-35B
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
-  #Llama-3-8B-ckpt1 
-  gen_seed: seed1000  # Specify the generation seed
-  hf_prefix: meta-llama #CohereForAI #meta-llama #CohereForAI #meta-llama #LLMAccountability # Specify the Hugging Face prefix
-  chat_style: default # for the chat format # default, no_safeguards 
+  #Llama-3-8B-ckpt1
+  gen_seed: seed1000 # Specify the generation seed
+  hf_prefix: meta-llama #CohereForAI #meta-llama #LLMAccountability # Specify the Hugging Face prefix
+  chat_style: default # for the chat format # default, no_safeguards
   # All other tau1 parameters inherit from the base config.yaml
-  use_peft: null # use peft for models that are finetuned with lora; 
+  use_peft: null # use peft for models that are finetuned with lora;
   # currently set automatically but you can override this
-  high_temp: false #true # if this is true, we will use high_temp_gen_kwargs instead of gen_kwargs from original config file
-
-
-# #Override metric configurations if needed
-# metric:
-#   behavior: toxicity  
-#   metric: perspective # toxicity, perspective
-#   lower_lim: 0.0                   
-#   upper_lim: 1.0                   
-#   dataset_name: allenai/real-toxicity-prompts
+  gen_kwargs:
+    max_new_tokens: 100 # 250
+    do_sample: true
+    temperature: 0.7 # 1.2
+    top_p: 0.9 # 0.7
 
 metric:
-  behavior: translation_performance 
+  behavior: translation_performance
   metric: bleu # bleu, rouge
-  lower_lim: 0.0                   
-  upper_lim: 1.0                   
-  dataset_name: data/translation/translation_data.jsonl 
+  dataset_name: data/translation/translation_data.jsonl
+  dataset_split: train
   few_shot: false
 
-
-# Override evaluation configurations if needed
+# evaluation configuration
 eval:
-  num_samples: -1  # max number of samples to evaluate on; -1 for eval on full dataset
-  batch_size: 8
+  num_samples: 15 # max number of samples to evaluate on; -1 for eval on full dataset
+  batch_size: 8 # batch size for evaluation
   use_vllm: false # this is currently not supported
   overwrite: false
-  eval_in_parts: true # if true, evaluate in parts
+  eval_in_parts: false # if true, evaluate in parts; for larger datasets, so evaluation can be done in parallel
   part: 1
+  save_intermittently: true # saves every save_interval samples
+  save_interval: 5000
+  sample_randomly: false
+  part_length: 10000
 
-wandb_project_name: Continuations
+logging:
+  use_wandb: true
+  wandb_project_name: Continuations
