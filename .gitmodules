@@ -1,4 +1,4 @@
 [submodule "deep-anytime-testing"]
 	path = deep-anytime-testing
 	url = https://github.com/tpandeva/deep-anytime-testing.git
-	commit = 8179db1
+	commit = 8179db12bf2635d8f364222e629bd730acd2d8b5
