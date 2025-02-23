@@ -6,24 +6,8 @@ import logging
 import wandb
 import sys
 from configs.experiment_config import ExperimentConfig
-from src.utils.utils import create_run_string
+from lm_auditing.utils.utils import create_run_string
 from logging_config import setup_logging
-
-# # Add paths to sys.path if not already present
-# project_root = Path(__file__).resolve().parents[2]
-# if str(project_root) not in sys.path:
-#     sys.path.append(str(project_root))
-
-# from src.utils.utils import (
-#     translate_model_kwargs,
-#     NestedKeyDataset,
-#     terminator,
-#     format_funcs,
-#     check_seed,
-#     create_conversation,
-#     create_run_string,
-#     format_gen_params,
-# )
 
 
 class ExperimentBase(ABC):
@@ -43,7 +27,6 @@ class ExperimentBase(ABC):
     def initialize_wandb(self, tags: List[str] = None):
         """Initialize wandb if enabled"""
         if self.logging_cfg.use_wandb:
-
             config_dict = self.config.to_dict()
             if not tags:
                 tags = [f"{type(self).__name__}"]
@@ -61,11 +44,7 @@ class ExperimentBase(ABC):
         if tag is None:
             tag = f"{type(self).__name__}"
 
-        setup_logging(
-            *args,
-            tag=tag,
-            quiet=self.logging_cfg.quiet
-        )
+        setup_logging(*args, tag=tag, quiet=self.logging_cfg.quiet)
         self.logger = logging.getLogger(__name__)
 
     def update_wandb(self):
@@ -78,7 +57,7 @@ class ExperimentBase(ABC):
 
     def _apply_overrides(self, overrides: Dict):
         """Apply configuration overrides"""
-        
+
         # for ModelGenerator
         if "model_name" in overrides:
             self.config.model1.model_id = overrides["model_name"]
@@ -106,7 +85,6 @@ class ExperimentBase(ABC):
             self.config.test_params.run_davtt = overrides["run_davtt"]
         if "fold_size" in overrides:
             self.config.test_params.fold_size = overrides["fold_size"]
-            
 
         self._calculate_dependent_attributes()
         self.update_wandb()

@@ -1,4 +1,3 @@
-import importlib
 import logging
 import numpy as np
 import pandas as pd
@@ -20,27 +19,18 @@ from transformers.utils import is_flash_attn_2_available
 from tqdm import tqdm
 from typing import Optional, Dict, List
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
 # own utilities
-from src.auditing.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
+from lm_auditing.auditing.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
+from lm_auditing.evaluation.score import eval_on_metric
+from lm_auditing.utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
 
-# from arguments import Cfg
-from src.evaluation.score import eval_on_metric
-from src.utils.utils import translate_model_kwargs, time_block, NestedKeyDataset, terminator
+from lm_auditing.utils.dat_wrapper import Trainer, EarlyStopper
 
-orig_models = importlib.import_module("deep-anytime-testing.trainer.trainer", package="deep-anytime-testing")
-Trainer = getattr(orig_models, "Trainer")
-
-early_stopping = importlib.import_module("deep-anytime-testing.models.earlystopping", package="deep-anytime-testing")
-EarlyStopper = getattr(early_stopping, "EarlyStopper")
 logger = logging.getLogger(__name__)
 
-warnings.filterwarnings('ignore', category=FutureWarning)
-warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
 
 class OfflineTrainer(Trainer):
     def __init__(
@@ -128,15 +118,7 @@ class OfflineTrainer(Trainer):
         self.use_wandb = use_wandb
         self.verbose = verbose
         self.current_total_epoch = 0
-        self.columns = [
-            "sequence",
-            "samples",
-            "betting_score",
-            "wealth",
-            "test_positive",
-            "epochs",
-            "time"
-        ]
+        self.columns = ["sequence", "samples", "betting_score", "wealth", "test_positive", "epochs", "time"]
         self.data = pd.DataFrame(columns=self.columns)
 
         # for fast analysis
@@ -166,16 +148,20 @@ class OfflineTrainer(Trainer):
 
     def add_sequence_data(self, sequence, betting_score, wealth, samples, epochs, time_taken):
         """Add a new row of sequence-specific data"""
-        new_row = pd.DataFrame([{
-            "sequence": sequence,
-            "samples": samples,
-            "betting_score": betting_score,
-            "wealth": wealth,
-            "test_positive": int(self.test_positive),
-            "epochs": epochs,
-            "time": time_taken
-        }])
-        
+        new_row = pd.DataFrame(
+            [
+                {
+                    "sequence": sequence,
+                    "samples": samples,
+                    "betting_score": betting_score,
+                    "wealth": wealth,
+                    "test_positive": int(self.test_positive),
+                    "epochs": epochs,
+                    "time": time_taken,
+                }
+            ]
+        )
+
         self.data = pd.concat([self.data, new_row], ignore_index=True)
 
     def get_kfold_sequence_batches(self):
@@ -221,7 +207,7 @@ class OfflineTrainer(Trainer):
         test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
         _, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
         betting_scores.append(betting_score.item())
-        
+
         # For first sequence
         self.test_positive = betting_score > (1.0 / self.alpha)
         self.add_sequence_data(
@@ -230,7 +216,7 @@ class OfflineTrainer(Trainer):
             betting_score.cpu().item(),  # For first sequence, wealth equals betting score
             num_samples,
             0,  # No epochs for first sequence
-            0   # No training time for first sequence
+            0,  # No training time for first sequence
         )
 
         if self.test_positive:
@@ -243,7 +229,7 @@ class OfflineTrainer(Trainer):
                     np.nan,  # wealth
                     np.nan,  # samples
                     np.nan,  # epochs
-                    np.nan   # time
+                    np.nan,  # time
                 )
         else:
             # Split first batch into train/val
@@ -263,25 +249,17 @@ class OfflineTrainer(Trainer):
                     _, _ = self.train_evaluate_epoch(train_loader)
                     loss_val, _ = self.train_evaluate_epoch(val_loader, mode="val")
 
-
                     # Check for early stopping or end of epochs
                     if self.early_stopper.early_stop(loss_val.detach()) or (i + 1) == self.epochs:
                         # Get S_t value on current batch
                         _, betting_score = self.train_evaluate_epoch(test_loader, mode="test")
                         betting_scores.append(betting_score.detach().cpu().item())
-                        wealth = np.prod(np.array(betting_scores[self.T:])) if k >= self.T else 1
-                        
+                        wealth = np.prod(np.array(betting_scores[self.T :])) if k >= self.T else 1
+
                         sequence_time = time.time() - sequence_start_time
-                        
+
                         self.test_positive = wealth > (1.0 / self.alpha)
-                        self.add_sequence_data(
-                            k,
-                            betting_score.cpu().item(),
-                            wealth,
-                            num_samples,
-                            i,
-                            sequence_time
-                        )
+                        self.add_sequence_data(k, betting_score.cpu().item(), wealth, num_samples, i, sequence_time)
 
                         if self.test_positive:
                             logger.info("Reject null at %f", wealth)
@@ -293,7 +271,7 @@ class OfflineTrainer(Trainer):
                                     np.nan,  # wealth
                                     np.nan,  # samples
                                     np.nan,  # epochs
-                                    np.nan   # time
+                                    np.nan,  # time
                                 )
                             break
 
@@ -329,7 +307,7 @@ class OfflineTrainer(Trainer):
         aggregated_loss = 0
         betting_score = 1  # This does not mean we are calculating wealth from scratch, just functions as blank slate for current betting score
         num_samples = len(data_loader.dataset)
-        
+
         for batch in data_loader:
             tau1, tau2 = torch.split(batch, 1, dim=1)
             tau1 = tau1.to(self.device)
@@ -380,16 +358,15 @@ class OfflineTrainer(Trainer):
             scores2 += [self.dataset.data[i][1] for i in batch_indices]
             assert len(scores1) == len(scores2), "Length of scores1 and scores2 should be the same"
             num_samples = len(scores1)
-            
+
             # t-test
             t_pval = ttest_ind(scores1, scores2)
 
             # KS test
             ks_pval = ks_2samp(scores1, scores2)[1]
-            
+
             # Anderson-Darling test
             ad_pval = anderson_ksamp([scores1, scores2])[2]
-        
 
             self.stat_dict["mean1"].append(mean1)
             self.stat_dict["mean2"].append(mean2)
@@ -402,7 +379,6 @@ class OfflineTrainer(Trainer):
             self.stat_dict["fold_number"].append(self.fold_num)
             self.stat_dict["sequence"].append(seq_num)
             self.stat_dict["num_samples"].append(num_samples)
-
 
 
 class OfflineTrainerCombined(OfflineTrainer):
@@ -450,20 +426,20 @@ class OfflineTrainerCombined(OfflineTrainer):
             calc_stats,
             noise,
             drift,
-            quiet=quiet
+            quiet=quiet,
         )
-        
+
         # Add C2ST specific initialization
         self.net_c2st = net_c2st.to(self.device)
-        self.loss = torch.nn.CrossEntropyLoss(reduction='sum')
-        self.opt_lmbd = 0  
-        self.run_mean = 0  
-        self.grad_sq_sum = 1  
+        self.loss = torch.nn.CrossEntropyLoss(reduction="sum")
+        self.opt_lmbd = 0
+        self.run_mean = 0
+        self.grad_sq_sum = 1
         self.truncation_level = 0.5
-        
+
         # Add optimizer for C2ST network
         self.optimizer_c2st = torch.optim.Adam(self.net_c2st.parameters(), lr=train_cfg.lr)
-        
+
         # Track test positives separately
         self.test_positive_davt = False
         self.test_positive_c2st = False
@@ -481,7 +457,7 @@ class OfflineTrainerCombined(OfflineTrainer):
             "epochs_davt",
             "epochs_c2st",
             "time_davt",
-            "time_c2st"
+            "time_c2st",
         ]
         self.data = pd.DataFrame(columns=self.columns)
 
@@ -495,31 +471,46 @@ class OfflineTrainerCombined(OfflineTrainer):
         self.latest_wealth_davt = -1
         self.latest_wealth_c2st = -1
 
-    def add_sequence_data(self, sequence, betting_score_davt, betting_score_c2st, wealth_davt, wealth_c2st, samples, 
-                         epochs_davt, epochs_c2st, time_davt, time_c2st):
+    def add_sequence_data(
+        self,
+        sequence,
+        betting_score_davt,
+        betting_score_c2st,
+        wealth_davt,
+        wealth_c2st,
+        samples,
+        epochs_davt,
+        epochs_c2st,
+        time_davt,
+        time_c2st,
+    ):
         """Add a new row of sequence-specific data"""
-        new_row = pd.DataFrame([{
-            "sequence": sequence,
-            "samples": samples,
-            "betting_score_davt": betting_score_davt,
-            "wealth_davt": wealth_davt,
-            "betting_score_c2st": betting_score_c2st,
-            "wealth_c2st": wealth_c2st,
-            "test_positive_davt": int(self.test_positive_davt),
-            "test_positive_c2st": int(self.test_positive_c2st),
-            "epochs_davt": epochs_davt,
-            "epochs_c2st": epochs_c2st,
-            "time_davt": time_davt,
-            "time_c2st": time_c2st
-        }])
-        
+        new_row = pd.DataFrame(
+            [
+                {
+                    "sequence": sequence,
+                    "samples": samples,
+                    "betting_score_davt": betting_score_davt,
+                    "wealth_davt": wealth_davt,
+                    "betting_score_c2st": betting_score_c2st,
+                    "wealth_c2st": wealth_c2st,
+                    "test_positive_davt": int(self.test_positive_davt),
+                    "test_positive_c2st": int(self.test_positive_c2st),
+                    "epochs_davt": epochs_davt,
+                    "epochs_c2st": epochs_c2st,
+                    "time_davt": time_davt,
+                    "time_c2st": time_c2st,
+                }
+            ]
+        )
+
         self.data = pd.concat([self.data, new_row], ignore_index=True)
 
     def train(self):
         """ """
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
-        
+
         # Initialize lists to store betting scores
         betting_scores_davt = []
         betting_scores_c2st = []
@@ -528,11 +519,11 @@ class OfflineTrainerCombined(OfflineTrainer):
         test_ds = self.batches[0]
         num_samples = len(test_ds)
         test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
-        
+
         # Evaluate both networks
         _, betting_score_davt = self.train_evaluate_epoch(test_loader, mode="test")
         _, betting_score_c2st = self.train_evaluate_epoch_c2st(test_loader, mode="test")
-        
+
         betting_scores_davt.append(betting_score_davt.item())
         betting_scores_c2st.append(betting_score_c2st.item())
 
@@ -555,7 +546,7 @@ class OfflineTrainerCombined(OfflineTrainer):
             0,
             0,
             0,
-            0
+            0,
         )
 
         if not (self.test_positive_davt and self.test_positive_c2st):
@@ -572,13 +563,13 @@ class OfflineTrainerCombined(OfflineTrainer):
 
                 self.stop_davt = False
                 self.stop_c2st = False
-                
+
                 # Initialize counters and timers for this sequence
                 epochs_davt = 0
                 epochs_c2st = 0
                 time_davt = 0
                 time_c2st = 0
-                
+
                 for i in range(self.epochs):
                     test_ds = self.batches[k]
                     test_loader = DataLoader(test_ds, batch_size=self.net_bs, shuffle=True, collate_fn=collate_fn)
@@ -590,18 +581,20 @@ class OfflineTrainerCombined(OfflineTrainer):
                         start_time_davt = time.time()
                         _, _ = self.train_evaluate_epoch(train_loader)
                         loss_val_davt, _ = self.train_evaluate_epoch(val_loader, mode="val")
-                        if self.early_stopper_davt.early_stop(loss_val_davt.detach()) or i+1==self.epochs:
+                        if self.early_stopper_davt.early_stop(loss_val_davt.detach()) or i + 1 == self.epochs:
                             self.stop_davt = True
                             _, betting_score_davt = self.train_evaluate_epoch(test_loader, mode="test")
                             betting_score_davt = betting_score_davt.item()
                             betting_scores_davt.append(betting_score_davt)
-                            wealth_davt = np.prod(np.array(betting_scores_davt[self.T:])) if k >= self.T else 1
+                            wealth_davt = np.prod(np.array(betting_scores_davt[self.T :])) if k >= self.T else 1
                             self.latest_wealth_davt = wealth_davt
                             self.test_positive_davt = wealth_davt > (1.0 / self.alpha)
                             epochs_davt = i + 1
                             time_davt = time.time() - start_time_davt
                             if self.test_positive_davt:
-                                logger.info(f"DAVT test positive at sequence {k} with wealth {wealth_davt} and betting score {betting_score_davt}")
+                                logger.info(
+                                    f"DAVT test positive at sequence {k} with wealth {wealth_davt} and betting score {betting_score_davt}"
+                                )
 
                     if self.test_positive_c2st:
                         betting_score_c2st, wealth_c2st = np.nan, np.nan
@@ -610,23 +603,26 @@ class OfflineTrainerCombined(OfflineTrainer):
                         start_time_c2st = time.time()
                         _, _ = self.train_evaluate_epoch_c2st(train_loader)
                         loss_val_c2st, _ = self.train_evaluate_epoch_c2st(val_loader, mode="val")
-                        if self.early_stopper_c2st.early_stop(loss_val_c2st.detach()) or i+1==self.epochs:
+                        if self.early_stopper_c2st.early_stop(loss_val_c2st.detach()) or i + 1 == self.epochs:
                             self.stop_c2st = True
                             _, betting_score_c2st = self.train_evaluate_epoch_c2st(test_loader, mode="test")
                             betting_score_c2st = betting_score_c2st.item()
                             betting_scores_c2st.append(betting_score_c2st)
-                            wealth_c2st = np.prod(np.array(betting_scores_c2st[self.T:])) if k >= self.T else 1
+                            wealth_c2st = np.prod(np.array(betting_scores_c2st[self.T :])) if k >= self.T else 1
                             self.latest_wealth_c2st = wealth_c2st
                             self.test_positive_c2st = wealth_c2st > (1.0 / self.alpha)
                             epochs_c2st = i + 1
                             time_c2st = time.time() - start_time_c2st
                             if self.test_positive_c2st:
-                                logger.info(f"C2ST test positive at sequence {k} with wealth {wealth_c2st} and betting score {betting_score_c2st}")
-                    
+                                logger.info(
+                                    f"C2ST test positive at sequence {k} with wealth {wealth_c2st} and betting score {betting_score_c2st}"
+                                )
 
                     if self.stop_davt and self.stop_c2st:
                         break
-                logger.info(f"Sequence {k} took {round(time.time() - start_time, 3)} seconds. DAVT positive: {self.test_positive_davt} at latest wealth {self.latest_wealth_davt}, C2ST positive: {self.test_positive_c2st} at latest wealth {self.latest_wealth_c2st}.")
+                logger.info(
+                    f"Sequence {k} took {round(time.time() - start_time, 3)} seconds. DAVT positive: {self.test_positive_davt} at latest wealth {self.latest_wealth_davt}, C2ST positive: {self.test_positive_c2st} at latest wealth {self.latest_wealth_c2st}."
+                )
 
                 num_samples += len(test_ds)
 
@@ -640,7 +636,7 @@ class OfflineTrainerCombined(OfflineTrainer):
                     epochs_davt,
                     epochs_c2st,
                     time_davt,
-                    time_c2st
+                    time_c2st,
                 )
 
                 if self.test_positive_davt and self.test_positive_c2st:
@@ -656,7 +652,7 @@ class OfflineTrainerCombined(OfflineTrainer):
                             np.nan,  # epochs_davt
                             np.nan,  # epochs_c2st
                             np.nan,  # time_davt
-                            np.nan   # time_c2st
+                            np.nan,  # time_c2st
                         )
                     logger.info(f"Both DAVT and C2ST test positive at sequence {k}")
                     break
@@ -673,12 +669,18 @@ class OfflineTrainerCombined(OfflineTrainer):
 
         if not self.test_positive_davt or not self.test_positive_c2st:
             if not self.test_positive_davt and self.test_positive_c2st:
-                logger.info(f"Fold {self.fold_num}: C2ST positive at sequence with final wealth {self.latest_wealth_c2st}, but DAVT test negative with final wealth {self.latest_wealth_davt}.")
+                logger.info(
+                    f"Fold {self.fold_num}: C2ST positive at sequence with final wealth {self.latest_wealth_c2st}, but DAVT test negative with final wealth {self.latest_wealth_davt}."
+                )
             if not self.test_positive_c2st and self.test_positive_davt:
-                logger.info(f"Fold {self.fold_num}: DAVT positive at sequence with final wealth {self.latest_wealth_davt}, but C2ST test negative with final wealth {self.latest_wealth_c2st}.")
+                logger.info(
+                    f"Fold {self.fold_num}: DAVT positive at sequence with final wealth {self.latest_wealth_davt}, but C2ST test negative with final wealth {self.latest_wealth_c2st}."
+                )
             if not self.test_positive_davt and not self.test_positive_c2st:
-                logger.info(f"Fold {self.fold_num}: Null hypothesis not rejected by either test. Final wealth: DAVT {self.latest_wealth_davt}, C2ST {self.latest_wealth_c2st}.")
-        
+                logger.info(
+                    f"Fold {self.fold_num}: Null hypothesis not rejected by either test. Final wealth: DAVT {self.latest_wealth_davt}, C2ST {self.latest_wealth_c2st}."
+                )
+
         self.data["fold_number"] = self.fold_num
 
         if self.calc_stats:
@@ -694,19 +696,19 @@ class OfflineTrainerCombined(OfflineTrainer):
         aggregated_loss = 0
         e_val, tb_val_ons = 1, 1
         num_samples = len(loader.dataset)
-        
+
         for batch in loader:
             # Current format: batch is split into tau1 and tau2 along dim=1
             tau1, tau2 = torch.split(batch, 1, dim=1)
             tau1 = tau1.squeeze(1).to(self.device)  # Remove the extra dimension
             tau2 = tau2.squeeze(1).to(self.device)  # Remove the extra dimension
-            
+
             # Create the two inputs needed for C2ST:
             # z: concatenation of tau1 and tau2
             # tau_z: concatenation of tau2 and tau1 (swapped order)
             z = torch.stack([tau1, tau2], dim=1)
             tau_z = torch.stack([tau2, tau1], dim=1)
-            
+
             if mode == "train":
                 self.net_c2st.train()
                 out1 = self.net_c2st(z)
@@ -716,11 +718,15 @@ class OfflineTrainerCombined(OfflineTrainer):
                 with torch.no_grad():
                     out1 = self.net_c2st(z)
                     out2 = self.net_c2st(tau_z)
-                        
+
             out = torch.concat((out1, out2))
             # Labels: ones for first half (tau1), zeros for second half (tau2)
-            labels = torch.concat((torch.ones((z.shape[0], 1)), torch.zeros((z.shape[0], 1)))).squeeze(1).long().to(
-                self.device)
+            labels = (
+                torch.concat((torch.ones((z.shape[0], 1)), torch.zeros((z.shape[0], 1))))
+                .squeeze(1)
+                .long()
+                .to(self.device)
+            )
             loss = self.loss(out, labels)
             aggregated_loss += loss
 
@@ -748,9 +754,10 @@ class OfflineTrainerCombined(OfflineTrainer):
         payoffs = w * ft
 
         grad = self.run_mean / (1 + self.run_mean * self.opt_lmbd)
-        self.grad_sq_sum += grad ** 2
-        self.opt_lmbd = max(0, min(
-            self.truncation_level, self.opt_lmbd + 2 / (2 - np.log(3)) * grad / self.grad_sq_sum))
+        self.grad_sq_sum += grad**2
+        self.opt_lmbd = max(
+            0, min(self.truncation_level, self.opt_lmbd + 2 / (2 - np.log(3)) * grad / self.grad_sq_sum)
+        )
         e_val_ons = torch.exp(torch.log(1 + self.opt_lmbd * payoffs.sum()))
         self.run_mean = payoffs.mean()
 
@@ -765,8 +772,9 @@ class OfflineTrainerCombined(OfflineTrainer):
         prob = f(logits)
         pred_prob_class0 = prob[:, 0]
         pred_prob_class1 = prob[:, 1]
-        log_eval = torch.sum(y * torch.log(pred_prob_class1 / emp_freq_class1) + 
-                   (1 - y) * torch.log(pred_prob_class0 / emp_freq_class0)).double()
+        log_eval = torch.sum(
+            y * torch.log(pred_prob_class1 / emp_freq_class1) + (1 - y) * torch.log(pred_prob_class0 / emp_freq_class0)
+        ).double()
         eval = torch.exp(log_eval)
 
         return eval
@@ -783,14 +791,14 @@ class OfflineTrainerCombined(OfflineTrainer):
             y_perm = y.clone()[ind]
             stats[r] = torch.sum(y_perm == y_hat) / y.shape[0]
         sorted_stats = np.sort(stats)
-        p_val = (np.sum(sorted_stats >= accuracy.item())+1) / (n_per+1)
+        p_val = (np.sum(sorted_stats >= accuracy.item()) + 1) / (n_per + 1)
 
         return p_val, accuracy
 
     def l_c2st(self, y, logits):
         """Copy implementation from TrainerC2ST"""
         y_hat = torch.argmax(logits, dim=1)
-        logit = logits[:,1] - logits[:,0]
+        logit = logits[:, 1] - logits[:, 0]
         n = y.shape[0]
         true_stat = logit[y == 1].mean() - logit[y == 0].mean()
         stats = np.zeros(500)  # Using default n_per=500
@@ -800,7 +808,7 @@ class OfflineTrainerCombined(OfflineTrainer):
             logit_perm = logit.clone()[ind]
             stats[r] = logit_perm[y == 1].mean() - logit_perm[y == 0].mean()
         sorted_stats = np.sort(stats)
-        p_val = (np.sum(sorted_stats >= true_stat.item())+1) / (n_per+1)
+        p_val = (np.sum(sorted_stats >= true_stat.item()) + 1) / (n_per + 1)
 
         return p_val
 

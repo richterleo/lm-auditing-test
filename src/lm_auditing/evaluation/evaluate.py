@@ -8,21 +8,16 @@ from pathlib import Path
 from typing import Optional
 from tqdm import tqdm
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from src.utils.utils import (
+from lm_auditing.utils.utils import (
     time_block,
     create_run_string,
     load_config,
     load_entire_json,
     cleanup_files,
 )
-from src.utils.wandb_utils import download_file_from_wandb
-from src.evaluation.score import eval_on_metric
-from src.utils.legacy_utils import remove_zero_key_and_flatten
+from lm_auditing.utils.wandb_utils import download_file_from_wandb
+from lm_auditing.evaluation.score import eval_on_metric
+from lm_auditing.utils.legacy_utils import remove_zero_key_and_flatten
 from logging_config import setup_logging
 
 # setup_logging()
@@ -345,7 +340,7 @@ def evaluate_single_model(
 
             end = time.time()
             if verbose:
-                logger.info(f"Processing batch {i} to {i+ds_batch_size} took {round(end-start, 3)} seconds")
+                logger.info(f"Processing batch {i} to {i + ds_batch_size} took {round(end - start, 3)} seconds")
 
         output_data = {"metadata": metadata, f"{metric}_scores": scores}
         with open(model_score_path, "w") as file:
@@ -464,7 +459,7 @@ def evaluate_all_models(
                 noise=noise,
             )
             end = time.time()
-            logger.info(f"Model {model_gen_dir} took {round(end-start, 3)} seconds to evaluate.")
+            logger.info(f"Model {model_gen_dir} took {round(end - start, 3)} seconds to evaluate.")
 
         except IndexError:
             logger.error(f"{model_gen_dir} does not contain the correct files. Skipping...")
@@ -481,9 +476,9 @@ def _save_intermittently(scores, model_score_dir, metric, i, metadata, ds_batch_
     }
     # Assert that the length of scores is as expected
     expected_length = i + ds_batch_size
-    assert (
-        len(scores) == expected_length
-    ), f"The current number of scores is not as expected: {len(scores)} vs {expected_length}"
+    assert len(scores) == expected_length, (
+        f"The current number of scores is not as expected: {len(scores)} vs {expected_length}"
+    )
     with open(current_scores_path, "w") as file:
         json.dump(temp_data, file, indent=4)
 

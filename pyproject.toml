@@ -1,16 +1,36 @@
 [project]
 name = "lm-auditing-test"
 version = "0.1.0"
-description = "Add your description here"
+description = "Auditing test to detect behavioral shift in language models."
 readme = "README.md"
 authors = [
     { name = "richterleo", email = "richter.leo94@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "torch>=2.6.0"
+    "datasets>=3.3.2",
+    "huggingface-hub>=0.29.1",
+    "matplotlib>=3.10.0",
+    "omegaconf>=2.3.0",
+    "pandas>=2.2.3",
+    "peft>=0.14.0",
+    "scikit-learn>=1.6.1",
+    "seaborn>=0.13.2",
+    "torch>=2.6.0",
+    "transformers>=4.49.0",
+    "wandb>=0.19.7",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+
+[tool.pyright]
+reportMissingParameterType = true
+reportUnknownParameterType = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lm_auditing"]

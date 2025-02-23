@@ -8,12 +8,7 @@ from os import getenv
 from pathlib import Path
 from typing import Optional, Callable
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]  # Go up two levels
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from src.utils.utils import create_run_string
+from lm_auditing.utils.utils import create_run_string
 
 wandb_api_key = getenv("WANDB_API_KEY")
 
@@ -139,9 +134,9 @@ def download_file_from_wandb(
 
     """
     assert file_name or pattern, "Either file_name or pattern must be provided"
-    assert run_path or (
-        run_id and project_name and entity
-    ), "Either run_path or run_id, project_name and entity must be provided"
+    assert run_path or (run_id and project_name and entity), (
+        "Either run_path or run_id, project_name and entity must be provided"
+    )
     # Initialize W&B API
     api = wandb.Api()
 
@@ -213,7 +208,6 @@ if __name__ == "__main__":
     #     run_path=run_paths[0], pattern=pattern, get_save_path=folder_from_model_and_seed, metric="bleu"
     # )
 
-
     run_path = "LLM_Accountability/toxicity_test/ac5k8ha3"
-    file_name="perspective_data.zip"
+    file_name = "perspective_data.zip"
     download_from_wandb(run_name=run_path, file_name=file_name)

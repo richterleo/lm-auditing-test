@@ -7,12 +7,14 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Dict, List, Union, Tuple
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
+# # Add paths to sys.path if not already present
+# project_root = Path(__file__).resolve().parents[2]
+# if str(project_root) not in sys.path:
+#     sys.path.append(str(project_root))
 
-from src.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
+# from src.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
+
+from lm_auditing.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 

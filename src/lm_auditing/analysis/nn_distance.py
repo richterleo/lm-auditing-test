@@ -3,13 +3,15 @@ import torch
 import sys
 from pathlib import Path
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
+# # Add paths to sys.path if not already present
+# project_root = Path(__file__).resolve().parents[2]
+# if str(project_root) not in sys.path:
+#     sys.path.append(str(project_root))
 
-orig_models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
-MLP = getattr(orig_models, "MLP")
+# orig_models = importlib.import_module("deep-anytime-testing.models.mlp", package="deep-anytime-testing")
+# MLP = getattr(orig_models, "MLP")
+
+from lm_auditing.utils.dat_wrapper import MLP
 
 
 class CMLP(MLP):
@@ -116,16 +118,10 @@ class OptCMLP(MLP):
                 # Efficient batch processing for multi-dimensional inputs
                 x_reshaped = x.reshape(-1, *x.shape[1:-1], x.shape[-1])
                 y_reshaped = y.reshape(-1, *y.shape[1:-1], y.shape[-1])
-                
+
                 # Vectorized operations instead of loop
-                g_x = torch.mean(
-                    self.model(torch.flatten(x_reshaped, start_dim=1)),
-                    dim=0
-                )
-                g_y = torch.mean(
-                    self.model(torch.flatten(y_reshaped, start_dim=1)),
-                    dim=0
-                )
+                g_x = torch.mean(self.model(torch.flatten(x_reshaped, start_dim=1)), dim=0)
+                g_y = torch.mean(self.model(torch.flatten(y_reshaped, start_dim=1)), dim=0)
         else:
             # Standard processing for 2D tensors
             g_x = self.model(x)
@@ -147,8 +143,8 @@ class OptCMLP(MLP):
         outputs = []
 
         for i in range(0, n_samples, batch_size):
-            batch_x = x[i:i + batch_size]
-            batch_y = y[i:i + batch_size]
+            batch_x = x[i : i + batch_size]
+            batch_y = y[i : i + batch_size]
             with torch.no_grad():
                 output = self.forward(batch_x, batch_y)
             outputs.append(output)
@@ -182,9 +178,9 @@ class HighCapacityCMLP(MLP):
         # Handle case where hidden_layer_size is a list
         if isinstance(hidden_layer_size, (list, tuple)):
             hidden_layer_size = hidden_layer_size[0]
-            
+
         self.hidden_size = int(hidden_layer_size)
-        
+
         # Initialize parent MLP first
         super(HighCapacityCMLP, self).__init__(
             input_size,
@@ -195,45 +191,36 @@ class HighCapacityCMLP(MLP):
             drop_out_p,
             bias,
         )
-        
+
         self.num_layers = num_layers
-        
+
         # Enhanced network architecture
         self.hidden_layers = torch.nn.ModuleList()
         for _ in range(num_layers):
-            self.hidden_layers.append(
-                torch.nn.Linear(self.hidden_size, self.hidden_size, bias=bias)
-            )
-        
+            self.hidden_layers.append(torch.nn.Linear(self.hidden_size, self.hidden_size, bias=bias))
+
         # Advanced activation functions
         self.sigma = torch.nn.GELU()
-        self.attention = torch.nn.MultiheadAttention(
-            embed_dim=self.hidden_size, 
-            num_heads=4, 
-            batch_first=True
-        )
-        
+        self.attention = torch.nn.MultiheadAttention(embed_dim=self.hidden_size, num_heads=4, batch_first=True)
+
         # Additional components
-        self.layer_norms = torch.nn.ModuleList([
-            torch.nn.LayerNorm(self.hidden_size)
-            for _ in range(num_layers)
-        ])
+        self.layer_norms = torch.nn.ModuleList([torch.nn.LayerNorm(self.hidden_size) for _ in range(num_layers)])
         self.dropout = torch.nn.Dropout(drop_out_p if drop_out else 0.0)
-        
+
         # Final projection to output size
         self.final_layer = torch.nn.Linear(self.hidden_size, output_size, bias=bias)
-        
+
         # Configuration
         self.flatten = flatten
         self.batch_size = batch_size
-        
+
         # Initialize weights
         self._initialize_weights()
 
     def _initialize_weights(self):
         """Initialize weights using Kaiming initialization"""
         for layer in self.hidden_layers:
-            torch.nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+            torch.nn.init.kaiming_normal_(layer.weight, nonlinearity="relu")
             if layer.bias is not None:
                 torch.nn.init.zeros_(layer.bias)
 
@@ -242,33 +229,33 @@ class HighCapacityCMLP(MLP):
         # Initial projection through base MLP to get [batch_size, hidden_size]
         if len(x.shape) == 1:
             x = x.unsqueeze(0)  # Add batch dimension if missing
-        
+
         if self.flatten:
             x = torch.flatten(x, start_dim=1)
-            
+
         x = self.model(x)  # Should now output [batch_size, hidden_size]
-        
+
         # Process through multiple layers with residual connections
         for i in range(self.num_layers):
             residual = x
-            
+
             # Layer normalization
             x = self.layer_norms[i](x)
-            
+
             # Attention in middle layer
             if i == self.num_layers // 2:
                 x_attn = x.unsqueeze(1)  # [batch_size, 1, hidden_size]
                 x_attn, _ = self.attention(x_attn, x_attn, x_attn)
                 x = x_attn.squeeze(1)  # [batch_size, hidden_size]
-            
+
             # Dense layer with activation
             x = self.hidden_layers[i](x)
             x = self.sigma(x)
             x = self.dropout(x)
-            
+
             # Residual connection
             x = x + residual
-        
+
         return x
 
     @torch.no_grad()
@@ -287,15 +274,15 @@ class HighCapacityCMLP(MLP):
             else:
                 x = x.reshape(-1, x.shape[-1])
                 y = y.reshape(-1, y.shape[-1])
-        
+
         # Get feature representations
         g_x = self._forward_features(x)  # [batch_size, hidden_size]
         g_y = self._forward_features(y)  # [batch_size, hidden_size]
-        
+
         # Project to output space
         g_x = self.final_layer(g_x)  # [batch_size, output_size]
         g_y = self.final_layer(g_y)  # [batch_size, output_size]
-        
+
         # Compute betting score
         score = torch.log1p(0.5 * (self.sigma(g_x) - self.sigma(g_y)))
         return score.squeeze(-1)
@@ -314,21 +301,21 @@ class HighCapacityCMLP(MLP):
             outputs = []
 
             for i in range(0, n_samples, batch_size):
-                batch_x = x[i:i + batch_size]
-                batch_y = y[i:i + batch_size]
+                batch_x = x[i : i + batch_size]
+                batch_y = y[i : i + batch_size]
                 with torch.no_grad():
                     output = self.forward(batch_x, batch_y)
                 outputs.append(output.cpu() if use_gpu else output)
-                
+
                 # Clear cache periodically
                 if use_gpu and i % (batch_size * 10) == 0:
                     torch.cuda.empty_cache()
 
             return torch.cat(outputs, dim=0)
-            
+
         except RuntimeError as e:  # Handle OOM errors
             if "out of memory" in str(e) and batch_size > 1:
-                print(f"OOM error, reducing batch size from {batch_size} to {batch_size//2}")
+                print(f"OOM error, reducing batch size from {batch_size} to {batch_size // 2}")
                 self.batch_size = batch_size // 2
                 return self.predict_large_input(x, y, use_gpu)
             else:

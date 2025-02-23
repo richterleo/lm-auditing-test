@@ -1,9 +1,7 @@
 import os
-import importlib
 import logging
 import pandas as pd
 import re
-import sys
 import time
 import wandb
 
@@ -12,11 +10,6 @@ from omegaconf import OmegaConf
 from pathlib import Path
 from typing import Optional, Dict, List, Union, Tuple
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
 # imports from other scripts
 from logging_config import setup_logging
 
@@ -24,40 +17,35 @@ from configs.experiment_config import (
     TestConfig,
 )
 
-from src.auditing.calibration_strategies import (
+from lm_auditing.auditing.calibration_strategies import (
     CalibrationStrategy,
 )
-from src.auditing.evaltrainer import (
+from lm_auditing.auditing.evaltrainer import (
     OfflineTrainer,
     OfflineTrainerCombined,
 )
-from src.auditing.preprocessing import (
+from lm_auditing.auditing.preprocessing import (
     create_folds_from_evaluations,
 )
 
-from src.analysis.nn_distance import (
+from lm_auditing.analysis.nn_distance import (
     CMLP,
     OptCMLP,
     HighCapacityCMLP,
 )
-from src.analysis.analyze import (
+from lm_auditing.analysis.analyze import (
     get_distance_scores,
     get_mean_and_std_for_nn_distance,
 )
-from src.analysis.plot import (
+from lm_auditing.analysis.plot import (
     distance_box_plot,
     plot_calibrated_detection_rate,
 )
 
-from src.utils.utils import create_run_string, cleanup_files
+from lm_auditing.utils.utils import create_run_string, cleanup_files
+from lm_auditing.utils.dat_wrapper import MLP
 
-from src.base.experiment_base import ExperimentBase
-
-orig_models = importlib.import_module(
-    "deep-anytime-testing.models.mlp",
-    package="deep-anytime-testing",
-)
-MLP = getattr(orig_models, "MLP")
+from lm_auditing.base.experiment_base import ExperimentBase
 
 
 class Test(ExperimentBase):
@@ -83,12 +71,8 @@ class Test(ExperimentBase):
             else str(self.metric_cfg.metric)
         )
         self.test_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.test_dir
-        self.score_dir = (
-            self.SCRIPT_DIR / dir_prefix / self.storing_cfg.score_dir
-        )
-        self.gen_dir = (
-            self.SCRIPT_DIR / dir_prefix / self.storing_cfg.output_dir
-        )
+        self.score_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.score_dir
+        self.gen_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.output_dir
         self.plot_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.plot_dir
 
         # # initialize instance parameters to None
@@ -105,28 +89,19 @@ class Test(ExperimentBase):
 
         # logger setup
         if not hasattr(self, "logger"):
-            self.setup_logger(
-                self.model_name1,
-                self.seed1,
-                self.model_name2,
-                self.seed2,
-                self.fold_size,
-                self.epsilon)
+            self.setup_logger(self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon)
+
 
 class AuditingTest(Test):
     """ """
 
     FOLD_PATTERN = r"_fold_(\d+)\.json$"
 
-    def __init__(
-        self,
-        config: TestConfig):
-        
+    def __init__(self, config: TestConfig):
         super().__init__(config)
         self.track_c2st = self.config.test_params.track_c2st
         self.betting_network_type = self.config.net.model_type
-        self.noise = self.test_params_cfg.noise 
-        
+        self.noise = self.test_params_cfg.noise
 
     def initialize_wandb(self, tags: List[str] = ["Kfold_Auditing_Test"]):
         """ """
@@ -139,7 +114,7 @@ class AuditingTest(Test):
             for_c2st (bool): If True, initialize network for C2ST (input_size=2, output_size=2)
                             If False, initialize network for DAVT (input_size=1, output_size=1)
         """
-        
+
         # TODO: make this dynamic
         input_size = 2 if for_c2st else self.net_cfg.input_size
         output_size = 2 if for_c2st else 1
@@ -151,7 +126,7 @@ class AuditingTest(Test):
                 output_size,
                 self.net_cfg.layer_norm,
                 self.net_cfg.drop_out,
-                self.net_cfg.drop_out_p,  
+                self.net_cfg.drop_out_p,
                 self.net_cfg.bias,
             )
 
@@ -192,9 +167,7 @@ class AuditingTest(Test):
 
         if self.track_c2st:
             # Initialize second network for C2ST if needed
-            betting_net_c2st = self._initialize_network(
-                for_c2st=True
-            )  # Use output_size=2 for C2ST
+            betting_net_c2st = self._initialize_network(for_c2st=True)  # Use output_size=2 for C2ST
             trainer = OfflineTrainerCombined(
                 self.train_cfg,
                 betting_net_davt,
@@ -250,24 +223,16 @@ class AuditingTest(Test):
         )
 
         if Path(file_path).exists() and not self.test_params_cfg.overwrite:
-            self.logger.info(
-                f"Skipping test as results file {file_path} already exists."
-            )
+            self.logger.info(f"Skipping test as results file {file_path} already exists.")
 
             df = pd.read_csv(file_path)
 
             # calculate positive test rate
-            test_positive_per_fold = df.groupby("fold_number")[
-                "test_positive"
-            ].max()
-            positive_rate = test_positive_per_fold.sum() / len(
-                test_positive_per_fold
-            )
+            test_positive_per_fold = df.groupby("fold_number")["test_positive"].max()
+            positive_rate = test_positive_per_fold.sum() / len(test_positive_per_fold)
 
         else:
-            self.logger.info(
-                f"Running test for {self.model_name1}_{self.seed1} and {self.model_name2}_{self.seed2}."
-            )
+            self.logger.info(f"Running test for {self.model_name1}_{self.seed1} and {self.model_name2}_{self.seed2}.")
             self.logger.info(f"Saving results in folder: {self.directory}.")
 
             # for fast analysis
@@ -311,9 +276,7 @@ class AuditingTest(Test):
             all_folds_stats = pd.DataFrame()
 
             for fold_num in folds:
-                self.logger.info(
-                    f"Now starting experiment for fold {fold_num}."
-                )
+                self.logger.info(f"Now starting experiment for fold {fold_num}.")
                 data, test_positive, stat_df = self.davtt(fold_num)
                 all_folds_data = pd.concat(
                     [all_folds_data, data],
@@ -338,9 +301,7 @@ class AuditingTest(Test):
             f"*scores{noise_string}_fold*.json",
         )
 
-        self.logger.info(
-            f"Positive tests: {positive_rate}, {round(positive_rate * 100, 2)}%."
-        )
+        self.logger.info(f"Positive tests: {positive_rate}, {round(positive_rate * 100, 2)}%.")
 
         return positive_rate
 
@@ -359,14 +320,9 @@ class AuditingTest(Test):
 
         noise_string = f"_noise_{self.noise}" if self.noise > 0 else ""
 
-        dist_path = (
-            Path(self.directory)
-            / f"distance_scores_{num_train_samples}_{num_runs}{noise_string}.csv"
-        )
+        dist_path = Path(self.directory) / f"distance_scores_{num_train_samples}_{num_runs}{noise_string}.csv"
         if dist_path.exists():
-            self.logger.info(
-                f"Skipping distance analysis as results file {dist_path} already exists."
-            )
+            self.logger.info(f"Skipping distance analysis as results file {dist_path} already exists.")
             distance_df = pd.read_csv(dist_path)
         else:
             distance_df = get_distance_scores(
@@ -391,24 +347,16 @@ class AuditingTest(Test):
             distance_df.to_csv(dist_path, index=False)
             self.logger.info(f"Distance analysis results saved to {dist_path}.")
 
-        mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(
-            distance_df
-        )
-        self.logger.info(
-            f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}"
-        )
-        self.logger.info(
-            f"Wasserstein distance: {distance_df['Wasserstein_comparison'].mean()}"
-        )
+        mean_nn_distance, std_nn_distance = get_mean_and_std_for_nn_distance(distance_df)
+        self.logger.info(f"Average nn distance: {mean_nn_distance}, std: {std_nn_distance}")
+        self.logger.info(f"Wasserstein distance: {distance_df['Wasserstein_comparison'].mean()}")
 
         if self.logging_cfg.use_wandb:
             wandb.log(
                 {
                     "average_nn_distance": distance_df["NeuralNet"].mean(),
                     "std_nn_distance": distance_df["NeuralNet"].std(),
-                    "wasserstein_distance": distance_df[
-                        "Wasserstein_comparison"
-                    ].mean(),
+                    "wasserstein_distance": distance_df["Wasserstein_comparison"].mean(),
                 }
             )
 
@@ -426,10 +374,7 @@ class AuditingTest(Test):
         except FileNotFoundError as e:
             self.logger.error(f"Error plotting distance box plot: {e}")
 
-    def run(
-        self,
-        overrides: Optional[Dict] = None
-    ):
+    def run(self, overrides: Optional[Dict] = None):
         """ """
         if overrides:
             self._apply_overrides(overrides)
@@ -439,13 +384,7 @@ class AuditingTest(Test):
         # Set logger tag based on whether analysis will be performed
         logger_tag = "auditing_test_and_analyze" if self.test_params_cfg.analysis_params else "auditing_test"
         self.setup_logger(
-            self.model_name1,
-            self.seed1,
-            self.model_name2,
-            self.seed2,
-            self.fold_size,
-            self.epsilon,
-            tag=logger_tag
+            self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon, tag=logger_tag
         )
 
         if self.test_params_cfg.run_davtt:
@@ -517,33 +456,20 @@ class CalibratedAuditingTest(AuditingTest):
     ):
         """ """
 
-        self.model_name1 = (
-            model_name1 if model_name1 else self.config["tau1"]["model_id"]
-        )
+        self.model_name1 = model_name1 if model_name1 else self.config["tau1"]["model_id"]
         self.seed1 = seed1 if seed1 else self.config["tau1"]["gen_seed"]
-        self.model_name2 = (
-            model_name2 if model_name2 else self.config["tau2"]["model_id"]
-        )
+        self.model_name2 = model_name2 if model_name2 else self.config["tau2"]["model_id"]
         self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
-        self.fold_size = (
-            fold_size if fold_size else self.config["test_params"]["fold_size"]
-        )
+        self.fold_size = fold_size if fold_size else self.config["test_params"]["fold_size"]
 
-        self.directory = (
-            self.test_dir
-            / f"{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
-        )
+        self.directory = self.test_dir / f"{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
         self.directory.mkdir(parents=True, exist_ok=True)
 
         cont_string = "_continuations" if self.only_continuations else ""
         noise_string = f"_noise_{self.noise}" if self.noise > 0 else ""
         c2st_string = "_c2st" if self.track_c2st else ""
 
-        self.setup_logger(
-            tag="calibrated_test_results"
-            if not calibrate_only
-            else "calbrations"
-        )
+        self.setup_logger(tag="calibrated_test_results" if not calibrate_only else "calbrations")
 
         num_train_samples = (
             self.fold_size // self.train_cfg.batch_size
@@ -555,22 +481,16 @@ class CalibratedAuditingTest(AuditingTest):
         )
 
         if epsilon_path.exists() and not self.overwrite:
-            self.logger.info(
-                f"Calibrated testing results already exist in {epsilon_path}."
-            )
+            self.logger.info(f"Calibrated testing results already exist in {epsilon_path}.")
             dist_path = (
                 Path(self.directory)
                 / f"distance_scores_{self.num_train_samples}_{self.num_runs}{noise_string}{c2st_string}.csv"
             )
             try:
                 distance_df = pd.read_csv(dist_path)
-                true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(
-                    distance_df
-                )
+                true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(distance_df)
             except FileNotFoundError:
-                self.logger.error(
-                    f"Distance analysis results file {dist_path} not found."
-                )
+                self.logger.error(f"Distance analysis results file {dist_path} not found.")
 
         else:
             self.eps_strategy.attach_logger(self.logger)
@@ -583,19 +503,17 @@ class CalibratedAuditingTest(AuditingTest):
                 "noise": self.noise,
             }
 
-            epsilons, true_epsilon, std_epsilon = (
-                self.eps_strategy.calculate_epsilons(
-                    self.model_name1,
-                    self.seed1,
-                    self.model_name2,
-                    self.seed2,
-                    [
-                        self.train_cfg.batch_size,
-                        num_train_samples,
-                    ],
-                    self.dir_prefix,
-                    dist_cfg,
-                )
+            epsilons, true_epsilon, std_epsilon = self.eps_strategy.calculate_epsilons(
+                self.model_name1,
+                self.seed1,
+                self.model_name2,
+                self.seed2,
+                [
+                    self.train_cfg.batch_size,
+                    num_train_samples,
+                ],
+                self.dir_prefix,
+                dist_cfg,
             )
 
             self.logger.info(f"Calibrated epsilons: {epsilons}.")
@@ -623,9 +541,7 @@ class CalibratedAuditingTest(AuditingTest):
                     columns=["epsilon", "power"],
                 )
                 power_df.to_csv(epsilon_path, index=False)
-                self.logger.info(
-                    f"Calibrated testing results saved to {epsilon_path}."
-                )
+                self.logger.info(f"Calibrated testing results saved to {epsilon_path}.")
 
         plot_calibrated_detection_rate(
             self.model_name1,

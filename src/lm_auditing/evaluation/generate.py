@@ -27,7 +27,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
-from src.utils.utils import (
+from lm_auditing.utils.utils import (
     translate_model_kwargs,
     NestedKeyDataset,
     terminator,
@@ -38,7 +38,7 @@ from src.utils.utils import (
     format_gen_params,
 )
 
-from src.base.experiment_base import ExperimentBase
+from lm_auditing.base.experiment_base import ExperimentBase
 
 from logging_config import setup_logging
 
@@ -51,19 +51,14 @@ from configs.experiment_config import (
 
 
 class ModelGenerator(ExperimentBase):
-
     def __init__(
         self,
         config: GenerationConfig,
     ):
-
         if is_flash_attn_2_available():
-            config.model.model_kwargs.update(
-                {"attn_implementation": "flash_attention_2"}
-            )
+            config.model.model_kwargs.update({"attn_implementation": "flash_attention_2"})
 
         super().__init__(config)
-
 
     def _calculate_dependent_attributes(self):
         self.logging_cfg = self.config.logging
@@ -73,20 +68,14 @@ class ModelGenerator(ExperimentBase):
         self.storing_cfg = self.config.storing
 
         dir_prefix = (
-            self.storing_cfg.dir_prefix
-            if self.storing_cfg.dir_prefix is not None
-            else str(self.metric_cfg.metric)
+            self.storing_cfg.dir_prefix if self.storing_cfg.dir_prefix is not None else str(self.metric_cfg.metric)
         )
-        self.output_dir = (
-            self.SCRIPT_DIR / dir_prefix / self.storing_cfg.output_dir
-        )
+        self.output_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.output_dir
 
         self.model_id = f"{self.model_cfg.hf_prefix}/{self.model_cfg.model_id}"
         self.seed = check_seed(self.model_cfg.gen_seed)
         self.gen_kwargs = self.model_cfg.gen_kwargs.to_dict()
-        self.include_gen_kwargs_in_path = not (
-            self.model_cfg.gen_kwargs == self.model_cfg.default_gen_kwargs
-        )
+        self.include_gen_kwargs_in_path = not (self.model_cfg.gen_kwargs == self.model_cfg.default_gen_kwargs)
 
         self.model_kwargs = self.model_cfg.model_kwargs.to_dict()
         self.model_id = f"{self.model_cfg.hf_prefix}/{self.model_cfg.model_id}"
@@ -121,9 +110,7 @@ class ModelGenerator(ExperimentBase):
             file_name += f"_{num_samples}.json"
 
         # Create folder path
-        base_name = (
-            f"{self.model_id.split('/')[-1]}{few_shot_string}_seed{self.seed}"
-        )
+        base_name = f"{self.model_id.split('/')[-1]}{few_shot_string}_seed{self.seed}"
         if self.include_gen_kwargs_in_path:
             gen_params_str = format_gen_params(self.gen_kwargs)
             base_name += f"_{gen_params_str}"
@@ -135,10 +122,7 @@ class ModelGenerator(ExperimentBase):
 
     def _get_local_data_path(self, data_path) -> Path:
         few_shot_string = "_fewshot" if self.metric_cfg.few_shot else ""
-        return (
-            data_path.parent
-            / f"{data_path.stem}{few_shot_string}{data_path.suffix}"
-        )
+        return data_path.parent / f"{data_path.stem}{few_shot_string}{data_path.suffix}"
 
     def _generate_on_dataset(self):
         torch.manual_seed(self.seed)
@@ -148,9 +132,7 @@ class ModelGenerator(ExperimentBase):
         file_path = self._get_file_path(
             self.eval_cfg.num_samples,
             self.eval_cfg.part * 10000 if self.eval_cfg.eval_in_parts else None,
-            (self.eval_cfg.part + 1) * 10000
-            if self.eval_cfg.eval_in_parts
-            else None,
+            (self.eval_cfg.part + 1) * 10000 if self.eval_cfg.eval_in_parts else None,
         )
 
         if file_path.exists() and not self.eval_cfg.overwrite:
@@ -158,28 +140,18 @@ class ModelGenerator(ExperimentBase):
             return
 
         # Setup tokenizer and model
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.model_id, padding_side="left"
-        )
+        tokenizer = AutoTokenizer.from_pretrained(self.model_id, padding_side="left")
 
         terminators = [tokenizer.eos_token_id]
 
         if "llama-3" in self.model_id.lower():
-            terminators.append(
-                tokenizer.convert_tokens_to_ids(terminator["llama3"])
-            )
+            terminators.append(tokenizer.convert_tokens_to_ids(terminator["llama3"]))
             format_func = format_funcs["llama3"](mode=self.model_cfg.chat_style)
         elif "mistral" in self.model_id.lower():
-            terminators.append(
-                tokenizer.convert_tokens_to_ids(terminator["mistral"])
-            )
-            format_func = format_funcs["mistral"](
-                mode=self.model_cfg.chat_style
-            )
+            terminators.append(tokenizer.convert_tokens_to_ids(terminator["mistral"]))
+            format_func = format_funcs["mistral"](mode=self.model_cfg.chat_style)
         elif "gemma" in self.model_id.lower():
-            terminators.append(
-                tokenizer.convert_tokens_to_ids(terminator["gemma"])
-            )
+            terminators.append(tokenizer.convert_tokens_to_ids(terminator["gemma"]))
             format_func = format_funcs["gemma"](mode=self.model_cfg.chat_style)
 
         if tokenizer.pad_token is None:
@@ -191,35 +163,26 @@ class ModelGenerator(ExperimentBase):
 
         if local_data_path.exists():
             self.logger.info(f"Loading dataset locally from {local_data_path}.")
-            data_files = {
-                self.metric_cfg.dataset_split: str(local_data_path.name)
-            }
+            data_files = {self.metric_cfg.dataset_split: str(local_data_path.name)}
             prompt_dataset = load_dataset(
                 local_data_path.parent.as_posix(),
                 data_files=data_files,
             )[self.metric_cfg.dataset_split]
-            ground_truths = [
-                prompt_dataset[i]["output"] for i in range(len(prompt_dataset))
-            ]
+            ground_truths = [prompt_dataset[i]["output"] for i in range(len(prompt_dataset))]
             formatted_dataset = prompt_dataset.map(
                 lambda x: create_conversation(x, self.model_id),
                 remove_columns=prompt_dataset.features,
                 batched=False,
                 desc="Generating conversations for evaluation",
             )
-            dataset = [
-                formatted_dataset[i]["messages"]
-                for i in range(len(formatted_dataset))
-            ]
+            dataset = [formatted_dataset[i]["messages"] for i in range(len(formatted_dataset))]
 
         else:
             self.logger.info(f"Loading dataset {ds_name} from huggingface.")
             dataset = load_dataset(ds_name, split=self.metric_cfg.dataset_split)
 
         if self.model_cfg.use_peft:
-            model = AutoPeftModelForCausalLM.from_pretrained(
-                self.model_id, **self.model_kwargs
-            )
+            model = AutoPeftModelForCausalLM.from_pretrained(self.model_id, **self.model_kwargs)
             generator = pipeline(
                 "text-generation",
                 model=model,
@@ -253,14 +216,9 @@ class ModelGenerator(ExperimentBase):
 
         self.logger.info("Model loaded.")
 
-        if (
-            self.eval_cfg.num_samples < len(dataset)
-            and self.eval_cfg.num_samples != -1
-        ):
+        if self.eval_cfg.num_samples < len(dataset) and self.eval_cfg.num_samples != -1:
             if self.eval_cfg.sample_randomly:
-                subset_indices = torch.randperm(len(dataset))[
-                    : self.eval_cfg.num_samples
-                ]
+                subset_indices = torch.randperm(len(dataset))[: self.eval_cfg.num_samples]
                 dataset = Subset(dataset, subset_indices.tolist())
             else:
                 dataset = Subset(
@@ -272,9 +230,7 @@ class ModelGenerator(ExperimentBase):
             upper_index = (self.eval_cfg.part + 1) * self.eval_cfg.part_length
 
             if lower_index >= len(dataset):
-                raise ValueError(
-                    f"Lower index {lower_index} is out of range for dataset of length {len(dataset)}"
-                )
+                raise ValueError(f"Lower index {lower_index} is out of range for dataset of length {len(dataset)}")
 
             if upper_index > len(dataset):
                 self.logger.info(
@@ -316,9 +272,7 @@ class ModelGenerator(ExperimentBase):
                 )
             if self.logging_cfg.use_wandb:
                 wandb.save(str(interim_file_path))
-            self.logger.info(
-                f"Saved intermediate results at {sample_count} samples."
-            )
+            self.logger.info(f"Saved intermediate results at {sample_count} samples.")
 
         # bit hacky, but for some reason with translation dataset, we need to feed prompts individually or else it takes too long
         if local_data_path.exists():
@@ -333,10 +287,7 @@ class ModelGenerator(ExperimentBase):
                 logs["continuations"].append(out[0][0]["generated_text"])
                 logs["ground_truths"].append(ground_truths[i])
 
-                if (
-                    self.eval_cfg.save_intermittently
-                    and (i + 1) % self.eval_cfg.save_interval == 0
-                ):
+                if self.eval_cfg.save_intermittently and (i + 1) % self.eval_cfg.save_interval == 0:
                     _save_logs(logs, i + 1)
 
         else:
@@ -363,10 +314,7 @@ class ModelGenerator(ExperimentBase):
                 logs["prompts"].append(dataset[i]["prompt"]["text"])
                 logs["continuations"].append(out[0]["generated_text"])
 
-                if (
-                    self.eval_cfg.save_intermittently
-                    and (i + 1) % self.eval_cfg.save_interval == 0
-                ):
+                if self.eval_cfg.save_intermittently and (i + 1) % self.eval_cfg.save_interval == 0:
                     _save_logs(logs, i + 1)
 
         # Save final results

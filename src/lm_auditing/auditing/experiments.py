@@ -24,17 +24,17 @@ from configs.experiment_config import (
     GenerationExperimentConfig,
     TestExperimentConfig,
 )
-from src.evaluation.generate import ModelGenerator
-from src.auditing.test import (
+from lm_auditing.evaluation.generate import ModelGenerator
+from lm_auditing.auditing.test import (
     AuditingTest,
     CalibratedAuditingTest,
 )
-from src.auditing.calibration_strategies import (
+from lm_auditing.auditing.calibration_strategies import (
     DefaultStrategy,
     StdStrategy,
     IntervalStrategy,
 )
-from src.analysis.nn_distance import (
+from lm_auditing.analysis.nn_distance import (
     CMLP,
     OptCMLP,
     HighCapacityCMLP,
@@ -90,9 +90,7 @@ class TestExperiment(Experiment):
 
     def _get_calibration_strategy(self):
         calibration_cfg = self.cfg.calibration_params
-        epsilon_strategy = (
-            self.cfg.calibration_params.epsilon_strategy
-        )
+        epsilon_strategy = self.cfg.calibration_params.epsilon_strategy
         overwrite = self.cfg.test_params.overwrite
 
         strategy_map = {
@@ -102,9 +100,5 @@ class TestExperiment(Experiment):
         }
         strategy_class = strategy_map.get(epsilon_strategy)
         if not strategy_class:
-            raise ValueError(
-                f"Unknown calibration strategy: {epsilon_strategy}"
-            )
-        return strategy_class(
-            calibration_cfg, overwrite=overwrite
-        )
+            raise ValueError(f"Unknown calibration strategy: {epsilon_strategy}")
+        return strategy_class(calibration_cfg, overwrite=overwrite)

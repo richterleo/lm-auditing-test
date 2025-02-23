@@ -6,13 +6,8 @@ from typing import Dict, Optional
 from pathlib import Path
 from torch.utils.data import Dataset
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from src.auditing.preprocessing import create_folds_from_evaluations
-from src.utils.utils import get_model_dir_name
+from lm_auditing.auditing.preprocessing import create_folds_from_evaluations
+from lm_auditing.utils.utils import get_model_dir_name
 
 
 class ScoresDataset(Dataset):
@@ -82,7 +77,7 @@ def load_into_scores_ds(
     # Create directory names directly instead of using get_model_dir_name
     model1_dir = f"{model_name1}_{seed1}"
     model2_dir = f"{model_name2}_{seed2}"
-    
+
     file_path = (
         f"{test_dir}/{model1_dir}_{model2_dir}/{cont_string}scores{noise_string}_fold_{fold_num}.json"
         if fold_num or fold_num == 0

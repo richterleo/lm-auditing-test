@@ -15,17 +15,20 @@ from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
 from typing import Union, List, Optional, Tuple
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
+# # Add paths to sys.path if not already present
+# project_root = Path(__file__).resolve().parents[2]
+# if str(project_root) not in sys.path:
+#     sys.path.append(str(project_root))
 
-from src.analysis.distance import (
-    empirical_wasserstein_distance_p1,
-    NeuralNetDistance,
-)
-from src.utils.utils import load_config
-# from train_cfg import TrainCfg
+# from src.analysis.distance import (
+#     empirical_wasserstein_distance_p1,
+#     NeuralNetDistance,
+# )
+# from src.utils.utils import load_config
+# # from train_cfg import TrainCfg
+
+from lm_auditing.utils.utils import load_config
+from lm_auditing.analysis.distance import empirical_wasserstein_distance_p1, NeuralNetDistance
 
 pd.set_option("display.max_rows", 1000)
 pd.set_option("display.max_columns", 1000)
@@ -47,7 +50,7 @@ def extract_data_for_models(
     test_dir: str = "test_outputs",
     epsilon: float = 0,
     only_continuations: bool = True,
-    metric="perspective",
+    metric: str = "perspective",
     dir_prefix: Optional[str] = None,
     noise: float = 0,
     extract_stats: bool = False,
@@ -60,9 +63,7 @@ def extract_data_for_models(
     mnt2: Optional[float] = None,
 ):
     """ """
-    assert model_name2 or (
-        checkpoint and checkpoint_base_name
-    ), (
+    assert model_name2 or (checkpoint and checkpoint_base_name), (
         "Either model_name2 or checkpoint and checkpoint_base_name must be provided"
     )
 
@@ -70,9 +71,7 @@ def extract_data_for_models(
         dir_prefix = metric
     test_dir = SCRIPT_DIR / dir_prefix / test_dir
 
-    continuation_str = (
-        "_continuations" if only_continuations else ""
-    )
+    continuation_str = "_continuations" if only_continuations else ""
     noise_string = f"_noise_{noise}" if noise > 0 else ""
     c2st_string = "_c2st" if c2st else ""
 
@@ -106,9 +105,7 @@ def extract_data_for_models(
         file_path = f"{base_path}/kfold_test_results{continuation_str}_{fold_size}_epsilon_{epsilon}{noise_string}{c2st_string}.csv"
 
     if not Path(file_path).exists():
-        raise FileNotFoundError(
-            f"File not found: {file_path}"
-        )
+        raise FileNotFoundError(f"File not found: {file_path}")
 
     logger.info(f"File path we are checking: {file_path}")
 
@@ -117,23 +114,13 @@ def extract_data_for_models(
         # Group by sequence and calculate means, handling NaN values for time and epochs
         test_data = data.groupby("sequence").agg(
             {
-                "samples": lambda x: int(
-                    x[~np.isnan(x)].mean()
-                ),
+                "samples": lambda x: int(x[~np.isnan(x)].mean()),
                 "test_positive_c2st": "mean",
                 "test_positive_davt": "mean",
-                "epochs_davt": lambda x: x[
-                    ~np.isnan(x)
-                ].mean(),
-                "epochs_c2st": lambda x: x[
-                    ~np.isnan(x)
-                ].mean(),
-                "time_davt": lambda x: x[
-                    ~np.isnan(x)
-                ].mean(),
-                "time_c2st": lambda x: x[
-                    ~np.isnan(x)
-                ].mean(),
+                "epochs_davt": lambda x: x[~np.isnan(x)].mean(),
+                "epochs_c2st": lambda x: x[~np.isnan(x)].mean(),
+                "time_davt": lambda x: x[~np.isnan(x)].mean(),
+                "time_c2st": lambda x: x[~np.isnan(x)].mean(),
             }
         )
 
@@ -141,18 +128,14 @@ def extract_data_for_models(
         # Group by sequence and calculate means, handling NaN values for time and epochs
         test_data = data.groupby("sequence").agg(
             {
-                "samples": lambda x: int(
-                    x[~np.isnan(x)].mean()
-                ),
+                "samples": lambda x: int(x[~np.isnan(x)].mean()),
                 "test_positive": "mean",
                 "epochs": lambda x: x[~np.isnan(x)].mean(),
                 "time": lambda x: x[~np.isnan(x)].mean(),
             }
         )
 
-    logger.info(
-        f"Number of folds: {data['fold_number'].max()}"
-    )
+    logger.info(f"Number of folds: {data['fold_number'].max()}")
 
     if extract_stats:
         file_path = f"{base_path}/kfold_test_stats{continuation_str}_{fold_size}_epsilon_{epsilon}{noise_string}{c2st_string}.csv"
@@ -174,10 +157,7 @@ def extract_data_for_models(
 
             # Process each sequence in order
             for idx, row in fold_data.iterrows():
-                if (
-                    test_triggered
-                    or row["ks_p-value"] < 0.05
-                ):
+                if test_triggered or row["ks_p-value"] < 0.05:
                     test_triggered = True
                     df.loc[idx, "ks_test_positive"] = 1
 
@@ -198,16 +178,10 @@ def extract_data_for_models(
         )
 
         # Add these statistics to the main dataframe
-        test_data = test_data.merge(
-            sequence_stats, on="sequence", how="left"
-        )
+        test_data = test_data.merge(sequence_stats, on="sequence", how="left")
 
         # Count false positives (folds where test was triggered)
-        false_positives = (
-            df.groupby("fold_number")["ks_test_positive"]
-            .max()
-            .sum()
-        )
+        false_positives = df.groupby("fold_number")["ks_test_positive"].max().sum()
         logger.info(
             f"Number of false positives for Kolmogorov-Smirnov test: {false_positives} after {df['sequence'].max()} sequences."
         )
@@ -268,26 +242,18 @@ def get_power_over_sequences(
         DataFrame containing results
     """
     if model_names is not None and checkpoints is not None:
-        raise ValueError(
-            "Cannot specify both model_names2 and checkpoints"
-        )
+        raise ValueError("Cannot specify both model_names2 and checkpoints")
     if model_names is None and checkpoints is None:
-        raise ValueError(
-            "Must specify either model_names2 or checkpoints"
-        )
+        raise ValueError("Must specify either model_names2 or checkpoints")
 
     # Convert single values to lists
     if not isinstance(seeds, list):
         seeds = [seeds]
 
-    if model_names is not None and not isinstance(
-        model_names, list
-    ):
+    if model_names is not None and not isinstance(model_names, list):
         model_names = [model_names]
 
-    if checkpoints is not None and not isinstance(
-        checkpoints, list
-    ):
+    if checkpoints is not None and not isinstance(checkpoints, list):
         checkpoints = [checkpoints]
 
     if not isinstance(epsilon, list):
@@ -305,11 +271,7 @@ def get_power_over_sequences(
     result_dfs = []
 
     # Process either checkpoints or model names
-    items_to_process = (
-        checkpoints
-        if checkpoints is not None
-        else model_names
-    )
+    items_to_process = checkpoints if checkpoints is not None else model_names
 
     for item, seed, epsilon, temp2, tp2, mnt2 in zip(
         items_to_process,
@@ -332,15 +294,9 @@ def get_power_over_sequences(
                     base_model_name,
                     base_model_seed,
                     seed,
-                    checkpoint=item
-                    if checkpoints
-                    else None,
-                    checkpoint_base_name=checkpoint_base_name
-                    if checkpoints
-                    else None,
-                    model_name2=item
-                    if not checkpoints
-                    else None,
+                    checkpoint=item if checkpoints else None,
+                    checkpoint_base_name=checkpoint_base_name if checkpoints else None,
+                    model_name2=item if not checkpoints else None,
                     metric=metric,
                     test_dir=test_dir,
                     dir_prefix=dir_prefix,
@@ -356,9 +312,7 @@ def get_power_over_sequences(
                     tp2=tp2,
                     mnt2=mnt2,
                 )
-                dist = dist_df[
-                    f"{distance_measure}_full"
-                ].mean()
+                dist = dist_df[f"{distance_measure}_full"].mean()
 
             # Extract power data
             result_df = extract_data_for_models(
@@ -366,12 +320,8 @@ def get_power_over_sequences(
                 base_model_seed,
                 seed,
                 checkpoint=item if checkpoints else None,
-                checkpoint_base_name=checkpoint_base_name
-                if checkpoints
-                else None,
-                model_name2=item
-                if not checkpoints
-                else None,
+                checkpoint_base_name=checkpoint_base_name if checkpoints else None,
+                model_name2=item if not checkpoints else None,
                 fold_size=fold_size,
                 test_dir=test_dir,
                 epsilon=epsilon,
@@ -393,9 +343,7 @@ def get_power_over_sequences(
             result_df["model_name1"] = base_model_name
             result_df["seed1"] = base_model_seed
             if checkpoints:
-                result_df["checkpoint_base_name"] = (
-                    checkpoint_base_name
-                )
+                result_df["checkpoint_base_name"] = checkpoint_base_name
                 result_df["checkpoint"] = item
             else:
                 result_df["model_name2"] = item
@@ -403,31 +351,21 @@ def get_power_over_sequences(
             result_df["epsilon"] = epsilon
 
             if calc_distance:
-                result_df[
-                    f"{distance_measure.lower()}_distance"
-                ] = dist
+                result_df[f"{distance_measure.lower()}_distance"] = dist
 
             result_dfs.append(result_df)
 
         except FileNotFoundError:
             if checkpoints:
-                logger.error(
-                    f"File for checkpoint {item} does not exist yet"
-                )
+                logger.error(f"File for checkpoint {item} does not exist yet")
             else:
-                logger.error(
-                    f"File for model {item} does not exist yet"
-                )
+                logger.error(f"File for model {item} does not exist yet")
 
     final_df = pd.concat(result_dfs, ignore_index=True)
 
     if rank:
-        final_df[
-            f"rank_by_{distance_measure.lower()}_distance"
-        ] = (
-            final_df[f"{distance_measure.lower()}_distance"]
-            .rank(method="dense", ascending=True)
-            .astype(int)
+        final_df[f"rank_by_{distance_measure.lower()}_distance"] = (
+            final_df[f"{distance_measure.lower()}_distance"].rank(method="dense", ascending=True).astype(int)
         )
 
     return final_df
@@ -471,28 +409,17 @@ def get_distance_scores(
     """ """
     np.random.seed(random_seed)
     random.seed(random_seed)
-    if (
-        not (checkpoint and checkpoint_base_name)
-        and not model_name2
-    ):
-        raise ValueError(
-            "Either checkpoint and checkpoint_base_name or model_name2 must be provided"
-        )
+    if not (checkpoint and checkpoint_base_name) and not model_name2:
+        raise ValueError("Either checkpoint and checkpoint_base_name or model_name2 must be provided")
 
-    cont_string = (
-        "continuation_" if only_continuations else ""
-    )
+    cont_string = "continuation_" if only_continuations else ""
     noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     if not dir_prefix:
         dir_prefix = metric
     score_dir = SCRIPT_DIR / dir_prefix / test_dir
 
-    model_name2 = (
-        f"{checkpoint_base_name}{checkpoint}"
-        if checkpoint
-        else model_name2
-    )
+    model_name2 = f"{checkpoint_base_name}{checkpoint}" if checkpoint else model_name2
 
     sampling_string1 = ""
     sampling_string2 = ""
@@ -510,14 +437,8 @@ def get_distance_scores(
     if mnt2:
         sampling_string2 += f"_mnt{mnt2}"
 
-    score_dir = (
-        Path(score_dir)
-        / f"{model_name1}_{seed1}{sampling_string1}_{model_name2}_{seed2}{sampling_string2}"
-    )
-    score_path = (
-        score_dir
-        / f"{cont_string}scores{noise_string}.json"
-    )
+    score_dir = Path(score_dir) / f"{model_name1}_{seed1}{sampling_string1}_{model_name2}_{seed2}{sampling_string2}"
+    score_path = score_dir / f"{cont_string}scores{noise_string}.json"
 
     if not isinstance(num_samples, list):
         num_samples = [num_samples]
@@ -529,162 +450,87 @@ def get_distance_scores(
         scores1 = data[f"{metric}_scores1"]
         scores2 = data[f"{metric}_scores2"]
 
-        num_samples = [
-            min(num_sample, len(scores1))
-            for num_sample in num_samples
-        ]
+        num_samples = [min(num_sample, len(scores1)) for num_sample in num_samples]
 
         dist_data = []
 
         if evaluate_wasserstein_on_full:
             if "Wasserstein" in distance_measures:
-                wasserstein_dist_dict = {
-                    "num_samples": len(scores1)
-                }
+                wasserstein_dist_dict = {"num_samples": len(scores1)}
                 if use_scipy_wasserstein:
-                    wasserstein_dist_dict[
-                        "Wasserstein_full"
-                    ] = wasserstein_distance(
-                        scores1, scores2
-                    )
+                    wasserstein_dist_dict["Wasserstein_full"] = wasserstein_distance(scores1, scores2)
                 else:
-                    wasserstein_dist_dict[
-                        "Wasserstein_full"
-                    ] = empirical_wasserstein_distance_p1(
-                        scores1, scores2
-                    )
+                    wasserstein_dist_dict["Wasserstein_full"] = empirical_wasserstein_distance_p1(scores1, scores2)
         if evaluate_nn_on_full:
             if "NeuralNet" in distance_measures:
-                assert net_cfg, (
-                    "net_dict must be provided for neuralnet distance"
-                )
-                assert train_cfg, (
-                    "train_cfg must be provided for neuralnet distance"
-                )
+                assert net_cfg, "net_dict must be provided for neuralnet distance"
+                assert train_cfg, "train_cfg must be provided for neuralnet distance"
 
-                shuffled_scores1, shuffled_scores2 = (
-                    shuffle(
-                        scores1,
-                        scores2,
-                        random_state=random_seed,
-                    )
+                shuffled_scores1, shuffled_scores2 = shuffle(
+                    scores1,
+                    scores2,
+                    random_state=random_seed,
                 )
 
                 kf = KFold(n_splits=num_runs, shuffle=False)
 
-                for train_index, _ in kf.split(
-                    shuffled_scores1
-                ):
-                    fold_scores1 = [
-                        shuffled_scores1[i]
-                        for i in train_index
-                    ]
-                    fold_scores2 = [
-                        shuffled_scores2[i]
-                        for i in train_index
-                    ]
+                for train_index, _ in kf.split(shuffled_scores1):
+                    fold_scores1 = [shuffled_scores1[i] for i in train_index]
+                    fold_scores2 = [shuffled_scores2[i] for i in train_index]
 
                     # Only keep folds that are of equal length
-                    if (
-                        len(fold_scores1)
-                        == len(scores1) // num_runs
-                    ):
+                    if len(fold_scores1) == len(scores1) // num_runs:
                         # Randomly split the fold into test and train data
-                        fold_num_test_samples = int(
-                            len(fold_scores1) * test_split
-                        )
-                        dist_dict = {
-                            "num_train_samples": len(
-                                fold_scores1
-                            )
-                            - fold_num_test_samples
-                        }
-                        dist_dict["num_test_samples"] = (
-                            fold_num_test_samples
-                        )
+                        fold_num_test_samples = int(len(fold_scores1) * test_split)
+                        dist_dict = {"num_train_samples": len(fold_scores1) - fold_num_test_samples}
+                        dist_dict["num_test_samples"] = fold_num_test_samples
 
-                        indices = np.arange(
-                            len(fold_scores1)
-                        )
+                        indices = np.arange(len(fold_scores1))
                         np.random.shuffle(indices)
 
-                        test_indices = indices[
-                            :fold_num_test_samples
-                        ]
-                        train_indices = indices[
-                            fold_num_test_samples:
-                        ]
+                        test_indices = indices[:fold_num_test_samples]
+                        train_indices = indices[fold_num_test_samples:]
 
-                        train_scores1 = [
-                            fold_scores1[i]
-                            for i in train_indices
-                        ]
-                        train_scores2 = [
-                            fold_scores2[i]
-                            for i in train_indices
-                        ]
-                        test_scores1 = [
-                            fold_scores1[i]
-                            for i in test_indices
-                        ]
-                        test_scores2 = [
-                            fold_scores2[i]
-                            for i in test_indices
-                        ]
+                        train_scores1 = [fold_scores1[i] for i in train_indices]
+                        train_scores2 = [fold_scores2[i] for i in train_indices]
+                        test_scores1 = [fold_scores1[i] for i in test_indices]
+                        test_scores2 = [fold_scores2[i] for i in test_indices]
 
-                        logger.info(
-                            f"Training neural net distance on {len(train_scores1)} samples."
-                        )
+                        logger.info(f"Training neural net distance on {len(train_scores1)} samples.")
 
                         # Rest of the code for each fold...
                         if pre_shuffle:
-                            neural_net_distance_shuffled = (
-                                NeuralNetDistance(
-                                    net_cfg,
-                                    deepcopy(train_scores1),
-                                    deepcopy(train_scores2),
-                                    deepcopy(test_scores1),
-                                    deepcopy(test_scores2),
-                                    train_cfg,
-                                    pre_shuffle=pre_shuffle,
-                                    random_seed=random_seed,
-                                )
-                            )
-                            dist_dict[
-                                "NeuralNet_unpaired"
-                            ] = neural_net_distance_shuffled.train().item()
-                        neural_net_distance = (
-                            NeuralNetDistance(
+                            neural_net_distance_shuffled = NeuralNetDistance(
                                 net_cfg,
-                                train_scores1,
-                                train_scores2,
-                                test_scores1,
-                                test_scores2,
+                                deepcopy(train_scores1),
+                                deepcopy(train_scores2),
+                                deepcopy(test_scores1),
+                                deepcopy(test_scores2),
                                 train_cfg,
-                                pre_shuffle=False,
+                                pre_shuffle=pre_shuffle,
                                 random_seed=random_seed,
                             )
+                            dist_dict["NeuralNet_unpaired"] = neural_net_distance_shuffled.train().item()
+                        neural_net_distance = NeuralNetDistance(
+                            net_cfg,
+                            train_scores1,
+                            train_scores2,
+                            test_scores1,
+                            test_scores2,
+                            train_cfg,
+                            pre_shuffle=False,
+                            random_seed=random_seed,
                         )
-                        dist_dict["NeuralNet"] = (
-                            neural_net_distance.train().item()
-                        )
+                        dist_dict["NeuralNet"] = neural_net_distance.train().item()
 
-                        if (
-                            "Wasserstein"
-                            in distance_measures
-                            and compare_wasserstein
-                        ):
+                        if "Wasserstein" in distance_measures and compare_wasserstein:
                             if use_scipy_wasserstein:
-                                dist_dict[
-                                    "Wasserstein_comparison"
-                                ] = wasserstein_distance(
+                                dist_dict["Wasserstein_comparison"] = wasserstein_distance(
                                     test_scores1,
                                     test_scores2,
                                 )
                             else:
-                                dist_dict[
-                                    "Wasserstein_comparison"
-                                ] = empirical_wasserstein_distance_p1(
+                                dist_dict["Wasserstein_comparison"] = empirical_wasserstein_distance_p1(
                                     test_scores1,
                                     test_scores2,
                                 )
@@ -699,16 +545,12 @@ def get_distance_scores(
 
                 for num_train_samples in num_samples:
                     for run in range(num_runs):
-                        logger.info(
-                            f"Num runs: {num_runs}, Run: {run}"
-                        )
+                        logger.info(f"Num runs: {num_runs}, Run: {run}")
                         np.random.seed(random_seed + run)
-                        random_test_indices = (
-                            np.random.choice(
-                                len(scores1),
-                                num_test_samples,
-                                replace=False,
-                            )
+                        random_test_indices = np.random.choice(
+                            len(scores1),
+                            num_test_samples,
+                            replace=False,
                         )
 
                         dist_dict = {
@@ -716,138 +558,79 @@ def get_distance_scores(
                             "num_test_samples": num_test_samples,
                         }
 
-                        test_scores1 = [
-                            scores1[i]
-                            for i in random_test_indices
-                        ]
-                        test_scores2 = [
-                            scores2[i]
-                            for i in random_test_indices
-                        ]
+                        test_scores1 = [scores1[i] for i in random_test_indices]
+                        test_scores2 = [scores2[i] for i in random_test_indices]
 
-                        logger.info(
-                            f"Testing neural net distance on {len(test_scores1)} samples."
-                        )
+                        logger.info(f"Testing neural net distance on {len(test_scores1)} samples.")
 
-                        if (
-                            "Wasserstein"
-                            in distance_measures
-                        ):
+                        if "Wasserstein" in distance_measures:
                             if use_scipy_wasserstein:
-                                dist_dict[
-                                    "Wasserstein_comparison"
-                                ] = wasserstein_distance(
+                                dist_dict["Wasserstein_comparison"] = wasserstein_distance(
                                     test_scores1,
                                     test_scores2,
                                 )
                             else:
-                                dist_dict[
-                                    "Wasserstein_comparison"
-                                ] = empirical_wasserstein_distance_p1(
+                                dist_dict["Wasserstein_comparison"] = empirical_wasserstein_distance_p1(
                                     test_scores1,
                                     test_scores2,
                                 )
 
-                        train_scores1 = [
-                            scores1[i]
-                            for i in range(len(scores1))
-                            if i not in random_test_indices
-                        ]
-                        train_scores2 = [
-                            scores2[i]
-                            for i in range(len(scores2))
-                            if i not in random_test_indices
-                        ]
+                        train_scores1 = [scores1[i] for i in range(len(scores1)) if i not in random_test_indices]
+                        train_scores2 = [scores2[i] for i in range(len(scores2)) if i not in random_test_indices]
 
-                        if num_train_samples > len(
-                            train_scores1
-                        ):
+                        if num_train_samples > len(train_scores1):
                             logger.warning(
                                 f"Number of train samples {num_train_samples} is greater than the number of available samples {len(train_scores1)}. We are training on all available samples."
                             )
-                            num_train_samples = len(
-                                train_scores1
-                            )
+                            num_train_samples = len(train_scores1)
 
-                        num_train_samples_list.append(
-                            num_train_samples
-                        )
-                        dist_dict["num_train_samples"] = (
-                            int(num_train_samples)
-                        )
+                        num_train_samples_list.append(num_train_samples)
+                        dist_dict["num_train_samples"] = int(num_train_samples)
 
-                        random_train_indices = (
-                            np.random.choice(
-                                len(train_scores1),
-                                num_train_samples,
-                                replace=False,
-                            )
+                        random_train_indices = np.random.choice(
+                            len(train_scores1),
+                            num_train_samples,
+                            replace=False,
                         )
-                        current_train_scores1 = [
-                            train_scores1[i]
-                            for i in random_train_indices
-                        ]
-                        current_train_scores2 = [
-                            train_scores2[i]
-                            for i in random_train_indices
-                        ]
+                        current_train_scores1 = [train_scores1[i] for i in random_train_indices]
+                        current_train_scores2 = [train_scores2[i] for i in random_train_indices]
 
-                        logger.info(
-                            f"Training neural net distance on {len(current_train_scores1)} samples."
-                        )
+                        logger.info(f"Training neural net distance on {len(current_train_scores1)} samples.")
 
                         if pre_shuffle:
                             neural_net_distance_shuffled = NeuralNetDistance(
                                 net_cfg,
-                                deepcopy(
-                                    current_train_scores1
-                                ),
-                                deepcopy(
-                                    current_train_scores2
-                                ),
+                                deepcopy(current_train_scores1),
+                                deepcopy(current_train_scores2),
                                 deepcopy(test_scores1),
                                 deepcopy(test_scores2),
                                 train_cfg,
                                 pre_shuffle=pre_shuffle,
                                 random_seed=random_seed,
                             )
-                            dist_dict[
-                                "NeuralNet_unpaired"
-                            ] = neural_net_distance_shuffled.train().item()
-                        neural_net_distance = (
-                            NeuralNetDistance(
-                                net_cfg,
-                                current_train_scores1,
-                                current_train_scores2,
-                                test_scores1,
-                                test_scores2,
-                                train_cfg,
-                                pre_shuffle=False,
-                                random_seed=random_seed,
-                            )
+                            dist_dict["NeuralNet_unpaired"] = neural_net_distance_shuffled.train().item()
+                        neural_net_distance = NeuralNetDistance(
+                            net_cfg,
+                            current_train_scores1,
+                            current_train_scores2,
+                            test_scores1,
+                            test_scores2,
+                            train_cfg,
+                            pre_shuffle=False,
+                            random_seed=random_seed,
                         )
-                        dist_dict["NeuralNet"] = (
-                            neural_net_distance.train().item()
-                        )
+                        dist_dict["NeuralNet"] = neural_net_distance.train().item()
 
                         dist_data.append(dist_dict)
 
         if dist_data:
             dist_df = pd.DataFrame(dist_data)
             if evaluate_wasserstein_on_full:
-                dist_df["Wasserstein_full"] = (
-                    wasserstein_dist_dict[
-                        "Wasserstein_full"
-                    ]
-                )
-                dist_df["total_samples"] = (
-                    wasserstein_dist_dict["num_samples"]
-                )
+                dist_df["Wasserstein_full"] = wasserstein_dist_dict["Wasserstein_full"]
+                dist_df["total_samples"] = wasserstein_dist_dict["num_samples"]
         else:
             if evaluate_wasserstein_on_full:
-                dist_df = pd.DataFrame(
-                    [wasserstein_dist_dict]
-                )
+                dist_df = pd.DataFrame([wasserstein_dist_dict])
 
         if save:
             if not score_dir.exists():
@@ -865,21 +648,15 @@ def get_distance_scores(
             if not dist_path.exists() or overwrite:
                 dist_df.to_csv(dist_path, index=False)
             else:
-                logger.info(
-                    f"File {dist_path} already exists. Use overwrite=True to overwrite it."
-                )
+                logger.info(f"File {dist_path} already exists. Use overwrite=True to overwrite it.")
 
         return dist_df
 
     except FileNotFoundError:
         if checkpoint:
-            logger.error(
-                f"File for checkpoint {checkpoint} does not exist yet"
-            )
+            logger.error(f"File for checkpoint {checkpoint} does not exist yet")
         else:
-            logger.error(
-                f"File for model {model_name2} does not exist yet"
-            )
+            logger.error(f"File for model {model_name2} does not exist yet")
 
 
 def get_mean_and_std_for_nn_distance(df):
@@ -887,27 +664,17 @@ def get_mean_and_std_for_nn_distance(df):
 
     unique_sample_sizes = df["num_train_samples"].unique()
 
-    assert len(unique_sample_sizes) == 2, (
-        "Number of unique sample sizes must be 2"
-    )
+    assert len(unique_sample_sizes) == 2, "Number of unique sample sizes must be 2"
 
     # Splitting the data into two groups
-    group1 = df[
-        df["num_train_samples"] == unique_sample_sizes[0]
-    ]["NeuralNet"]
-    group2 = df[
-        df["num_train_samples"] == unique_sample_sizes[1]
-    ]["NeuralNet"]
+    group1 = df[df["num_train_samples"] == unique_sample_sizes[0]]["NeuralNet"]
+    group2 = df[df["num_train_samples"] == unique_sample_sizes[1]]["NeuralNet"]
 
     # Calculate the mean for each group
     mean1 = group1.mean()
     mean2 = group2.mean()
-    logger.info(
-        f"Mean of group1 with {unique_sample_sizes[0]} samples: {mean1}"
-    )
-    logger.info(
-        f"Mean of group2 with {unique_sample_sizes[1]} samples: {mean2}"
-    )
+    logger.info(f"Mean of group1 with {unique_sample_sizes[0]} samples: {mean1}")
+    logger.info(f"Mean of group2 with {unique_sample_sizes[1]} samples: {mean2}")
 
     # Calculate the variance for each group
     var1 = group1.var()
@@ -996,34 +763,20 @@ def extract_power_from_sequence_df(
 
     if "checkpoint" in df.columns:
         # Group by checkpoint and take the last row in each group
-        grouped = df.groupby(
-            "checkpoint", as_index=False
-        ).last()
-        cols_to_keep = [
-            c
-            for c in grouped.columns
-            if c not in cols_to_remove
-        ]
+        grouped = df.groupby("checkpoint", as_index=False).last()
+        cols_to_keep = [c for c in grouped.columns if c not in cols_to_remove]
         return grouped[cols_to_keep].reset_index(drop=True)
 
     # 2) If "checkpoint" is not a column but "model_name2" is
     elif "model_name2" in df.columns:
         # Group by model_name2 and take the last row in each group
-        grouped = df.groupby(
-            "model_name2", as_index=False
-        ).last()
-        cols_to_keep = [
-            c
-            for c in grouped.columns
-            if c not in cols_to_remove
-        ]
+        grouped = df.groupby("model_name2", as_index=False).last()
+        cols_to_keep = [c for c in grouped.columns if c not in cols_to_remove]
         return grouped[cols_to_keep].reset_index(drop=True)
 
     # 3) If neither checkpoint nor model_name2 is present
     else:
-        cols_to_keep = [
-            c for c in df.columns if c not in cols_to_remove
-        ]
+        cols_to_keep = [c for c in df.columns if c not in cols_to_remove]
         last_line = df.iloc[[-1]][cols_to_keep].copy()
         return last_line.reset_index(drop=True)
 
@@ -1071,9 +824,7 @@ def get_alpha_wrapper(
 
     else:
         result_dfs = []
-        for model_name, seed1, seed2, temp, tp, mnt in zip(
-            model_names, seeds1, seeds2, temps, tps, mnts
-        ):
+        for model_name, seed1, seed2, temp, tp, mnt in zip(model_names, seeds1, seeds2, temps, tps, mnts):
             result_df = get_power_over_sequences(
                 model_name,
                 seed1,
@@ -1125,9 +876,7 @@ def get_mean_tox_scores(
     if dir_prefix is None:
         dir_prefix = metric
 
-    cont_string = (
-        "continuation_" if only_continuations else ""
-    )
+    cont_string = "continuation_" if only_continuations else ""
     noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     score_dir = SCRIPT_DIR / dir_prefix / score_dir
@@ -1136,64 +885,39 @@ def get_mean_tox_scores(
         if not isinstance(model_names, list):
             model_names = [model_names]
             seeds = [seeds]
-        model_files = [
-            f"{model_name}_{seed}"
-            for model_name, seed in zip(model_names, seeds)
-        ]
+        model_files = [f"{model_name}_{seed}" for model_name, seed in zip(model_names, seeds)]
     else:
-        model_files = [
-            f.name
-            for f in score_dir.iterdir()
-            if f.is_dir()
-        ]
+        model_files = [f.name for f in score_dir.iterdir() if f.is_dir()]
     all_scores = []
 
     for model_file in model_files:
         try:
             if not diff:
-                score_path = (
-                    score_dir
-                    / model_file
-                    / f"{cont_string}scores{noise_string}.json"
-                )
+                score_path = score_dir / model_file / f"{cont_string}scores{noise_string}.json"
                 with open(score_path, "r") as f:
                     scores = json.load(f)
 
                 toxic_scores = scores[f"{metric}_scores"]
 
             else:
-                score_path = (
-                    score_dir
-                    / model_file
-                    / f"scores{noise_string}.json"
-                )
+                score_path = score_dir / model_file / f"scores{noise_string}.json"
                 with open(score_path, "r") as f:
                     scores = json.load(f)
 
-                cont_score_path = (
-                    score_dir
-                    / model_file
-                    / f"continuation_scores{noise_string}.json"
-                )
+                cont_score_path = score_dir / model_file / f"continuation_scores{noise_string}.json"
                 with open(cont_score_path, "r") as f:
                     cont_scores = json.load(f)
 
                 toxic_scores = [
-                    scores[f"{metric}_scores"][i]
-                    - cont_scores[f"{metric}_scores"][i]
-                    for i in range(
-                        len(scores[f"{metric}_scores"])
-                    )
+                    scores[f"{metric}_scores"][i] - cont_scores[f"{metric}_scores"][i]
+                    for i in range(len(scores[f"{metric}_scores"]))
                 ]
 
             if only_on_toxic_prompts:
                 with open(high_tox_file, "r") as f:
                     high_tox_indices = json.load(f)
 
-                toxic_scores = [
-                    toxic_scores[i]
-                    for i in high_tox_indices
-                ]
+                toxic_scores = [toxic_scores[i] for i in high_tox_indices]
 
             mean, std, median = (
                 np.nanmean(toxic_scores),
@@ -1210,9 +934,7 @@ def get_mean_tox_scores(
             )
 
         except FileNotFoundError:
-            logger.warning(
-                f"File for model {model_file} does not exist yet"
-            )
+            logger.warning(f"File for model {model_file} does not exist yet")
             continue
 
     if all_scores:
@@ -1269,28 +991,18 @@ def get_neural_net_distance_stats(
         dir_prefix = metric
 
     noise_string = f"_noise_{noise}" if noise > 0 else ""
-    folder_addendum = (
-        f"_{folder_addendum}" if folder_addendum else ""
-    )
+    folder_addendum = f"_{folder_addendum}" if folder_addendum else ""
 
     if model_name2 is not None:
         model2_name = model_name2
     elif checkpoint is not None:
         model2_name = f"{checkpoint_base_name}{checkpoint}"
     else:
-        raise ValueError(
-            "Either model_name2 or checkpoint must be provided"
-        )
+        raise ValueError("Either model_name2 or checkpoint must be provided")
 
     test_dir = SCRIPT_DIR / dir_prefix / "test_outputs"
-    base_path = (
-        test_dir
-        / f"{base_model_name}_{base_model_seed}_{model2_name}_{seed2}{folder_addendum}"
-    )
-    file_path = (
-        base_path
-        / f"distance_scores_{num_train_samples}_{num_runs}{noise_string}.csv"
-    )
+    base_path = test_dir / f"{base_model_name}_{base_model_seed}_{model2_name}_{seed2}{folder_addendum}"
+    file_path = base_path / f"distance_scores_{num_train_samples}_{num_runs}{noise_string}.csv"
 
     # Read the CSV file
     df = pd.read_csv(file_path)

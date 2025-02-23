@@ -19,17 +19,7 @@ from datetime import datetime
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from src.utils.legacy_utils import remove_zero_key_and_flatten
-
-# Import from submodule (which is at project root)
-submodule_path = project_root / "deep-anytime-testing"
-if str(submodule_path) not in sys.path:
-    sys.path.append(str(submodule_path))
+from lm_auditing.utils.legacy_utils import remove_zero_key_and_flatten
 
 logger = logging.getLogger(__name__)
 
@@ -249,9 +239,7 @@ class NestedKeyDataset(Dataset):
 
 def create_conversation(example, model_id):
     PROMPT_DICT = {
-        "prompt_input": (
-            "### Input:\n{input}\n\n### Response:\n"
-        ),
+        "prompt_input": ("### Input:\n{input}\n\n### Response:\n"),
     }
     DEFAULT_INSTRUCTION_SYS = "You are a helpful, respectful and honest assistant."
 
@@ -325,7 +313,7 @@ def load_entire_json(
         data = remove_zero_key_and_flatten(filepath, return_data=True, save_file=True)
         if return_data:
             return data
-            
+
     except FileNotFoundError:
         logger.error(f"File not found: {filepath}")
         raise
@@ -346,27 +334,25 @@ def load_entire_json(
 
 def format_gen_params(gen_kwargs: Dict) -> str:
     """Format generation parameters into a string for folder names."""
-    key_params = ['temperature', 'top_p', 'max_new_tokens']
+    key_params = ["temperature", "top_p", "max_new_tokens"]
     parts = []
-    
+
     for key in key_params:
         if key in gen_kwargs:
             # Shorten parameter names
-            param_map = {
-                'temperature': 'temp',
-                'top_p': 'tp',
-                'max_new_tokens': 'mnt'
-            }
+            param_map = {"temperature": "temp", "top_p": "tp", "max_new_tokens": "mnt"}
             # Format float values to 2 decimal places
             value = gen_kwargs[key]
             if isinstance(value, float):
                 value = f"{value:.2f}"
             parts.append(f"{param_map[key]}{value}")
-    
+
     return "_".join(parts)
 
 
-def get_model_dir_name(model_name: str, seed: str, gen_kwargs: Optional[Dict] = None, include_gen_params: bool = False) -> str:
+def get_model_dir_name(
+    model_name: str, seed: str, gen_kwargs: Optional[Dict] = None, include_gen_params: bool = False
+) -> str:
     """Get the full directory name for a model's outputs."""
     base_name = f"{model_name}_seed{seed}"
     if include_gen_params and gen_kwargs:

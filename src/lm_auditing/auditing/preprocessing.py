@@ -12,15 +12,10 @@ from pathlib import Path
 from typing import Optional
 from tqdm import tqdm
 
-# Add paths to sys.path if not already present
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from src.evaluation.evaluate import evaluate_single_model
-from src.evaluation.score import eval_on_metric
-from src.utils.legacy_utils import remove_zero_key_and_flatten
-from src.utils.utils import (
+from lm_auditing.evaluation.evaluate import evaluate_single_model
+from lm_auditing.evaluation.score import eval_on_metric
+from lm_auditing.utils.legacy_utils import remove_zero_key_and_flatten
+from lm_auditing.utils.utils import (
     time_block,
     create_run_string,
     load_config,
@@ -69,18 +64,18 @@ def create_common_json(
         data = defaultdict(list)
         data["metadata1"] = data1["metadata"]
         data["metadata2"] = data2["metadata"]
-        
+
         # Get the actual metric key from the data
         metric_key = f"{metric}_scores"
         if metric_key not in data1:
             # Try to find the actual metric key in the data
-            possible_keys = [k for k in data1.keys() if k.endswith('_scores')]
+            possible_keys = [k for k in data1.keys() if k.endswith("_scores")]
             if possible_keys:
                 metric_key = possible_keys[0]
                 logger.warning(f"Metric key '{metric}_scores' not found. Using '{metric_key}' instead.")
             else:
                 raise KeyError(f"No metric scores found in data. Available keys: {data1.keys()}")
-                
+
         unfiltered_scores1 = data1[metric_key]
         unfiltered_scores2 = data2[metric_key]
 
@@ -138,10 +133,10 @@ def create_folds(
     metric_key1 = f"{metric}_scores1"
     if metric_key1 not in data:
         # Try to find the actual metric key in the data
-        possible_keys = [k for k in data.keys() if k.endswith('_scores1')]
+        possible_keys = [k for k in data.keys() if k.endswith("_scores1")]
         if possible_keys:
             metric_key1 = possible_keys[0]
-            metric_key2 = possible_keys[0].replace('1', '2')
+            metric_key2 = possible_keys[0].replace("1", "2")
             logger.warning(f"Metric key '{metric}_scores1' not found. Using '{metric_key1}' instead.")
         else:
             raise KeyError(f"No metric scores found in data. Available keys: {data.keys()}")

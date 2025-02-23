@@ -12,7 +12,28 @@ This repository accompanies the paper [An Auditing Test to Detect Behavioral Shi
 
 ## Setup
 
-Ensure you have all the necessary dependencies installed. You can install miniconda and create a virtual environment `auditenv` with the necessary dependencies by executing 
+This project uses `uv` to manage dependencies. Install `uv` by following the instructions [here](https://docs.astral.sh/uv/getting-started/installation/). Then clone the repository and initialize the submodule:
+
+```bash
+git clone --recursive https://github.com/richterleo/lm-auditing-test.git
+```
+Alternatively, clone the repository and initialize the submodule separately:
+
+```bash
+git clone https://github.com/richterleo/lm-auditing-test.git
+git submodule init
+git submodule update
+```
+The project uses [deep-anytime-testing](https://github.com/tpandeva/deep-anytime-testing) as a git submodule. 
+The specific version of deep-anytime-testing is can be found in `.gitmodules`.
+
+Install the dependencies by running:
+```bash
+uv sync
+```
+
+
+
 
 ```bash
 ./setup.sh
@@ -69,7 +90,7 @@ This project uses [deep-anytime-testing](https://github.com/tpandeva/deep-anytim
 git submodule init
 git submodule update
 ```
-The specific version of deep-anytime-testing is pinned to commit ().
+The specific version of deep-anytime-testing is can be found in `.gitmodules`.
 
 ## Contact
 
