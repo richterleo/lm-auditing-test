@@ -24,14 +24,14 @@ from configs.experiment_config import (
     TestConfig,
 )
 
-from src.test.calibration_strategies import (
+from src.auditing.calibration_strategies import (
     CalibrationStrategy,
 )
-from src.test.evaltrainer import (
+from src.auditing.evaltrainer import (
     OfflineTrainer,
     OfflineTrainerCombined,
 )
-from src.test.preprocessing import (
+from src.auditing.preprocessing import (
     create_folds_from_evaluations,
 )
 

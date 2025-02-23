@@ -11,7 +11,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
-from src.test.preprocessing import create_folds_from_evaluations
+from src.auditing.preprocessing import create_folds_from_evaluations
 from src.utils.utils import get_model_dir_name
 
 

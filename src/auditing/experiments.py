@@ -25,11 +25,11 @@ from configs.experiment_config import (
     TestExperimentConfig,
 )
 from src.evaluation.generate import ModelGenerator
-from src.test.test import (
+from src.auditing.test import (
     AuditingTest,
     CalibratedAuditingTest,
 )
-from src.test.calibration_strategies import (
+from src.auditing.calibration_strategies import (
     DefaultStrategy,
     StdStrategy,
     IntervalStrategy,

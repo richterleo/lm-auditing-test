@@ -26,7 +26,7 @@ if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
 # own utilities
-from src.test.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
+from src.auditing.dataloader import ScoresDataset, collate_fn, load_into_scores_ds
 
 # from arguments import Cfg
 from src.evaluation.score import eval_on_metric
