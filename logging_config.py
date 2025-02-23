@@ -20,6 +20,7 @@ def setup_logging(
     tag="test_results",
     directory="logs",
     use_rich=True,  # Added to toggle rich logging
+    quiet=True,  # Controls whether to show logs in console
 ):
     """Sets up logging configuration with optional rich logging."""
 
@@ -37,20 +38,6 @@ def setup_logging(
                 log_file = log_file + "_" + str(item)
         log_file = Path(directory) / f"{log_file}.log"
 
-    # Choose the console handler
-    if use_rich:
-        console_handler = {
-            "class": "rich.logging.RichHandler",
-            "formatter": "default",
-            "rich_tracebacks": True,  # Enable rich tracebacks for better error reporting
-            "markup": True,  # Enable markup in logging messages
-        }
-    else:
-        console_handler = {
-            "class": "logging.StreamHandler",
-            "formatter": "default",
-        }
-
     # Logging configuration dictionary
     logging_config = {
         "version": 1,
@@ -61,7 +48,6 @@ def setup_logging(
             },
         },
         "handlers": {
-            "console": console_handler,
             "file": {
                 "class": "logging.FileHandler",
                 "formatter": "default",
@@ -69,21 +55,38 @@ def setup_logging(
             },
         },
         "root": {
-            "handlers": ["console", "file"],
+            "handlers": ["file"],
             "level": default_level,
         },
         "loggers": {
             "": {  # root logger
                 "level": default_level,
-                "handlers": ["console", "file"],
+                "handlers": ["file"],
             },
             "__main__": {
                 "level": default_level,
-                "handlers": ["console", "file"],
+                "handlers": ["file"],
                 "propagate": False,
             },
         },
     }
+
+    # Add console handler if not quiet
+    if not quiet:
+        console_handler = {
+            "class": "rich.logging.RichHandler" if use_rich else "logging.StreamHandler",
+            "formatter": "default",
+            "rich_tracebacks": True,
+            "markup": True,
+        } if use_rich else {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        }
+        
+        logging_config["handlers"]["console"] = console_handler
+        logging_config["root"]["handlers"].append("console")
+        logging_config["loggers"][""]["handlers"].append("console")
+        logging_config["loggers"]["__main__"]["handlers"].append("console")
 
     # Apply the logging configuration
     dictConfig(logging_config)

@@ -1,56 +1,49 @@
-
 defaults:
   - _self_
-  - experiments: test_toxicity # test_toxicity #generation #test_toxicity  # generation # test_toxicity
+  - experiments: test_toxicity #generation # test_toxicity
   - peft_models
-  - override hydra/hydra_logging: disabled  
-  - override hydra/job_logging: disabled 
+  - training
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
 
 hydra:
   output_subdir: null
   run:
     dir: .
 
-
 # Global logging configuration
 logging:
   use_wandb: true
-  api_key: # put your api key here
   entity: LLM_Accountability
-
-# Shared betting network configuration
-net:
-  input_size: 1
-  hidden_layer_size: [32, 32]
-  layer_norm: true
-  bias: true
+  quiet: true # When true, logging only goes to files. When false, also shows in console
+  wandb_project_name: # gets overwritten by experiment config
 
 # Default metric configuration
 metric:
   behavior: toxicity
-  metric: perspective
+  metric: toxicity # toxicity # perspective
   lower_lim: 0.0
   upper_lim: 1.0
   dataset_name: allenai/real-toxicity-prompts
+  dataset_split: train
+  few_shot: false
 
 # Default configurations for tau models using YAML anchors
 tau_defaults: &tau_defaults
   model_kwargs:
-    # torch_dtype: torch.float16 #torch.bfloat16
-    # load_in_4bit: true
-    device_map: auto
+    quantization_config:
+      load_in_4bit: true
+      bnb_4bit_quant_type: "nf4"
+      bnb_4bit_compute_dtype: "bfloat16"
+      bnb_4bit_use_double_quant: true
     low_cpu_mem_usage: true
-  gen_kwargs:
+    device_map: auto
+  default_gen_kwargs: &default_gen_kwargs
     max_new_tokens: 100
     do_sample: true
     temperature: 0.7
-    top_p: 0.
-  high_temp_gen_kwargs:
-    max_new_tokens: 250
-    do_sample: true
-    temperature: 1.2
-    top_p: 0.7
-  gen_batch_size: 8
+    top_p: 0.9
+  gen_kwargs: *default_gen_kwargs
 
 # tau1 configuration, inheriting from tau_defaults
 tau1:
@@ -59,38 +52,13 @@ tau1:
   gen_seed: seed1000
   hf_prefix: meta-llama
 
-# tau2 configuration, inheriting from tau_defaults
-tau2:
-  <<: *tau_defaults
-  model_id: aya-23-8b
-  gen_seed: seed1000
-  hf_prefix: CohereForAI
-
-# Global epsilon value
-epsilon: 0
-
-# Evaluation configuration
-eval:
-  epochs: 1
-  num_samples: 100000  # Can be overridden per experiment if needed
-  num_bins: 10
-  batch_size: 16
-  use_vllm: false
-  overwrite: false
-
-# Analysis configuration
-analysis:
-  calculate_distance: true
-  unpaired: false
-  num_runs: 20
-  num_samples: 0
-  multiples_of_epsilon: 3
-  bias: 0
-  use_full_ds_for_nn_distance: false
-  epsilon_ticks: 10
-
-# Default output_path 
-dir_prefix: ${metric.metric} # base dir for everything
+# Default output_path
+storing:
+  dir_prefix: ./data/behavior_data # base dir for everything
+  output_dir: model_outputs
+  score_dir: model_scores
+  test_dir: test_outputs
+  plot_dir: plots
 
 # for debugging
 debug_mode: false

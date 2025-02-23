@@ -69,8 +69,20 @@ def create_common_json(
         data = defaultdict(list)
         data["metadata1"] = data1["metadata"]
         data["metadata2"] = data2["metadata"]
-        unfiltered_scores1 = data1[f"{metric}_scores"]
-        unfiltered_scores2 = data2[f"{metric}_scores"]
+        
+        # Get the actual metric key from the data
+        metric_key = f"{metric}_scores"
+        if metric_key not in data1:
+            # Try to find the actual metric key in the data
+            possible_keys = [k for k in data1.keys() if k.endswith('_scores')]
+            if possible_keys:
+                metric_key = possible_keys[0]
+                logger.warning(f"Metric key '{metric}_scores' not found. Using '{metric_key}' instead.")
+            else:
+                raise KeyError(f"No metric scores found in data. Available keys: {data1.keys()}")
+                
+        unfiltered_scores1 = data1[metric_key]
+        unfiltered_scores2 = data2[metric_key]
 
         try:
             assert len(unfiltered_scores1) == len(unfiltered_scores2), "Scores are not the same length."
@@ -104,7 +116,6 @@ def create_folds(
     """ """
 
     # Fix random seed to be different for each fold_size, such that the folds always have different samples.
-    # random.seed(fold_size)
     random.seed(fold_size)
 
     cont_string = "continuation_" if only_continuations else ""
@@ -123,8 +134,22 @@ def create_folds(
     metadata1 = data["metadata1"]
     metadata2 = data["metadata2"]
 
+    # Find the correct metric key
+    metric_key1 = f"{metric}_scores1"
+    if metric_key1 not in data:
+        # Try to find the actual metric key in the data
+        possible_keys = [k for k in data.keys() if k.endswith('_scores1')]
+        if possible_keys:
+            metric_key1 = possible_keys[0]
+            metric_key2 = possible_keys[0].replace('1', '2')
+            logger.warning(f"Metric key '{metric}_scores1' not found. Using '{metric_key1}' instead.")
+        else:
+            raise KeyError(f"No metric scores found in data. Available keys: {data.keys()}")
+    else:
+        metric_key2 = f"{metric}_scores2"
+
     # Create batches
-    total_num_samples = len(data[f"{metric}_scores1"])
+    total_num_samples = len(data[metric_key1])
     logger.info(f"Total number of samples: {total_num_samples}")
     indices = list(range(total_num_samples))
     random.shuffle(indices)
@@ -137,7 +162,7 @@ def create_folds(
         )
         index_batches = index_batches[:-1]
 
-    for i, batch in tqdm(enumerate(index_batches)):  # The last batch is not used because it
+    for i, batch in tqdm(enumerate(index_batches)):
         fold_file_path = (
             f"{test_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{cont_string}scores{noise_string}_fold_{i}.json"
         )
@@ -150,7 +175,7 @@ def create_folds(
                 # legacy: in future, only scores should be saved
                 if key in ["prompts", "continuations1", "continuations2"]:
                     fold_data[key] = [value[j] for j in batch]
-                elif key in [f"{metric}_scores1", f"{metric}_scores2"]:
+                elif key in [metric_key1, metric_key2]:  # Use the found metric keys
                     fold_data[key] = [value[j] for j in batch]
 
             with open(fold_file_path, "w") as file:
@@ -177,7 +202,7 @@ def create_folds_from_evaluations(
             seed1,
             model_name2,
             seed2,
-            metric,
+            metric=metric,
             overwrite=overwrite,
             only_continuations=only_continuations,
             score_dir=score_dir,
@@ -212,7 +237,7 @@ def create_folds_from_evaluations(
             seed1,
             model_name2,
             seed2,
-            metric,
+            metric=metric,
             overwrite=overwrite,
             only_continuations=only_continuations,
             score_dir=score_dir,
@@ -225,7 +250,7 @@ def create_folds_from_evaluations(
         seed1,
         model_name2,
         seed2,
-        metric,
+        metric=metric,
         fold_size=fold_size,
         overwrite=overwrite,
         only_continuations=only_continuations,

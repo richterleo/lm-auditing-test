@@ -1,52 +1,88 @@
 # @package _global_
 
-exp: test  # Specifies the type of experiment
+exp: test
 
 # Override tau1 configurations
 tau1:
-  model_id: Meta-Llama-3-8B-Instruct
+  model_id: Llama-3-8B-ckpt10
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
-  #Llama-3-8B-ckpt1 
-  gen_seed: seed1000  # Specify the generation seed
-  # All other tau1 parameters inherit from the base config.yaml
+  #Llama-3-8B-ckpt1
+  gen_seed: seed1000
 
-# Override tau2 configurations
 tau2:
-  model_id: Llama-3-8B-ckpt1
+  model_kwargs: ${tau_defaults.model_kwargs}
+  default_gen_kwargs: ${tau_defaults.default_gen_kwargs}
+  gen_kwargs: ${tau_defaults.gen_kwargs}
+  model_id: Llama-3-8B-ckpt10
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 #Meta-Llama-3-8B-Instruct_hightemp
-  gen_seed: seed2000  # Specify the generation seed
-  # All other tau2 parameters inherit from the base config.yaml
+  gen_seed: seed5000
 
-# Override metric configurations if needed
 metric:
-  behavior: toxicity  
-  metric: toxicity #perspective # toxicity for Roberta-based toxicity classifier, see https://huggingface.co/spaces/evaluate-measurement/toxicity
-  lower_lim: 0.0                   
-  upper_lim: 1.0                   
-  dataset_name: allenai/real-toxicity-prompts  
+  behavior: toxicity
+  metric: perspective #perspective # toxicity for Roberta-based toxicity classifier, see https://huggingface.co/spaces/evaluate-measurement/toxicity
+  dataset_name: allenai/real-toxicity-prompts
 
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  fold_size: 2000
+  fold_size: 4000 # number of samples per fold. use larger number to test false positives
   overwrite: false
-  calibrate: false #true
+  calibrate: false # whether to do a calibration step first to get an estimate of epsilon
   noise: 0 # noise for behavior scores
+  track_c2st: false # track C2ST for this experiment
+  run_davtt: true
+  analyze_distance: true
+  calibrate_only: false
+  calibration_params:
+    epsilon_strategy: default # std # interval # if calibrate==True, strategy to derive epsilon in test
+    epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
+    lower_interval_end: 0
+    upper_interval_end: 0.2
+    lower_model_name: Meta-Llama-3-8B-Instruct_hightemp
+    lower_model_seed: seed1000
+    upper_model_name: LLama-3-8b-Uncensored
+    upper_model_seed: seed1000
+    num_runs: 20
+  epsilon: 0
+  analysis_params:
+    calculate_distance: true
+    unpaired: false
+    num_runs: 20
+    num_samples: -1
+    multiples_of_epsilon: 3
+    use_full_ds_for_nn_distance: false
+    epsilon_ticks: 10
 
+# Shared betting network configuration
+net:
+  input_size: 1
+  hidden_layer_size: [32, 32]
+  layer_norm: true
+  bias: true
+  drop_out: false
+  drop_out_p: 0.0
+  model_type: "CMLP" # Options: "CMLP", "HighCapacityCMLP"
+  # Additional params for HighCapacityCMLP
+  num_layers: 3
+  batch_size: 64
 
-wandb_project_name: Test_Toxicity
-
-calibration_params: 
-  epsilon_strategy: default # std # interval # if calibrate==True, strategy to derive epsilon in test
-  epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
-  bias: 0 # if calibrate==True, bias for epsilon values
-  lower_interval_end: 0 
-  upper_interval_end: 0.2
-  lower_model_name: Meta-Llama-3-8B-Instruct_hightemp
-  lower_model_seed: seed1000
-  upper_model_name: LLama-3-8b-Uncensored
-  upper_model_seed: seed1000
-  num_runs: 20
+training:
+  seed: 0
+  epochs: 100
+  seqs: 60
+  lr: 0.001
+  batch_size: 100 # for sequences
+  alpha: 0.05
+  T: 0 # warm start
+  save_dir: models
+  save: true
+  l1_lambda: 0.0
+  l2_lambda: 0.0
+  net_batch_size: 100 # for actual model training
+  earlystopping:
+    patience: 10
+    delta: 0.0
 
 logging:
   use_wandb: false
+  wandb_project_name: Test_Toxicity

@@ -28,6 +28,15 @@ class SNITranslationProcessor:
             "{input}\n\n"
             "### Output:\n"
         ),
+        "system_prompt": (
+            "You are a professional translator.\n"
+            "Your job is to translate **exclusively** from {source_lang} into {target_lang}.\n"
+            "Provide **only** the {target_lang} translation.\n"
+            "Do not include any explanations, disclaimers, or additional commentary.\n\n"
+            "### Input:\n"
+            "{input}\n\n"
+            "### Output:\n"
+        ),
     }
 
     def __init__(
@@ -160,8 +169,9 @@ class SNITranslationProcessor:
         language_dict = {}
         bare_prompts_path = self.output_path / "translation_data.jsonl"
         few_shot_prompts_path = self.output_path / "translation_data_fewshot.jsonl"
+        explicit_prompts_path = self.output_path / "translation_data_explicit.jsonl"
 
-        if bare_prompts_path.exists() and few_shot_prompts_path.exists() and not overwrite_prompts:
+        if bare_prompts_path.exists() and few_shot_prompts_path.exists() and explicit_prompts_path.exists() and not overwrite_prompts:
             self.logger.info(f"Translation data already exists at {self.output_path}")
             return
 
@@ -170,11 +180,12 @@ class SNITranslationProcessor:
                 self.logger.info(f"Language dictionary already exists at {self.language_dict_path}")
                 return
 
-        prompt_length_dict = {"bare_data": [], "few_shot_data": []}
+        prompt_length_dict = {"bare_data": [], "few_shot_data": [], "explicit_data": []}
         skipped_long_prompts = 0
 
         bare_data = []
         few_shot_data = []
+        explicit_data = []
 
         for file_path in self.data_path.iterdir():
             if not file_path.suffix == ".json":
@@ -199,10 +210,12 @@ class SNITranslationProcessor:
 
                     instruction = data.get("Definition", [""])[0]
                     instances = data.get("Instances", [])
+                    input_lang = data.get("Input_language", [""])[0]
+                    output_lang = data.get("Output_language", [""])[0]
 
                     language_dict[file_path.name] = {
-                        "input_language": data.get("Input_language", ""),
-                        "output_language": data.get("Output_language", ""),
+                        "input_language": input_lang,
+                        "output_language": output_lang,
                     }
 
                     for instance in instances:
@@ -221,6 +234,16 @@ class SNITranslationProcessor:
 
                         bare_data.append({"instruction": instruction, "input": instance_input, "output": output})
                         few_shot_data.append({"prompt": prompt, "output": output})
+                        
+                        # Create explicit system prompt data
+                        if input_lang and output_lang:
+                            explicit_prompt = self.PROMPT_DICT["system_prompt"].format(
+                                source_lang=input_lang,
+                                target_lang=output_lang,
+                                input=instance_input,
+                            )
+                            explicit_data.append({"prompt": explicit_prompt, "output": output})
+
                         prompt_length_dict["bare_data"].append(len(instance_input))
                         prompt_length_dict["few_shot_data"].append(len(prompt))
 
@@ -249,7 +272,13 @@ class SNITranslationProcessor:
                 for entry in few_shot_data:
                     f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-        self.logger.info(f"Files saved to {bare_prompts_path} and {few_shot_prompts_path}")
+            with open(explicit_prompts_path, "w", encoding="utf-8") as f:
+                for entry in explicit_data:
+                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+            self.logger.info(
+                f"Files saved to {bare_prompts_path}, {few_shot_prompts_path}, and {explicit_prompts_path}"
+            )
 
     def create_language_dict(self):
         """

@@ -13,7 +13,7 @@ import sys
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 from datetime import datetime
 
 from torch.utils.data import Dataset
@@ -23,6 +23,8 @@ from transformers import AutoTokenizer
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
+
+from src.utils.legacy_utils import remove_zero_key_and_flatten
 
 # Import from submodule (which is at project root)
 submodule_path = project_root / "deep-anytime-testing"
@@ -109,12 +111,25 @@ def initialize_from_config(net_cfg, net_type="MMDEMLP"):
 def translate_model_kwargs(model_kwargs):
     model_kwargs = deepcopy(model_kwargs)
 
-    if model_kwargs["torch_dtype"] == "torch.bfloat16":
-        model_kwargs["torch_dtype"] = torch.bfloat16
-    elif model_kwargs["torch_dtype"] == "torch.float16":
-        model_kwargs["torch_dtype"] = torch.float16
-    elif model_kwargs["torch_dtype"] == "torch.float32":
-        model_kwargs["torch_dtype"] = torch.float32
+    # Handle torch_dtype if present
+    if "torch_dtype" in model_kwargs:
+        if model_kwargs["torch_dtype"] == "torch.bfloat16":
+            model_kwargs["torch_dtype"] = torch.bfloat16
+        elif model_kwargs["torch_dtype"] == "torch.float16":
+            model_kwargs["torch_dtype"] = torch.float16
+        elif model_kwargs["torch_dtype"] == "torch.float32":
+            model_kwargs["torch_dtype"] = torch.float32
+
+    # Handle quantization config compute dtype if present
+    if "quantization_config" in model_kwargs:
+        if "bnb_4bit_compute_dtype" in model_kwargs["quantization_config"]:
+            compute_dtype = model_kwargs["quantization_config"]["bnb_4bit_compute_dtype"]
+            if compute_dtype == "bfloat16":
+                model_kwargs["quantization_config"]["bnb_4bit_compute_dtype"] = torch.bfloat16
+            elif compute_dtype == "float16":
+                model_kwargs["quantization_config"]["bnb_4bit_compute_dtype"] = torch.float16
+            elif compute_dtype == "float32":
+                model_kwargs["quantization_config"]["bnb_4bit_compute_dtype"] = torch.float32
 
     return model_kwargs
 
@@ -235,22 +250,22 @@ class NestedKeyDataset(Dataset):
 def create_conversation(example, model_id):
     PROMPT_DICT = {
         "prompt_input": (
-            "Below is an instruction that describes a task, paired with an input that provides further context. "
-            "Write a response that appropriately completes the request.\n\n"
-            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
+            "### Input:\n{input}\n\n### Response:\n"
         ),
     }
     DEFAULT_INSTRUCTION_SYS = "You are a helpful, respectful and honest assistant."
 
     def format_content(example):
-        return PROMPT_DICT["prompt_input"].format(instruction=example["instruction"], input=example["input"])
+        return PROMPT_DICT["prompt_input"].format(input=example["input"])
 
     if "prompt" in example:
         prompt = example[
             "prompt"
         ]  # {"instruction": same for each prompt for the task, "input": instance, "output": response to instance}
+        system_content = DEFAULT_INSTRUCTION_SYS
 
     elif "instruction" in example and "output" in example:
+        system_content = f"{DEFAULT_INSTRUCTION_SYS}\n\n{example['instruction']}"
         prompt = format_content(example)
 
     else:
@@ -260,13 +275,12 @@ def create_conversation(example, model_id):
 
     if "llama-3" in model_id.lower() or "llama-2" in model_id.lower():
         messages = [
-            {"role": "system", "content": DEFAULT_INSTRUCTION_SYS},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": prompt},
         ]
-
     else:
         messages = [
-            {"role": "user", "content": DEFAULT_INSTRUCTION_SYS + "\n" + prompt},
+            {"role": "user", "content": system_content + "\n" + prompt},
         ]
 
     return {"messages": messages}
@@ -307,10 +321,11 @@ def load_entire_json(
     return_data=True,
 ):
     try:
-        with open(filepath, "r", encoding=encoding) as file:
-            data = json.load(file)
+        # This will handle both loading and flattening if needed
+        data = remove_zero_key_and_flatten(filepath, return_data=True, save_file=True)
         if return_data:
             return data
+            
     except FileNotFoundError:
         logger.error(f"File not found: {filepath}")
         raise
@@ -327,3 +342,34 @@ def load_entire_json(
                 logger.debug(f"{i + 1}: {lines[i].strip()}")
         # Re-raise the error to avoid further processing
         raise
+
+
+def format_gen_params(gen_kwargs: Dict) -> str:
+    """Format generation parameters into a string for folder names."""
+    key_params = ['temperature', 'top_p', 'max_new_tokens']
+    parts = []
+    
+    for key in key_params:
+        if key in gen_kwargs:
+            # Shorten parameter names
+            param_map = {
+                'temperature': 'temp',
+                'top_p': 'tp',
+                'max_new_tokens': 'mnt'
+            }
+            # Format float values to 2 decimal places
+            value = gen_kwargs[key]
+            if isinstance(value, float):
+                value = f"{value:.2f}"
+            parts.append(f"{param_map[key]}{value}")
+    
+    return "_".join(parts)
+
+
+def get_model_dir_name(model_name: str, seed: str, gen_kwargs: Optional[Dict] = None, include_gen_params: bool = False) -> str:
+    """Get the full directory name for a model's outputs."""
+    base_name = f"{model_name}_seed{seed}"
+    if include_gen_params and gen_kwargs:
+        gen_params_str = format_gen_params(gen_kwargs)
+        return f"{base_name}__{gen_params_str}"
+    return base_name

@@ -35,18 +35,14 @@ from src.analysis.distance import (
     calc_tot_discrete_variation,
 )
 from src.utils.utils import load_config
-from arguments import TrainCfg
+# from train_cfg import TrainCfg
 
 
 from src.analysis.analyze import (
     extract_data_for_models,
-    get_power_over_sequences_from_whole_ds,
-    get_power_over_sequences_for_models_or_checkpoints,
     get_power_over_sequences,
     get_distance_scores,
-    get_matrix_for_models,
-    get_power_over_sequences_for_ranked_checkpoints,
-    get_power_over_sequences_for_ranked_checkpoints_wrapper,
+    get_power_over_sequences_for_checkpoints_and_folds,
     extract_power_from_sequence_df,
     get_alpha_wrapper,
     get_mean_and_std_for_nn_distance,
@@ -63,10 +59,26 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 TASK_CLUSTER = [
     ["Program Execution", "Pos Tagging", "Mathematics"],
-    ["Gender Classification", "Commonsense Classification", "Translation"],
-    ["Code to Text", "Stereotype Detection", "Sentence Perturbation"],
-    ["Text to Code", "Linguistic Probing", "Language Identification"],
-    ["Data to Text", "Word Semantics", "Question Rewriting"],
+    [
+        "Gender Classification",
+        "Commonsense Classification",
+        "Translation",
+    ],
+    [
+        "Code to Text",
+        "Stereotype Detection",
+        "Sentence Perturbation",
+    ],
+    [
+        "Text to Code",
+        "Linguistic Probing",
+        "Language Identification",
+    ],
+    [
+        "Data to Text",
+        "Word Semantics",
+        "Question Rewriting",
+    ],
 ]
 
 
@@ -95,32 +107,52 @@ def distance_box_plot(
     if pre_shuffled:
         file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot_unpaired{noise_string}.pdf"
     else:
-        file_path = (
-            f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot{noise_string}.pdf"
-        )
+        file_path = f"{plot_dir}/{model_name1}_{seed1}_{model_name2}_{seed2}/{metric}_distance_box_plot{noise_string}.pdf"
 
     if not overwrite and Path(file_path).exists():
-        logger.info(f"File already exists at {file_path}. Skipping...")
+        logger.info(
+            f"File already exists at {file_path}. Skipping..."
+        )
 
     else:
         # Create a new column combining `num_samples` and `Wasserstein` for grouping
-        df["Group"] = df["num_train_samples"].astype(str) + " | " + df["Wasserstein_comparison"].astype(str)
+        df["Group"] = (
+            df["num_train_samples"].astype(str)
+            + " | "
+            + df["Wasserstein_comparison"].astype(str)
+        )
 
-        wasserstein_df = df[["Wasserstein_comparison"]].rename(columns={"Wasserstein": "Distance"})
+        wasserstein_df = df[
+            ["Wasserstein_comparison"]
+        ].rename(columns={"Wasserstein": "Distance"})
         wasserstein_df["Group"] = "Wasserstein"
 
         # 2. Two boxes for NeuralNet, split by num_samples
-        neuralnet_df = df[["num_train_samples", "NeuralNet"]].rename(columns={"NeuralNet": "Distance"})
-        neuralnet_df["Group"] = neuralnet_df["num_train_samples"].astype(str) + " NeuralNet"
+        neuralnet_df = df[
+            ["num_train_samples", "NeuralNet"]
+        ].rename(columns={"NeuralNet": "Distance"})
+        neuralnet_df["Group"] = (
+            neuralnet_df["num_train_samples"].astype(str)
+            + " NeuralNet"
+        )
 
         # Concatenate the dataframes
-        combined_df = pd.concat([wasserstein_df, neuralnet_df[["Distance", "Group"]]])
+        combined_df = pd.concat(
+            [
+                wasserstein_df,
+                neuralnet_df[["Distance", "Group"]],
+            ]
+        )
 
         # Plotting the box plot using Seaborn
         plt.figure(figsize=(10, 6))
-        sns.boxplot(x="Group", y="Distance", data=combined_df)
+        sns.boxplot(
+            x="Group", y="Distance", data=combined_df
+        )
         plt.xticks(rotation=45)
-        plt.title("Box Plot of Wasserstein and NeuralNet Distances")
+        plt.title(
+            "Box Plot of Wasserstein and NeuralNet Distances"
+        )
         # plt.xlabel("Group")
         plt.ylabel("Distance")
         plt.grid(True)
@@ -215,22 +247,31 @@ def plot_power_over_number_of_sequences(
                 dir_prefix=dir_prefix,
                 noise=noise,
             )
-    elif group_by == "Rank based on Wasserstein Distance" or group_by == "Empirical Wasserstein Distance":
-        result_df = get_power_over_sequences_for_ranked_checkpoints(
-            base_model_name,
-            base_model_seed,
-            seeds,
-            checkpoints,
-            checkpoint_base_name=checkpoint_base_name,
-            metric="perspective",
-            only_continuations=only_continuations,
-            fold_size=fold_size,
-            epsilon=epsilon,
-            dir_prefix=dir_prefix,
-            noise=noise,
+    elif (
+        group_by == "Rank based on Wasserstein Distance"
+        or group_by == "Empirical Wasserstein Distance"
+    ):
+        result_df = (
+            get_power_over_sequences_for_ranked_checkpoints(
+                base_model_name,
+                base_model_seed,
+                seeds,
+                checkpoints,
+                checkpoint_base_name=checkpoint_base_name,
+                metric="perspective",
+                only_continuations=only_continuations,
+                fold_size=fold_size,
+                epsilon=epsilon,
+                dir_prefix=dir_prefix,
+                noise=noise,
+            )
         )
 
-        result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
+        result_df["Empirical Wasserstein Distance"] = (
+            result_df[
+                "Empirical Wasserstein Distance"
+            ].round(3)
+        )
 
     # Create the plot
     plt.figure(figsize=(12, 6))
@@ -248,7 +289,9 @@ def plot_power_over_number_of_sequences(
         data=result_df,
         x="Samples",
         y="Power",
-        hue=group_by if not group_by == "model" else "model_name2",
+        hue=group_by
+        if not group_by == "model"
+        else "model_name2",
         marker=marker,
         markersize=10,
         palette=palette,
@@ -294,22 +337,30 @@ def plot_power_over_number_of_sequences(
     if use_models:
         directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_models"
         if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
+            Path(directory).mkdir(
+                parents=True, exist_ok=True
+            )
         else:
             for model_name in model_names:
                 directory += f"_{model_name}"
             if not Path(directory).exists():
-                Path(directory).mkdir(parents=True, exist_ok=True)
+                Path(directory).mkdir(
+                    parents=True, exist_ok=True
+                )
 
     else:
         directory = f"{plot_dir}/{base_model_name}_{base_model_seed}_{checkpoint_base_name}_checkpoints"
         if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
+            Path(directory).mkdir(
+                parents=True, exist_ok=True
+            )
         else:
             for seed in seeds:
                 directory += f"_{seed}"
             if not Path(directory).exists():
-                Path(directory).mkdir(parents=True, exist_ok=True)
+                Path(directory).mkdir(
+                    parents=True, exist_ok=True
+                )
 
     if save_as_pdf:
         if use_models:
@@ -352,9 +403,13 @@ def plot_power_over_number_of_sequences_for_models(
     only_continuations=True,
     fold_size=2000,
     epsilon: Union[float, List[float]] = 0,
-    palette: Optional[Union[List[str], Dict[str, str]]] = None,
+    palette: Optional[
+        Union[List[str], Dict[str, str]]
+    ] = None,
     sizes: Optional[Dict[str, int]] = None,
-    line_styles: Optional[Dict[str, Union[str, Tuple[int, int]]]] = None,
+    line_styles: Optional[
+        Dict[str, Union[str, Tuple[int, int]]]
+    ] = None,
     model_labels: Optional[List[str]] = None,
     model_name_to_label: Optional[Dict[str, str]] = None,
     dir_prefix: Optional[str] = None,
@@ -395,28 +450,44 @@ def plot_power_over_number_of_sequences_for_models(
                 epsilon=epsilon,
                 noise=noise,
             )
-    elif group_by in ["Rank based on Wasserstein Distance", "Empirical Wasserstein Distance"]:
-        result_df = get_power_over_sequences_for_ranked_checkpoints(
-            base_model_name,
-            base_model_seed,
-            seeds,
-            checkpoints,
-            checkpoint_base_name=checkpoint_base_name,
-            metric="perspective",
-            only_continuations=only_continuations,
-            fold_size=fold_size,
-            epsilon=epsilon,
-            noise=noise,
+    elif group_by in [
+        "Rank based on Wasserstein Distance",
+        "Empirical Wasserstein Distance",
+    ]:
+        result_df = (
+            get_power_over_sequences_for_ranked_checkpoints(
+                base_model_name,
+                base_model_seed,
+                seeds,
+                checkpoints,
+                checkpoint_base_name=checkpoint_base_name,
+                metric="perspective",
+                only_continuations=only_continuations,
+                fold_size=fold_size,
+                epsilon=epsilon,
+                noise=noise,
+            )
         )
-        result_df["Empirical Wasserstein Distance"] = result_df["Empirical Wasserstein Distance"].round(3)
+        result_df["Empirical Wasserstein Distance"] = (
+            result_df[
+                "Empirical Wasserstein Distance"
+            ].round(3)
+        )
 
     # Map model names to custom labels
     if use_models:
         if model_name_to_label is None:
-            model_name_to_label = dict(zip(model_names, model_names))
-        result_df["label"] = result_df["model_name2"].map(model_name_to_label)
+            model_name_to_label = dict(
+                zip(model_names, model_names)
+            )
+        result_df["label"] = result_df["model_name2"].map(
+            model_name_to_label
+        )
         if model_labels is None:
-            model_labels = [model_name_to_label[name] for name in model_names]
+            model_labels = [
+                model_name_to_label[name]
+                for name in model_names
+            ]
     else:
         result_df["label"] = result_df[group_by]
 
@@ -425,9 +496,13 @@ def plot_power_over_number_of_sequences_for_models(
         if isinstance(palette, dict):
             custom_palette = palette
         else:
-            custom_palette = dict(zip(model_labels, palette))
+            custom_palette = dict(
+                zip(model_labels, palette)
+            )
     else:
-        palette = sns.color_palette("viridis", len(model_labels))
+        palette = sns.color_palette(
+            "viridis", len(model_labels)
+        )
         custom_palette = dict(zip(model_labels, palette))
 
     if isinstance(marker, dict):
@@ -482,17 +557,28 @@ def plot_power_over_number_of_sequences_for_models(
 
     # Define the groups and handles
     fine_tuned_labels = model_labels[:5]
-    fine_tuned_handles = [label_to_handle[label] for label in fine_tuned_labels]
+    fine_tuned_handles = [
+        label_to_handle[label]
+        for label in fine_tuned_labels
+    ]
 
     uncensored_label = model_labels[5]
     uncensored_handle = label_to_handle[uncensored_label]
 
     # Create a divider line
-    divider_line = Line2D([0], [0], color="black", linewidth=2)
+    divider_line = Line2D(
+        [0], [0], color="black", linewidth=2
+    )
 
     # Assemble the legend entries
-    legend_handles = fine_tuned_handles + [divider_line] + [uncensored_handle]
-    legend_labels = fine_tuned_labels + [""] + [uncensored_label]
+    legend_handles = (
+        fine_tuned_handles
+        + [divider_line]
+        + [uncensored_handle]
+    )
+    legend_labels = (
+        fine_tuned_labels + [""] + [uncensored_label]
+    )
 
     # Create custom handler for the divider line
     class HorizontalLineHandler(HandlerBase):
@@ -522,20 +608,32 @@ def plot_power_over_number_of_sequences_for_models(
 
     # Create a helper function to wrap labels
     def wrap_label(label, width):
-        return "\n".join(textwrap.wrap(label, width=12))  # Adjust width as needed
+        return "\n".join(
+            textwrap.wrap(label, width=12)
+        )  # Adjust width as needed
 
     # Assemble the legend entries
-    legend_handles = fine_tuned_handles + [divider_line] + [uncensored_handle]
-    legend_labels = fine_tuned_labels + [""] + [uncensored_label]
+    legend_handles = (
+        fine_tuned_handles
+        + [divider_line]
+        + [uncensored_handle]
+    )
+    legend_labels = (
+        fine_tuned_labels + [""] + [uncensored_label]
+    )
 
     # Wrap the legend labels
     wrapped_legend_labels = []
     for label in legend_labels:
         if label != "":
-            wrapped_label = wrap_label(label, width=4)  # Adjust the width parameter as needed
+            wrapped_label = wrap_label(
+                label, width=4
+            )  # Adjust the width parameter as needed
             wrapped_legend_labels.append(wrapped_label)
         else:
-            wrapped_legend_labels.append(label)  # Keep the divider line as is
+            wrapped_legend_labels.append(
+                label
+            )  # Keep the divider line as is
 
     # Create the legend with wrapped labels
     leg = ax.legend(
@@ -595,7 +693,12 @@ def plot_power_over_epsilon(
     epoch2=0,
     metric="perspective",
     distance_measure="Wasserstein",
-    fold_sizes: Union[int, List[int]] = [1000, 2000, 3000, 4000],
+    fold_sizes: Union[int, List[int]] = [
+        1000,
+        2000,
+        3000,
+        4000,
+    ],
     marker="X",
     palette=["#E49B0F", "#C46210", "#B7410E", "#A81C07"],
     save_as_pdf=True,
@@ -631,20 +734,26 @@ def plot_power_over_epsilon(
             noise=noise,
         )
     else:
-        result_df = get_power_over_sequences_for_ranked_checkpoints(
-            base_model_name,
-            base_model_seed,
-            checkpoints,
-            seeds,
-            checkpoint_base_name=checkpoint_base_name,
-            metric=metric,
-            distance_measure=distance_measure,
-            epsilon=epsilon,
-            only_continuatinos=only_continuations,
-            noise=noise,
+        result_df = (
+            get_power_over_sequences_for_ranked_checkpoints(
+                base_model_name,
+                base_model_seed,
+                checkpoints,
+                seeds,
+                checkpoint_base_name=checkpoint_base_name,
+                metric=metric,
+                distance_measure=distance_measure,
+                epsilon=epsilon,
+                only_continuatinos=only_continuations,
+                noise=noise,
+            )
         )
 
-    smaller_df = extract_power_from_sequence_df(result_df, distance_measure=distance_measure, by_checkpoints=True)
+    smaller_df = extract_power_from_sequence_df(
+        result_df,
+        distance_measure=distance_measure,
+        by_checkpoints=True,
+    )
 
     # in case we have less folds
     palette = palette[-len(fold_sizes) :]
@@ -655,12 +764,16 @@ def plot_power_over_epsilon(
     pd.set_option("display.max_columns", 1000)
     pd.set_option("display.width", 1000)
 
-    print(f"This is the smaller df inside plot_power_over_epsilon: {smaller_df} for fold_sizes {fold_sizes}")
+    print(
+        f"This is the smaller df inside plot_power_over_epsilon: {smaller_df} for fold_sizes {fold_sizes}"
+    )
 
     sns.lineplot(
         x=f"Empirical {distance_measure} Distance",
         y="Power",
-        hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
+        hue="Samples per Test"
+        if "Samples per Test" in smaller_df.columns
+        else None,
         # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
         marker=marker,
         data=smaller_df,
@@ -700,7 +813,9 @@ def plot_power_over_epsilon(
         for seed in seeds:
             directory += f"_{seed}"
         if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
+            Path(directory).mkdir(
+                parents=True, exist_ok=True
+            )
 
     if "Samples per Test" in smaller_df.columns:
         if save_as_pdf:
@@ -734,7 +849,9 @@ def plot_power_over_epsilon(
     sns.lineplot(
         x=f"Rank based on {distance_measure} Distance",
         y="Power",
-        hue="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
+        hue="Samples per Test"
+        if "Samples per Test" in smaller_df.columns
+        else None,
         # style="Samples per Test" if "Samples per Test" in smaller_df.columns else None,
         marker=marker,
         data=smaller_df,
@@ -742,7 +859,10 @@ def plot_power_over_epsilon(
         palette=palette,
     )
     # plt.xlabel(f"rank based on {distance_measure.lower()} distance", fontsize=14)
-    plt.xlabel(f"rank based on distance to aligned model", fontsize=16)
+    plt.xlabel(
+        f"rank based on distance to aligned model",
+        fontsize=16,
+    )
     plt.ylabel("proportion of triggered tests", fontsize=16)
     plt.grid(True, linewidth=0.5, color="#ddddee")
     plt.xticks(fontsize=14)
@@ -771,7 +891,9 @@ def plot_power_over_epsilon(
         for seed in seeds:
             directory += f"_{seed}"
         if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
+            Path(directory).mkdir(
+                parents=True, exist_ok=True
+            )
     if "Samples per Test" in smaller_df.columns:
         if save_as_pdf:
             plt.savefig(
@@ -846,7 +968,9 @@ def plot_alpha_over_sequences(
         unique_models = result_df["model_id"].unique()
         for i, model in enumerate(unique_models):
             sns.lineplot(
-                data=result_df[result_df["model_id"] == model],
+                data=result_df[
+                    result_df["model_id"] == model
+                ],
                 x="Samples",
                 y="Power",
                 marker=markers[i % len(markers)],
@@ -910,7 +1034,9 @@ def plot_alpha_over_sequences(
 
     if save_as_pdf:
         fig_path += ".pdf"
-        plt.savefig(fig_path, bbox_inches="tight", format="pdf")
+        plt.savefig(
+            fig_path, bbox_inches="tight", format="pdf"
+        )
     else:
         fig_path += ".png"
         plt.savefig(fig_path, dpi=300, bbox_inches="tight")
@@ -934,7 +1060,9 @@ def plot_rejection_rate_matrix(
     """ """
     assert (model_names2 is None and seeds2 is None) or (
         model_names2 is not None and seeds2 is not None
-    ), "Either give full list of test models or expect to iterate over all combinations"
+    ), (
+        "Either give full list of test models or expect to iterate over all combinations"
+    )
 
     if dir_prefix is None:
         dir_prefix = metric
@@ -945,11 +1073,22 @@ def plot_rejection_rate_matrix(
 
     results_df = []
     if not model_names2:
-        for i, (model_name1, seed1) in enumerate(zip(model_names1[:-1], seeds1[:-1])):
-            for model_name2, seed2 in zip(model_names1[i + 1 :], seeds1[i + 1 :]):
-                print(f"Checking model {model_name1}, {seed1} against {model_name2}, {seed2}")
+        for i, (model_name1, seed1) in enumerate(
+            zip(model_names1[:-1], seeds1[:-1])
+        ):
+            for model_name2, seed2 in zip(
+                model_names1[i + 1 :], seeds1[i + 1 :]
+            ):
+                print(
+                    f"Checking model {model_name1}, {seed1} against {model_name2}, {seed2}"
+                )
                 result_df = get_power_over_sequences_for_models_or_checkpoints(
-                    model_name1, seed1, seed2, model_name2=model_name2, fold_size=fold_size, noise=noise
+                    model_name1,
+                    seed1,
+                    seed2,
+                    model_name2=model_name2,
+                    fold_size=fold_size,
+                    noise=noise,
                 )
                 if distance_measure:
                     dist = get_distance_scores(
@@ -963,16 +1102,24 @@ def plot_rejection_rate_matrix(
                         epoch2=epoch2,
                         noise=noise,
                     )
-                    result_df[f"Empirical {distance_measure} Distance"] = dist
+                    result_df[
+                        f"Empirical {distance_measure} Distance"
+                    ] = dist
                 small_df = extract_power_from_sequence_df(
-                    result_df, distance_measure=distance_measure, by_checkpoints=False
+                    result_df,
+                    distance_measure=distance_measure,
+                    by_checkpoints=False,
                 )
 
                 results_df.append(small_df)
 
-        results_df = pd.concat(results_df, ignore_index=True)
+        results_df = pd.concat(
+            results_df, ignore_index=True
+        )
 
-    pivot_table = results_df.pivot_table(values="Power", index="seed1", columns="seed2")
+    pivot_table = results_df.pivot_table(
+        values="Power", index="seed1", columns="seed2"
+    )
 
     # Create the heatmap
     plt.figure(figsize=(10, 8))
@@ -980,9 +1127,13 @@ def plot_rejection_rate_matrix(
         pivot_table,
         annot=True,
         cmap="viridis",
-        cbar_kws={"label": "Frequency of Positive Test Result"},
+        cbar_kws={
+            "label": "Frequency of Positive Test Result"
+        },
     )
-    heatmap.set_title(f"Positive Test Rates for model {model_names1[0]}")
+    heatmap.set_title(
+        f"Positive Test Rates for model {model_names1[0]}"
+    )
 
     directory = f"{plot_dir}/power_heatmaps"
     if not Path(directory).exists():
@@ -995,11 +1146,15 @@ def plot_rejection_rate_matrix(
     if save_as_pdf:
         file_name += ".pdf"
         output_path = os.path.join(directory, file_name)
-        plt.savefig(output_path, format="pdf", bbox_inches="tight")
+        plt.savefig(
+            output_path, format="pdf", bbox_inches="tight"
+        )
     else:
         file_name += ".png"
         output_path = os.path.join(directory, file_name)
-        plt.savefig(output_path, dpi=300, bbox_inches="tight")
+        plt.savefig(
+            output_path, dpi=300, bbox_inches="tight"
+        )
 
     if distance_measure:
         distance_pivot_table = results_df.pivot_table(
@@ -1016,11 +1171,15 @@ def plot_rejection_rate_matrix(
             cmap="viridis",
             cbar_kws={"label": "Distance"},
         )
-        heatmap.set_title(f"Distance Heatmap for model {model_names1[0]}")
+        heatmap.set_title(
+            f"Distance Heatmap for model {model_names1[0]}"
+        )
 
         directory = f"{plot_dir}/power_heatmaps"
         if not Path(directory).exists():
-            Path(directory).mkdir(parents=True, exist_ok=True)
+            Path(directory).mkdir(
+                parents=True, exist_ok=True
+            )
 
         file_name = "distance_heatmap"
         for model_name, seed in zip(model_names1, seeds1):
@@ -1030,11 +1189,17 @@ def plot_rejection_rate_matrix(
         if save_as_pdf:
             file_name += ".pdf"
             output_path = os.path.join(directory, file_name)
-            plt.savefig(output_path, format="pdf", bbox_inches="tight")
+            plt.savefig(
+                output_path,
+                format="pdf",
+                bbox_inches="tight",
+            )
         else:
             file_name += ".png"
             output_path = os.path.join(directory, file_name)
-            plt.savefig(output_path, dpi=300, bbox_inches="tight")
+            plt.savefig(
+                output_path, dpi=300, bbox_inches="tight"
+            )
 
 
 # def plot_calibrated_detection_rate(
@@ -1208,23 +1373,38 @@ def plot_calibrated_detection_rate(
     if result_file is not None:
         result_file_path = Path(result_file)
     else:
-        multiples_str = f"_{multiples_of_epsilon}" if multiples_of_epsilon else ""
-        continuations_str = "_continuations" if only_continuations else ""
+        multiples_str = (
+            f"_{multiples_of_epsilon}"
+            if multiples_of_epsilon
+            else ""
+        )
+        continuations_str = (
+            "_continuations" if only_continuations else ""
+        )
         result_file_path = os.path.join(
             plot_dir,
-            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}{noise_string}.csv",
+            f"power_over_epsilon{continuations_str}_{fold_size - bs}_{num_runs}{multiples_str}{noise_string}.csv",
         )
 
     if not true_epsilon:
-        distance_path = os.path.join(plot_dir, f"distance_scores_{fold_size-bs}_{num_runs}{noise_string}.csv")
+        distance_path = os.path.join(
+            plot_dir,
+            f"distance_scores_{fold_size - bs}_{num_runs}{noise_string}.csv",
+        )
         try:
             distance_df = pd.read_csv(distance_path)
-            true_epsilon, std_epsilon = get_mean_and_std_for_nn_distance(distance_df)
+            true_epsilon, std_epsilon = (
+                get_mean_and_std_for_nn_distance(
+                    distance_df
+                )
+            )
             logger.info(
                 f"True epsilon for {model_name1}_{seed1} and {model_name2}_{seed2}: {true_epsilon}, std epsilon: {std_epsilon}"
             )
         except FileNotFoundError:
-            logger.error(f"Could not find file at {distance_path}")
+            logger.error(
+                f"Could not find file at {distance_path}"
+            )
             sys.exit(1)
 
     df = pd.read_csv(result_file_path)
@@ -1282,7 +1462,9 @@ def plot_calibrated_detection_rate(
         line_color_rgb = to_rgb(line_color)
         h, l, s = colorsys.rgb_to_hls(*line_color_rgb)
         lighter_l = min(1, l + (1 - l) * 0.3)
-        lighter_line_color = colorsys.hls_to_rgb(h, lighter_l, s)
+        lighter_line_color = colorsys.hls_to_rgb(
+            h, lighter_l, s
+        )
 
         plt.axvspan(
             true_epsilon - std_epsilon,
@@ -1313,14 +1495,21 @@ def plot_calibrated_detection_rate(
         spine.set_visible(True)
         spine.set_linewidth(1.5)
 
-    plot_path = os.path.join(plot_dir, f"calibrated_detection_rate_{fold_size}{noise_string}.pdf")
+    plot_path = os.path.join(
+        plot_dir,
+        f"calibrated_detection_rate_{fold_size}{noise_string}.pdf",
+    )
 
     if not overwrite and Path(plot_path).exists():
-        logger.info(f"File already exists at {plot_path}. Skipping...")
+        logger.info(
+            f"File already exists at {plot_path}. Skipping..."
+        )
     else:
         logger.info(f"Saving plot to {plot_path}")
         plt.tight_layout()
-        plt.savefig(plot_path, format="pdf", bbox_inches="tight")
+        plt.savefig(
+            plot_path, format="pdf", bbox_inches="tight"
+        )
 
 
 def plot_multiple_calibrated_detection_rates(
@@ -1357,27 +1546,55 @@ def plot_multiple_calibrated_detection_rates(
 
     plt.figure(figsize=(18, 7))
 
-    custom_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
+    custom_palette = [
+        "#1f77b4",
+        "#ff7f0e",
+        "#2ca02c",
+        "#d62728",
+        "#9467bd",
+    ]
 
     # Prepare data for seaborn plotting
     all_data = []
 
-    for i, (model_name, seed) in enumerate(zip(model_names, seeds)):
-        result_dir = os.path.join(test_dir, f"{base_model}_{base_seed}_{model_name}_{seed}")
-        multiples_str = f"_{multiples_of_epsilon}" if multiples_of_epsilon else ""
-        continuations_str = "_continuations" if only_continuations else ""
+    for i, (model_name, seed) in enumerate(
+        zip(model_names, seeds)
+    ):
+        result_dir = os.path.join(
+            test_dir,
+            f"{base_model}_{base_seed}_{model_name}_{seed}",
+        )
+        multiples_str = (
+            f"_{multiples_of_epsilon}"
+            if multiples_of_epsilon
+            else ""
+        )
+        continuations_str = (
+            "_continuations" if only_continuations else ""
+        )
         result_file_path = os.path.join(
             result_dir,
-            f"power_over_epsilon{continuations_str}_{fold_size-bs}_{num_runs}{multiples_str}{noise_string}.csv",
+            f"power_over_epsilon{continuations_str}_{fold_size - bs}_{num_runs}{multiples_str}{noise_string}.csv",
         )
-        distance_path = os.path.join(result_dir, f"distance_scores_{fold_size-bs}_{num_runs}{noise_string}.csv")
+        distance_path = os.path.join(
+            result_dir,
+            f"distance_scores_{fold_size - bs}_{num_runs}{noise_string}.csv",
+        )
 
         try:
             distance_df = pd.read_csv(distance_path)
-            true_epsilon_i, std_epsilon_i = get_mean_and_std_for_nn_distance(distance_df)
-            logger.info(f"True epsilon for {model_name}_{seed}: {true_epsilon_i}, std epsilon: {std_epsilon_i}")
+            true_epsilon_i, std_epsilon_i = (
+                get_mean_and_std_for_nn_distance(
+                    distance_df
+                )
+            )
+            logger.info(
+                f"True epsilon for {model_name}_{seed}: {true_epsilon_i}, std epsilon: {std_epsilon_i}"
+            )
         except FileNotFoundError:
-            logger.error(f"Could not find file at {distance_path}")
+            logger.error(
+                f"Could not find file at {distance_path}"
+            )
             continue
 
         try:
@@ -1385,12 +1602,18 @@ def plot_multiple_calibrated_detection_rates(
             df_sorted = df.sort_values(by="epsilon")
 
             # Use task cluster name for the legend
-            task_cluster_name = ", ".join(TASK_CLUSTER[i]) if i < len(TASK_CLUSTER) else f"Model {i+1}"
+            task_cluster_name = (
+                ", ".join(TASK_CLUSTER[i])
+                if i < len(TASK_CLUSTER)
+                else f"Model {i + 1}"
+            )
 
             df_sorted["Model"] = task_cluster_name
             all_data.append(df_sorted)
         except FileNotFoundError:
-            logger.error(f"Could not find file for {model_name}_{seed}")
+            logger.error(
+                f"Could not find file for {model_name}_{seed}"
+            )
 
     # Combine all data
     combined_data = pd.concat(all_data, ignore_index=True)
@@ -1419,24 +1642,36 @@ def plot_multiple_calibrated_detection_rates(
     ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
     # Add vertical lines for true epsilon
-    for i, (model_name, seed) in enumerate(zip(model_names, seeds)):
-        true_epsilon_i, _ = get_mean_and_std_for_nn_distance(
-            pd.read_csv(
-                os.path.join(
-                    test_dir,
-                    f"{base_model}_{base_seed}_{model_name}_{seed}",
-                    f"distance_scores_{fold_size-bs}_{num_runs}{noise_string}.csv",
+    for i, (model_name, seed) in enumerate(
+        zip(model_names, seeds)
+    ):
+        true_epsilon_i, _ = (
+            get_mean_and_std_for_nn_distance(
+                pd.read_csv(
+                    os.path.join(
+                        test_dir,
+                        f"{base_model}_{base_seed}_{model_name}_{seed}",
+                        f"distance_scores_{fold_size - bs}_{num_runs}{noise_string}.csv",
+                    )
                 )
             )
         )
-        plt.axvline(x=true_epsilon_i, linestyle="--", color=sns.color_palette()[i], alpha=0.7, linewidth=2)
+        plt.axvline(
+            x=true_epsilon_i,
+            linestyle="--",
+            color=sns.color_palette()[i],
+            alpha=0.7,
+            linewidth=2,
+        )
 
     # Titles and labels
     plt.xlabel("test epsilon", fontsize=22)
     plt.ylabel("proportion of triggered tests", fontsize=22)
 
     handles, labels = ax.get_legend_handles_labels()
-    wrapped_labels = [textwrap.fill(label, width=36) for label in labels]  # Adjust width as needed
+    wrapped_labels = [
+        textwrap.fill(label, width=36) for label in labels
+    ]  # Adjust width as needed
 
     # Adjust legend
     legend = plt.legend(
@@ -1472,13 +1707,20 @@ def plot_multiple_calibrated_detection_rates(
         spine.set_linewidth(1.5)
 
     # Save the plot
-    plot_path = os.path.join(plot_dir, f"multi_model_calibrated_detection_rate_{fold_size}{noise_string}.pdf")
+    plot_path = os.path.join(
+        plot_dir,
+        f"multi_model_calibrated_detection_rate_{fold_size}{noise_string}.pdf",
+    )
     if not overwrite and Path(plot_path).exists():
-        logger.info(f"File already exists at {plot_path}. Skipping...")
+        logger.info(
+            f"File already exists at {plot_path}. Skipping..."
+        )
     else:
         logger.info(f"Saving plot to {plot_path}")
         plt.tight_layout()
-        plt.savefig(plot_path, format="pdf", bbox_inches="tight")
+        plt.savefig(
+            plot_path, format="pdf", bbox_inches="tight"
+        )
 
 
 def darken_color(color, factor=0.7):
@@ -1486,7 +1728,9 @@ def darken_color(color, factor=0.7):
     Darken the given color by multiplying RGB values by the factor.
     """
     h, l, s = colorsys.rgb_to_hls(*color)
-    return colorsys.hls_to_rgb(h, max(0, min(1, l * factor)), s)
+    return colorsys.hls_to_rgb(
+        h, max(0, min(1, l * factor)), s
+    )
 
 
 def plot_scores(
@@ -1512,7 +1756,9 @@ def plot_scores(
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
     noise_string = f"_noise_{noise}" if noise > 0 else ""
-    cont_string = "continuations_" if only_continuations else ""
+    cont_string = (
+        "continuations_" if only_continuations else ""
+    )
 
     directory = f"{plot_dir}/{model_name}_{seed}"
     file_path = f"{directory}/{cont_string}scores{noise_string}.json"
@@ -1574,7 +1820,10 @@ def plot_scores(
     #     fontsize=16,
     # )
     plt.xlabel(f"{metric.lower()} score", fontsize=16)
-    plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
+    plt.ylabel(
+        "log frequency" if use_log_scale else "frequency",
+        fontsize=16,
+    )
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
     plt.legend(fontsize=16)
@@ -1586,18 +1835,46 @@ def plot_scores(
     if save:
         if use_log_scale:
             if save_as_pdf:
-                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}{noise_string}_log.pdf")
-                plt.savefig(output_path, format="pdf", bbox_inches="tight")
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{model_name}_{seed}{noise_string}_log.pdf",
+                )
+                plt.savefig(
+                    output_path,
+                    format="pdf",
+                    bbox_inches="tight",
+                )
             else:
-                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}{noise_string}_log.png")
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{model_name}_{seed}{noise_string}_log.png",
+                )
+                plt.savefig(
+                    output_path,
+                    dpi=300,
+                    bbox_inches="tight",
+                )
         else:
             if save_as_pdf:
-                output_path = os.path.join(directory, f"{metric}_scores_{model_name}_{seed}{noise_string}.pdf")
-                plt.savefig(output_path, format="pdf", bbox_inches="tight")
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_scores_{model_name}_{seed}{noise_string}.pdf",
+                )
+                plt.savefig(
+                    output_path,
+                    format="pdf",
+                    bbox_inches="tight",
+                )
             else:
-                output_path = os.path.join(directory, f"{metric}_{model_name}_{seed}_scores{noise_string}.png")
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+                output_path = os.path.join(
+                    directory,
+                    f"{metric}_{model_name}_{seed}_scores{noise_string}.png",
+                )
+                plt.savefig(
+                    output_path,
+                    dpi=300,
+                    bbox_inches="tight",
+                )
     else:
         plt.show()
 
@@ -1633,12 +1910,16 @@ def plot_scores_base_most_extreme(
         dir_prefix = metric
 
     noise_string = f"_noise_{noise}" if noise > 0 else ""
-    cont_string = "continuations_" if only_continuations else ""
+    cont_string = (
+        "continuations_" if only_continuations else ""
+    )
 
     # Construct the absolute path to "test_outputs"
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
-    directory = f"{plot_dir}/{base_model_name}_{base_model_seed}"
+    directory = (
+        f"{plot_dir}/{base_model_name}_{base_model_seed}"
+    )
     file_path = f"{directory}/{cont_string}scores{noise_string}.json"
     print(f"This is the original model: {file_path}")
     with open(file_path, "r") as f:
@@ -1648,25 +1929,55 @@ def plot_scores_base_most_extreme(
     scores_dict = {}
     wasserstein_distances = {}
 
-    for ckpt, seed, epoch in zip(checkpoints, checkpoint_seeds, epochs):
+    for ckpt, seed, epoch in zip(
+        checkpoints, checkpoint_seeds, epochs
+    ):
         checkpoint_directory = f"{plot_dir}/{checkpoint_base_name}{ckpt}_{seed}"
         file_path = f"{checkpoint_directory}/{cont_string}scores{noise_string}.json"
         with open(file_path, "r") as f:
             checkpoint_data = json.load(f)
-            scores_ckpt = checkpoint_data[str(epoch)][f"{metric}_scores"]
+            scores_ckpt = checkpoint_data[str(epoch)][
+                f"{metric}_scores"
+            ]
             scores_dict[(ckpt, seed, epoch)] = scores_ckpt
-            wasserstein_distances[(ckpt, seed, epoch)] = empirical_wasserstein_distance_p1(scores, scores_ckpt)
+            wasserstein_distances[(ckpt, seed, epoch)] = (
+                empirical_wasserstein_distance_p1(
+                    scores, scores_ckpt
+                )
+            )
 
-    max_distance_ckpt, max_distance_seed, max_distance_epoch = max(wasserstein_distances, key=wasserstein_distances.get)
-    print(f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}")
-    max_distance = wasserstein_distances[(max_distance_ckpt, max_distance_seed, max_distance_epoch)]
+    (
+        max_distance_ckpt,
+        max_distance_seed,
+        max_distance_epoch,
+    ) = max(
+        wasserstein_distances, key=wasserstein_distances.get
+    )
+    print(
+        f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}"
+    )
+    max_distance = wasserstein_distances[
+        (
+            max_distance_ckpt,
+            max_distance_seed,
+            max_distance_epoch,
+        )
+    ]
     print(f"This is the max distance: {max_distance:.4f}")
 
-    ckpt_scores = scores_dict[(max_distance_ckpt, max_distance_seed, max_distance_epoch)]
+    ckpt_scores = scores_dict[
+        (
+            max_distance_ckpt,
+            max_distance_seed,
+            max_distance_epoch,
+        )
+    ]
 
     array_ckpt_scores = np.array(ckpt_scores)
     skewness = skew(array_ckpt_scores)
-    print(f"skewness for model {checkpoint_base_name}{max_distance_ckpt}: {skewness:.3f}")
+    print(
+        f"skewness for model {checkpoint_base_name}{max_distance_ckpt}: {skewness:.3f}"
+    )
 
     print(
         f"This is the max score of the base model {base_model_name}: {max(scores)} and this is the max score of the corrupted model {max(ckpt_scores)}"
@@ -1675,8 +1986,11 @@ def plot_scores_base_most_extreme(
     df = pd.DataFrame(
         {
             "scores": scores + ckpt_scores,
-            "model": [base_model_name] * len(scores) + [f"Checkpoint {max_distance_ckpt}"] * len(ckpt_scores),
-            "seed": [base_model_seed] * len(scores) + [max_distance_seed] * len(ckpt_scores),
+            "model": [base_model_name] * len(scores)
+            + [f"Checkpoint {max_distance_ckpt}"]
+            * len(ckpt_scores),
+            "seed": [base_model_seed] * len(scores)
+            + [max_distance_seed] * len(ckpt_scores),
         }
     )
 
@@ -1719,7 +2033,10 @@ def plot_scores_base_most_extreme(
         plt.yscale("log")
 
     plt.xlabel(f"{metric.lower()} score", fontsize=16)
-    plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
+    plt.ylabel(
+        "log frequency" if use_log_scale else "frequency",
+        fontsize=16,
+    )
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
     plt.legend(fontsize=14)
@@ -1735,26 +2052,42 @@ def plot_scores_base_most_extreme(
                     directory,
                     f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}_log.pdf",
                 )
-                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+                plt.savefig(
+                    output_path,
+                    bbox_inches="tight",
+                    format="pdf",
+                )
             else:
                 output_path = os.path.join(
                     directory,
                     f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}_log.png",
                 )
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+                plt.savefig(
+                    output_path,
+                    dpi=300,
+                    bbox_inches="tight",
+                )
         else:
             if save_as_pdf:
                 output_path = os.path.join(
                     directory,
                     f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}.pdf",
                 )
-                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+                plt.savefig(
+                    output_path,
+                    bbox_inches="tight",
+                    format="pdf",
+                )
             else:
                 output_path = os.path.join(
                     directory,
                     f"{metric}_scores_{base_model_name}_{base_model_seed}_checkpoint{max_distance_ckpt}_{max_distance:.3f}{noise_string}.png",
                 )
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+                plt.savefig(
+                    output_path,
+                    dpi=300,
+                    bbox_inches="tight",
+                )
     else:
         plt.show()
 
@@ -1778,9 +2111,16 @@ def plot_power_over_number_of_sequences_for_different_levels_of_noise(
     only_continuations=True,
     fold_size=2000,
     epsilon: Union[float, List[float]] = 0,
-    palette: Optional[Union[List[str], Dict[str, str]]] = ["#E49B0F", "#C46210", "#B7410E", "#A81C07"],
+    palette: Optional[Union[List[str], Dict[str, str]]] = [
+        "#E49B0F",
+        "#C46210",
+        "#B7410E",
+        "#A81C07",
+    ],
     sizes: Optional[Dict[str, int]] = None,
-    line_styles: Optional[Dict[str, Union[str, Tuple[int, int]]]] = None,
+    line_styles: Optional[
+        Dict[str, Union[str, Tuple[int, int]]]
+    ] = None,
     dir_prefix: Optional[str] = None,
     noise_levels: List[float] = [0, 0.01, 0.05, 0.1],
 ):
@@ -1790,7 +2130,11 @@ def plot_power_over_number_of_sequences_for_different_levels_of_noise(
     test_dir = ROOT_DIR / dir_prefix / test_dir
     result_dfs = []
     for noise_level in noise_levels:
-        noise_string = f"_noise_{noise_level}" if noise_level > 0 else ""
+        noise_string = (
+            f"_noise_{noise_level}"
+            if noise_level > 0
+            else ""
+        )
         result_df = get_power_over_sequences(
             base_model_name,
             base_model_seed,
@@ -1807,7 +2151,17 @@ def plot_power_over_number_of_sequences_for_different_levels_of_noise(
 
     final_df = pd.concat(result_dfs, ignore_index=True)
     noise_df = (
-        final_df.groupby(["Sequence", "Samples per Test", "Samples", "epsilon", "noise"])["Power"].mean().reset_index()
+        final_df.groupby(
+            [
+                "Sequence",
+                "Samples per Test",
+                "Samples",
+                "epsilon",
+                "noise",
+            ]
+        )["Power"]
+        .mean()
+        .reset_index()
     )
 
     # Create the plot
@@ -1818,22 +2172,36 @@ def plot_power_over_number_of_sequences_for_different_levels_of_noise(
 
     # Create custom palette that uses black for 0 noise and original colors for others
     if palette is None:
-        palette = sns.color_palette("viridis", len(noise_levels) - 1)  # -1 because we handle 0 separately
+        palette = sns.color_palette(
+            "viridis", len(noise_levels) - 1
+        )  # -1 because we handle 0 separately
     custom_palette = {0: "black"}  # Set 0 noise to black
-    for i, noise in enumerate([n for n in noise_levels if n != 0]):
-        custom_palette[noise] = palette[i] if isinstance(palette, list) else palette
+    for i, noise in enumerate(
+        [n for n in noise_levels if n != 0]
+    ):
+        custom_palette[noise] = (
+            palette[i]
+            if isinstance(palette, list)
+            else palette
+        )
 
     # Create custom line styles
     # custom_styles = {0: '--'}  # Set 0 noise to dashed
     custom_styles = {0: "-"}
     for noise in [n for n in noise_levels if n != 0]:
-        custom_styles[noise] = "-"  # Set other noise levels to solid
+        custom_styles[noise] = (
+            "-"  # Set other noise levels to solid
+        )
 
     # Create plot for each noise level separately to control styles
     for noise in noise_levels:
         data = noise_df[noise_df["noise"] == noise]
         # Create custom label: "no noise" for 0, and formatted float for others
-        label = "no noise" if noise == 0 else f"$\mathcal{{N}}(0, {noise:.2f})$"
+        label = (
+            "no noise"
+            if noise == 0
+            else f"$\mathcal{{N}}(0, {noise:.2f})$"
+        )
         sns.lineplot(
             data=data,
             x="Samples",
@@ -1913,7 +2281,9 @@ def plot_scores_two_models(
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
     noise_string = f"_noise_{noise}" if noise > 0 else ""
-    cont_string = "continuations_" if only_continuations else ""
+    cont_string = (
+        "continuations_" if only_continuations else ""
+    )
 
     score_dir1 = f"{score_dir}/{model_name1}_{seed1}"
     score_path1 = f"{score_dir1}/{cont_string}scores{noise_string}.json"
@@ -1931,18 +2301,28 @@ def plot_scores_two_models(
     scores1 = data1[str(epoch1)][f"{metric}_scores"]
     scores2 = data2[str(epoch2)][f"{metric}_scores"]
 
-    dist = empirical_wasserstein_distance_p1(scores1, scores2)
+    dist = empirical_wasserstein_distance_p1(
+        scores1, scores2
+    )
 
-    print(f"This is the distance: {dist} between {model_name1}, {seed1} and {model_name2}, {seed2}")
+    print(
+        f"This is the distance: {dist} between {model_name1}, {seed1} and {model_name2}, {seed2}"
+    )
     skewness1 = skew(scores1)
     skewness2 = skew(scores2)
-    print(f"skewness for model {model_name1}, {seed1}: {skewness1:.3f}")
-    print(f"skewness for model {model_name2}, {seed2}: {skewness2:.3f}")
+    print(
+        f"skewness for model {model_name1}, {seed1}: {skewness1:.3f}"
+    )
+    print(
+        f"skewness for model {model_name2}, {seed2}: {skewness2:.3f}"
+    )
 
     df = pd.DataFrame(
         {
             "scores": scores1 + scores2,
-            "model 1": [f"{model_name1}_{seed1}"] * len(scores1) + [f"{model_name2}_{seed2}"] * len(scores2),
+            "model 1": [f"{model_name1}_{seed1}"]
+            * len(scores1)
+            + [f"{model_name2}_{seed2}"] * len(scores2),
         }
     )
 
@@ -1985,7 +2365,10 @@ def plot_scores_two_models(
         plt.yscale("log")
 
     plt.xlabel(f"{metric.lower()} score", fontsize=16)
-    plt.ylabel("log frequency" if use_log_scale else "frequency", fontsize=16)
+    plt.ylabel(
+        "log frequency" if use_log_scale else "frequency",
+        fontsize=16,
+    )
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
     plt.legend(fontsize=14)
@@ -2001,26 +2384,42 @@ def plot_scores_two_models(
                     save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}_log.pdf",
                 )
-                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+                plt.savefig(
+                    output_path,
+                    bbox_inches="tight",
+                    format="pdf",
+                )
             else:
                 output_path = os.path.join(
                     save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}_log.png",
                 )
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+                plt.savefig(
+                    output_path,
+                    dpi=300,
+                    bbox_inches="tight",
+                )
         else:
             if save_as_pdf:
                 output_path = os.path.join(
                     save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}.pdf",
                 )
-                plt.savefig(output_path, bbox_inches="tight", format="pdf")
+                plt.savefig(
+                    output_path,
+                    bbox_inches="tight",
+                    format="pdf",
+                )
             else:
                 output_path = os.path.join(
                     save_dir1,
                     f"{metric}_scores_{model_name1}_{seed1}_{model_name2}_{seed2}{noise_string}.png",
                 )
-                plt.savefig(output_path, dpi=300, bbox_inches="tight")
+                plt.savefig(
+                    output_path,
+                    dpi=300,
+                    bbox_inches="tight",
+                )
     else:
         plt.show()
 
@@ -2030,7 +2429,14 @@ def plot_scores_two_models(
 def plot_mean_scores_for_checkpoints(
     base_model_name: str = "Meta-Llama-3-8B-Instruct",
     base_seed="seed1000",
-    seeds: List[str] = ["seed1000", "seed1000", "seed1000", "seed1000", "seed1000", "seed1000"],
+    seeds: List[str] = [
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+        "seed1000",
+    ],
     checkpoints: List[int] = [1, 2, 3, 4, 5, 6],
     checkpoint_base_name: str = "Llama-3-8B-ckpt",
     metric="perspective",
@@ -2048,7 +2454,9 @@ def plot_mean_scores_for_checkpoints(
     # Construct the absolute path to "test_outputs"
     plot_dir = ROOT_DIR / dir_prefix / plot_dir
 
-    cont_string = "continuations_" if only_continuations else ""
+    cont_string = (
+        "continuations_" if only_continuations else ""
+    )
     noise_string = f"_noise_{noise}" if noise > 0 else ""
 
     directory = f"{plot_dir}/{base_model_name}_{base_seed}"
@@ -2065,16 +2473,30 @@ def plot_mean_scores_for_checkpoints(
         file_path = f"{checkpoint_directory}/{cont_string}scores{noise_string}.json"
         with open(file_path, "r") as f:
             checkpoint_data = json.load(f)
-            scores_ckpt = checkpoint_data[str(0)][f"{metric}_scores"]
+            scores_ckpt = checkpoint_data[str(0)][
+                f"{metric}_scores"
+            ]
             scores_dict[(ckpt, seed)] = scores_ckpt
-            wasserstein_distances[(ckpt, seed)] = empirical_wasserstein_distance_p1(scores, scores_ckpt)
+            wasserstein_distances[(ckpt, seed)] = (
+                empirical_wasserstein_distance_p1(
+                    scores, scores_ckpt
+                )
+            )
 
-    max_distance_ckpt, max_distance_seed = max(wasserstein_distances, key=wasserstein_distances.get)
-    print(f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}")
-    max_distance = wasserstein_distances[(max_distance_ckpt, max_distance_seed)]
+    max_distance_ckpt, max_distance_seed = max(
+        wasserstein_distances, key=wasserstein_distances.get
+    )
+    print(
+        f"This is the max distance checkpoint: {max_distance_ckpt} with seed: {max_distance_seed}"
+    )
+    max_distance = wasserstein_distances[
+        (max_distance_ckpt, max_distance_seed)
+    ]
     print(f"This is the max distance: {max_distance:.4f}")
 
-    ckpt_scores = scores_dict[(max_distance_ckpt, max_distance_seed)]
+    ckpt_scores = scores_dict[
+        (max_distance_ckpt, max_distance_seed)
+    ]
 
     array_ckpt_scores = np.array(ckpt_scores)
     skewness = skew(array_ckpt_scores)
@@ -2097,7 +2519,9 @@ def plot_toxicity(cfg: DictConfig):
         base_seeds.append(bm.seed)
         base_seeds2.append(bm.seed2)
 
-        checkpoints = [i for i in range(1, int(bm.checkpoint_range))]
+        checkpoints = [
+            i for i in range(1, int(bm.checkpoint_range))
+        ]
         if "llama" in bm.name.lower():
             seeds = [
                 "seed2000",
@@ -2112,7 +2536,10 @@ def plot_toxicity(cfg: DictConfig):
                 "seed1000",
             ]
         else:
-            seeds = ["seed1000" for i in range(1, int(bm.checkpoint_range))]
+            seeds = [
+                "seed1000"
+                for i in range(1, int(bm.checkpoint_range))
+            ]
 
         # Create power plot over sequences:
         plot_power_over_number_of_sequences(
@@ -2143,8 +2570,118 @@ def plot_toxicity(cfg: DictConfig):
         )
 
     plot_alpha_over_sequences(
-        base_models, base_seeds, base_seeds2, noise=cfg.noise, only_continuations=cfg.only_continuations
+        base_models,
+        base_seeds,
+        base_seeds2,
+        noise=cfg.noise,
+        only_continuations=cfg.only_continuations,
     )
+
+
+def plot_davt_vs_c2st_power(
+    csv_path: str,
+    save_as_pdf: bool = True,
+    plot_dir: str = "plots",
+    metric: str = "toxicity",
+    dir_prefix: Optional[str] = None,
+):
+    """Plot power over sequences for both DAVT and C2ST tests from CSV data.
+
+    Args:
+        csv_path: Path to the CSV file containing test results
+        save_as_pdf: Whether to save as PDF
+        plot_dir: Directory to save plots
+        metric: Metric used for testing
+        dir_prefix: Optional prefix for directories
+    """
+    # Construct path to results
+    if dir_prefix is None:
+        dir_prefix = metric
+
+    plot_dir = ROOT_DIR / dir_prefix / plot_dir
+    plot_dir.mkdir(parents=True, exist_ok=True)
+
+    # Read and process data
+    df = pd.read_csv(csv_path)
+
+    # Group by samples and calculate mean test rates across folds
+    grouped_df = (
+        df.groupby("samples")
+        .agg(
+            {
+                "test_positive_davt": "mean",
+                "test_positive_c2st": "mean",
+            }
+        )
+        .reset_index()
+    )
+
+    # Create plot
+    plt.figure(figsize=(12, 6))
+
+    # Plot DAVT test rate
+    sns.lineplot(
+        data=grouped_df,
+        x="samples",
+        y="test_positive_davt",
+        label="DAVT",
+        marker="o",
+        markersize=8,
+        color="#E49B0F",
+    )
+
+    # Plot C2ST test rate
+    sns.lineplot(
+        data=grouped_df,
+        x="samples",
+        y="test_positive_c2st",
+        label="C2ST",
+        marker="s",
+        markersize=8,
+        color="#BB3E03",
+    )
+
+    # Customize plot
+    plt.xlabel("samples", fontsize=18)
+    plt.ylabel("proportion of triggered tests", fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(np.arange(0, 1.1, 0.1), fontsize=14)
+
+    # Legend
+    plt.legend(
+        fontsize=14,
+        title_fontsize=16,
+        bbox_to_anchor=(1.0, 0.5),
+        loc="center left",
+    )
+
+    # Grid
+    plt.grid(True, linewidth=0.5, color="#ddddee")
+
+    # Make plot borders thicker
+    for spine in plt.gca().spines.values():
+        spine.set_linewidth(1.5)
+
+    # Extract model names from csv path for filename
+    path_parts = csv_path.split("/")
+    results_dir = (
+        path_parts[-2] if len(path_parts) > 1 else "results"
+    )
+
+    # Save plot
+    if save_as_pdf:
+        plt.savefig(
+            f"{plot_dir}/davt_vs_c2st_power_{results_dir}.pdf",
+            bbox_inches="tight",
+            format="pdf",
+        )
+    else:
+        plt.savefig(
+            f"{plot_dir}/davt_vs_c2st_power_{results_dir}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -2302,3 +2839,10 @@ if __name__ == "__main__":
     #     only_continuations=True,
     #     marker="X",
     # )
+
+    plot_davt_vs_c2st_power(
+        csv_path="/root/Auditing_Test_for_LMs/toxicity/test_outputs/Meta-Llama-3-8B-Instruct_seed1000_Llama-3-8B-ckpt5_seed1000/kfold_test_results_continuations_2000_epsilon_0_c2st.csv",
+        save_as_pdf=True,
+        plot_dir="plots",
+        metric="toxicity",
+    )

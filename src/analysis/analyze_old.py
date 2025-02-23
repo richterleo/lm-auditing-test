@@ -22,7 +22,7 @@ from evaluation.distance import (
     NeuralNetDistance,
 )
 from utils.utils import load_config
-from arguments import TrainCfg
+from train_cfg import TrainCfg
 import random
 
 pd.set_option("display.max_rows", 1000)
@@ -76,7 +76,6 @@ def extract_data_for_models(
 
     return data
 
-
 def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 4000):
     """ """
     bs = data.loc[0, "samples"]
@@ -106,6 +105,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
     # Iterate over each fold number
     for fold in unique_fold_numbers:
         fold_data = indexed_df[indexed_df["fold_number"] == fold]
+
         for sequence in range(max_sequences):  # sequence_counts.keys()
             if sequence in fold_data.index and fold_data.loc[sequence, "sequences_until_end_of_experiment"] == sequence:
                 try:
@@ -115,6 +115,7 @@ def get_power_over_sequences_from_whole_ds(data: pd.DataFrame, fold_size: int = 
                 except AssertionError as e:
                     logger.error(e)
                 sequence_counts[sequence] += 1
+
             elif sequence not in fold_data.index:
                 sequence_counts[sequence] += 1
 

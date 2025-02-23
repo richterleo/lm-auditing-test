@@ -206,9 +206,14 @@ def folder_from_model_and_seed(
 
 
 if __name__ == "__main__":
-    run_paths = ["LLM_Accountability/continuations/3yflpcqd"]
-    pattern = "continuations"
+    # run_paths = ["LLM_Accountability/continuations/3yflpcqd"]
+    # pattern = "continuations"
 
-    download_file_from_wandb(
-        run_path=run_paths[0], pattern=pattern, get_save_path=folder_from_model_and_seed, metric="bleu"
-    )
+    # download_file_from_wandb(
+    #     run_path=run_paths[0], pattern=pattern, get_save_path=folder_from_model_and_seed, metric="bleu"
+    # )
+
+
+    run_path = "LLM_Accountability/toxicity_test/ac5k8ha3"
+    file_name="perspective_data.zip"
+    download_from_wandb(run_name=run_path, file_name=file_name)
