@@ -61,6 +61,16 @@ python main.py --exp generation --no_wandb
 ```
 to avoid tracking on wandb.
 
+## Dependencies
+
+This project uses [deep-anytime-testing](https://github.com/tpandeva/deep-anytime-testing) as a git submodule. After cloning this repository, initialize and update the submodule:
+
+```bash
+git submodule init
+git submodule update
+```
+The specific version of deep-anytime-testing is pinned to commit ().
+
 ## Contact
 
 For any questions or issues, please contact [the authors](leonie.richter.23@ucl.ac.uk).
