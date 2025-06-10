@@ -58,7 +58,7 @@ class SNITranslationProcessor:
             overwrite (bool): Whether to overwrite existing processed files.
             verbose (bool): Enable verbose logging.
         """
-        self.script_dir = Path(__file__).resolve().parents[2] if script_dir is None else Path(script_dir)
+        self.script_dir = Path(__file__).resolve().parents[3] if script_dir is None else Path(script_dir)
         self.data_path = self.script_dir / data_path
         self.output_path = self.script_dir / output_path / category
         self.output_path.mkdir(parents=True, exist_ok=True)

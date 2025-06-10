@@ -11,7 +11,7 @@ from logging_config import setup_logging
 
 
 class ExperimentBase(ABC):
-    SCRIPT_DIR = Path(__file__).resolve().parents[2]
+    SCRIPT_DIR = Path(__file__).resolve().parents[3]
 
     def __init__(self, config: ExperimentConfig):
         self.config = config

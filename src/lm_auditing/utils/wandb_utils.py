@@ -19,7 +19,7 @@ except ValueError as e:
 
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = Path(__file__).resolve().parents[3]
 
 
 def download_from_wandb(run_name: str, file_name: str = "test_outputs.zip") -> None:

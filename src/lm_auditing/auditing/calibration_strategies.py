@@ -16,7 +16,7 @@ from typing import Optional, Dict, List, Union, Tuple
 
 from lm_auditing.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parents[3]
 
 
 class CalibrationStrategy(ABC):

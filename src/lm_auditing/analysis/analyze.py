@@ -36,7 +36,7 @@ pd.set_option("display.width", 1000)
 
 logger = logging.getLogger(__name__)
 
-SCRIPT_DIR = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = Path(__file__).resolve().parents[3]
 
 
 def extract_data_for_models(
