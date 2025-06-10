@@ -10,6 +10,52 @@ This repository accompanies the paper [An Auditing Test to Detect Behavioral Shi
 1. **Evaluating a Model with Respect to a Certain Behavior and Metric**: This involves evaluating a model, logging results to Weights and Biases (wandb), and generating plots.
 2. **Detecting Change in Model Behavior using our Auditing Test**: This tests to distinguish between two distributions of model behavior based on individual paired samples.
 
+## Quick Setup
+
+1. **Install uv** (if not already installed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   uv sync
+   ```
+
+3. **Configure API keys**:
+   ```bash
+   cp .env.example .env
+   ```
+   Then edit `.env` and add your actual API keys:
+   - **WANDB_API_KEY**: Get from [Weights & Biases Settings](https://wandb.ai/settings)
+   - **HF_TOKEN**: Get from [Hugging Face Tokens](https://huggingface.co/settings/tokens)
+   - **PERSPECTIVE_API_KEY**: Get from [Perspective API](https://developers.perspectiveapi.com/s/docs-get-started)
+
+4. **Run the project**:
+   ```bash
+   uv run python main.py
+   ```
+
+## Memory Optimization
+
+If you encounter "No space left on device" errors or memory issues:
+
+1. **Clean HuggingFace cache**:
+   ```bash
+   python clear_hf_cache.py
+   ```
+
+2. **Set custom cache directories** (in your `.env` file):
+   ```bash
+   TRANSFORMERS_CACHE=/path/to/larger/disk/transformers_cache
+   HF_HOME=/path/to/larger/disk/hf_home
+   ```
+
+3. **Memory optimizations** are already configured in `configs/config.yaml`:
+   - 4-bit quantization with bfloat16
+   - Automatic device mapping (`device_map: auto`)
+   - Low CPU memory usage during loading
+
 ## Setup
 
 This project uses `uv` to manage dependencies. Install `uv` by following the instructions [here](https://docs.astral.sh/uv/getting-started/installation/). Then clone the repository and initialize the submodule:

@@ -1,0 +1,81 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=5120']
+      - id: end-of-file-fixer
+      - id: pretty-format-json
+        args: [ --autofix, --no-sort-keys ]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--filter-files"]
+        exclude: |
+          (?x)(
+            ^deep-anytime-testing/|
+            ^data/|
+            ^configs/|
+            ^bin/|
+            \.ipynb$|
+            \.pt$|
+            \.json$
+          )
+
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.2
+    hooks:
+      - id: ruff
+        exclude: |
+          (?x)(
+            ^deep-anytime-testing/|
+            ^data/|
+            ^configs/|
+            ^bin/|
+            \.ipynb$|
+            \.pt$|
+            \.json$
+          )
+        types_or: [python, pyi, jupyter]
+        args: [ --fix, --exit-non-zero-on-fix ]
+
+
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: [-L, "ans,fpr,projectin"]  # Allow extra words
+        additional_dependencies:
+          - tomli
+        exclude: |
+          (?x)(
+            ^deep-anytime-testing/|
+            ^data/ |
+            ^configs/ |
+            ^bin/ |
+            \.ipynb$|
+            \.pt$|
+            \.json$
+          )
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3
+        exclude: |
+          (?x)(
+            ^deep-anytime-testing/|
+            ^configs/|
+            ^data/|
+            ^bin/|
+            \.ipynb$|
+            \.pt$|
+            \.json$
+          )

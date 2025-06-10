@@ -16,7 +16,13 @@ from typing import Optional, Dict, List
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-PERSPECTIVE_API_KEY = getenv("PERSPECTIVE_API_KEY", None)
+from lm_auditing.utils.env_loader import get_required_env_var
+
+try:
+    PERSPECTIVE_API_KEY = get_required_env_var("PERSPECTIVE_API_KEY", "Required for toxicity evaluation")
+except ValueError as e:
+    PERSPECTIVE_API_KEY = None
+    logging.warning(f"PERSPECTIVE_API_KEY not found: {e}")
 
 
 def eval_on_metric(

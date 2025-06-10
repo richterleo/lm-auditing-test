@@ -4,13 +4,18 @@ import shutil
 import sys
 import wandb
 
-from os import getenv
 from pathlib import Path
 from typing import Optional, Callable
 
 from lm_auditing.utils.utils import create_run_string
+from lm_auditing.utils.env_loader import get_required_env_var
 
-wandb_api_key = getenv("WANDB_API_KEY")
+# Get wandb API key with proper error handling
+try:
+    wandb_api_key = get_required_env_var("WANDB_API_KEY", "Required for experiment tracking")
+except ValueError as e:
+    wandb_api_key = None
+    logging.warning(f"WANDB_API_KEY not found: {e}")
 
 logger = logging.getLogger(__name__)
 

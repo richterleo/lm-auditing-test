@@ -191,19 +191,14 @@ class ModelGenerator(ExperimentBase):
                 pad_token_id=tokenizer.pad_token_id,
             )
         else:
-            # First load the model with quantization config
-            # TODO: This should be in the model_kwargs
+            # Use the model_kwargs from config which includes quantization and memory optimizations
+            model_kwargs = translate_model_kwargs(self.model_kwargs)
+
+            # Create quantization config from the model kwargs
+            quantization_config = BitsAndBytesConfig(**model_kwargs.pop("quantization_config"))
+
             model = AutoModelForCausalLM.from_pretrained(
-                self.model_id,
-                quantization_config=BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.bfloat16,
-                    bnb_4bit_use_double_quant=True,
-                ),
-                # torch.dtype=""
-                # torch_dtype=torch.bfloat16,
-                # device_map="auto",
+                self.model_id, quantization_config=quantization_config, **model_kwargs
             )
 
             # Then create pipeline with the loaded model

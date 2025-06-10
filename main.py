@@ -3,9 +3,12 @@ import logging
 import os
 import torch
 
+# Load environment variables from .env file
+from lm_auditing.utils.env_loader import validate_api_keys
+
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from configs.experiment_config import (
     LoggingConfig,
     MetricConfig,
@@ -18,12 +21,12 @@ from configs.experiment_config import (
     GenerationConfig,
     TestConfig,
 )
-from src.evaluation.generate import ModelGenerator
-from src.auditing.test import (
+from lm_auditing.evaluation.generate import ModelGenerator
+from lm_auditing.auditing.test import (
     AuditingTest,
     CalibratedAuditingTest,
 )
-from src.auditing.calibration_strategies import (
+from lm_auditing.auditing.calibration_strategies import (
     DefaultStrategy,
     StdStrategy,
     IntervalStrategy,
@@ -50,7 +53,7 @@ def run_test(cfg: TestConfig):
     test.run()
 
 
-def get_calibration_strategy(cfg: TestConfig):
+def get_calibration_strategy(cfg: TestConfig) -> Any:
     strategy_map = {
         "default": DefaultStrategy,
         "std": StdStrategy,
@@ -58,9 +61,7 @@ def get_calibration_strategy(cfg: TestConfig):
     }
     strategy_class = strategy_map.get(cfg.calibration_params.epsilon_strategy)
     if not strategy_class:
-        raise ValueError(
-            f"Unknown calibration strategy: {cfg.calibration_params.epsilon_strategy}"
-        )
+        raise ValueError(f"Unknown calibration strategy: {cfg.calibration_params.epsilon_strategy}")
     return strategy_class(
         cfg.calibration_params,
         overwrite=cfg.test_params.overwrite,
@@ -69,6 +70,11 @@ def get_calibration_strategy(cfg: TestConfig):
 
 @hydra.main(config_path="configs", config_name="config")
 def main(cfg: DictConfig):
+    # Validate API keys before proceeding
+    if not validate_api_keys():
+        logger.error("Missing required API keys. Please check your .env file.")
+        return
+
     # Check GPU availability
     gpu_available = torch.cuda.is_available()
     if gpu_available:

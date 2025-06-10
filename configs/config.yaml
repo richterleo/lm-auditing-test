@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - experiments: test_toxicity #generation # test_toxicity
+  - experiments: generation #test_toxicity #generation # test_toxicity
   - peft_models
   - training
   - override hydra/hydra_logging: disabled
@@ -38,6 +38,10 @@ tau_defaults: &tau_defaults
       bnb_4bit_use_double_quant: true
     low_cpu_mem_usage: true
     device_map: auto
+    torch_dtype: "torch.bfloat16"  # Use bfloat16 to save memory
+    # Additional memory optimizations
+    max_memory: null  # Let device_map handle memory distribution
+    offload_folder: null  # Only used if you want to offload to disk
   default_gen_kwargs: &default_gen_kwargs
     max_new_tokens: 100
     do_sample: true

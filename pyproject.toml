@@ -8,17 +8,21 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "bitsandbytes>=0.46.0",
     "datasets>=3.3.2",
     "evaluate>=0.4.3",
+    "google-api-python-client>=2.171.0",
     "huggingface-hub>=0.29.1",
     "hydra-core>=1.3.2",
     "matplotlib>=3.10.0",
     "omegaconf>=2.3.0",
     "pandas>=2.2.3",
     "peft>=0.14.0",
+    "rich>=14.0.0",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
     "torch>=2.6.0",
+    "torchvision>=0.21.0",
     "transformers>=4.49.0",
     "wandb>=0.19.7",
 ]
@@ -36,3 +40,8 @@ reportUnknownParameterType = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lm_auditing"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+]

@@ -70,7 +70,6 @@ class AnalysisConfig:
     epsilon_ticks: int
 
 
-
 @dataclass
 class TrainingConfig:
     earlystopping: EarlyStoppingConfig
@@ -149,13 +148,13 @@ class ModelKwargs:
     device_map: Optional[str]
     torch_dtype: Optional[torch.dtype] = None
     attn_implementation: Optional[str] = None
+    max_memory: Optional[Dict] = None
+    offload_folder: Optional[str] = None
 
     @classmethod
     def from_dict(cls, cfg_dict: Dict[str, Any]) -> "ModelKwargs":
         # Handle nested quantization config
-        quant_config = QuantizationConfig.from_dict(
-            cfg_dict.pop("quantization_config")
-        )
+        quant_config = QuantizationConfig.from_dict(cfg_dict.pop("quantization_config"))
 
         # Handle torch dtype conversion
         if "torch_dtype" in cfg_dict:
@@ -206,9 +205,7 @@ class ModelConfig:
             gen_seed=cfg_dict["gen_seed"],
             model_kwargs=ModelKwargs.from_dict(cfg_dict["model_kwargs"]),
             gen_kwargs=GenerationKwargs.from_dict(cfg_dict["gen_kwargs"]),
-            default_gen_kwargs=GenerationKwargs.from_dict(
-                cfg_dict["default_gen_kwargs"]
-            ),
+            default_gen_kwargs=GenerationKwargs.from_dict(cfg_dict["default_gen_kwargs"]),
             use_peft=cfg_dict.get("use_peft"),
             chat_style=cfg_dict.get("chat_style"),
             hf_prefix=cfg_dict.get("hf_prefix"),
@@ -293,9 +290,7 @@ class GenerationConfig(BaseConfig):
 
         # Handle generation kwargs
         model_dict["gen_kwargs"] = self.model.gen_kwargs.to_dict()
-        model_dict["default_gen_kwargs"] = (
-            self.model.default_gen_kwargs.to_dict()
-        )
+        model_dict["default_gen_kwargs"] = self.model.default_gen_kwargs.to_dict()
 
         # Handle model kwargs with torch dtype conversion
         model_kwargs = self.model.model_kwargs.to_dict()
@@ -307,9 +302,7 @@ class GenerationConfig(BaseConfig):
                 torch.bfloat16: "torch.bfloat16",
             }
             if model_kwargs["torch_dtype"] in dtype_map:
-                model_kwargs["torch_dtype"] = dtype_map[
-                    model_kwargs["torch_dtype"]
-                ]
+                model_kwargs["torch_dtype"] = dtype_map[model_kwargs["torch_dtype"]]
 
         model_dict["model_kwargs"] = model_kwargs
         result["model"] = model_dict

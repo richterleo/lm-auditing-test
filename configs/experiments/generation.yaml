@@ -14,22 +14,22 @@ tau1:
   use_peft: null # use peft for models that are finetuned with lora;
   # currently set automatically but you can override this
   gen_kwargs:
-    max_new_tokens: 100 # 250
+    max_new_tokens: 50 # Reduced from 100 to save memory
     do_sample: true
     temperature: 0.7 # 1.2
     top_p: 0.9 # 0.7
 
 metric:
-  behavior: translation_performance
-  metric: bleu # bleu, rouge
-  dataset_name: data/translation/translation_data.jsonl
+  behavior: toxicity # translation_performance
+  metric: toxicity # toxicity, perspective or bleu, rouge
+  dataset_name: allenai/real-toxicity-prompts #data/translation/translation_data.jsonl
   dataset_split: train
   few_shot: false
 
 # evaluation configuration
 eval:
   num_samples: 15 # max number of samples to evaluate on; -1 for eval on full dataset
-  batch_size: 8 # batch size for evaluation
+  batch_size: 4 # Reduced from 8 to save memory
   use_vllm: false # this is currently not supported
   overwrite: false
   eval_in_parts: false # if true, evaluate in parts; for larger datasets, so evaluation can be done in parallel

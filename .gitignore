@@ -3,13 +3,34 @@ __pycache__
 _MACOSX
 
 # private files
-keys.py
 closeness_testing
 artifacts
+
+# Environment files
+.env
+.env.local
+.env.*.local
 
 # logs can stay internal
 logs
 
 # data
-data
-natural-instructions
+data/
+natural-instructions/
+wandb/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
