@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from omegaconf import OmegaConf
 import logging
 import wandb
@@ -17,7 +17,6 @@ class ExperimentBase(ABC):
         self.config = config
         self._calculate_dependent_attributes()
         self.initialize_wandb()
-        self.setup_logger()
 
     @abstractmethod
     def _calculate_dependent_attributes(self):
@@ -38,14 +37,21 @@ class ExperimentBase(ABC):
                 tags=tags,
             )
 
-    def setup_logger(self, *args, tag: Optional[str] = None):
+    def setup_logger(self, *args: Any, tag: Optional[str] = None):
         """ """
 
         if tag is None:
             tag = f"{type(self).__name__}"
 
-        setup_logging(*args, tag=tag, quiet=self.logging_cfg.quiet)
+        log_file_path = setup_logging(*args, tag=tag, quiet=self.logging_cfg.quiet)
         self.logger = logging.getLogger(__name__)
+        
+        # If quiet logging is enabled, print to terminal where logs are being saved
+        if self.logging_cfg.quiet and log_file_path:
+            print(f"Logging to file: {log_file_path}")
+        # Only log to file if not in quiet mode
+        elif log_file_path:
+            self.logger.info(f"Logging to file: {log_file_path}.")
 
     def update_wandb(self):
         """Updates wandb config with current configuration values"""

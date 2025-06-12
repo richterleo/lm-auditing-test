@@ -9,8 +9,8 @@ from typing import List, Dict, Optional, Any, Literal, Union
 class LoggingConfig:
     use_wandb: bool
     entity: str
-    quiet: bool
     wandb_project_name: str
+    quiet: bool
 
 
 @dataclass
@@ -58,6 +58,9 @@ class CalibrationConfig:
     upper_model_seed: str
     num_runs: int
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass
 class AnalysisConfig:
@@ -93,6 +96,13 @@ class TrainingConfig:
             earlystopping=EarlyStoppingConfig(**early_stopping_dict),
             **cfg_dict,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        early_stopping_dict = asdict(self.earlystopping)
+        return {
+            "earlystopping": early_stopping_dict,
+            **asdict(self),
+        }
 
 
 # Evaluation Configuration

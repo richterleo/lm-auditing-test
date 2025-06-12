@@ -6,6 +6,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
+            "args": "${command:pickArgs}",
             "justMyCode": false
         }
     ]

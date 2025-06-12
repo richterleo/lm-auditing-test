@@ -5,27 +5,14 @@ import pandas as pd
 import random
 import sys
 
-from omegaconf import DictConfig
-
 from copy import deepcopy
+from omegaconf import DictConfig
 from pathlib import Path
 from scipy.stats import wasserstein_distance
-
+from tqdm import tqdm
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
-from typing import Union, List, Optional, Tuple
-
-# # Add paths to sys.path if not already present
-# project_root = Path(__file__).resolve().parents[2]
-# if str(project_root) not in sys.path:
-#     sys.path.append(str(project_root))
-
-# from src.analysis.distance import (
-#     empirical_wasserstein_distance_p1,
-#     NeuralNetDistance,
-# )
-# from src.utils.utils import load_config
-# # from train_cfg import TrainCfg
+from typing import Union, List, Optional, Tuple, Dict, Any
 
 from lm_auditing.utils.utils import load_config
 from lm_auditing.analysis.distance import empirical_wasserstein_distance_p1, NeuralNetDistance
@@ -379,8 +366,8 @@ def get_distance_scores(
     checkpoint_base_name: Optional[str] = None,
     model_name2: Optional[str] = None,
     metric: str = "perspective",
-    distance_measures: list = ["NeuralNet", "Wasserstein"],
-    net_cfg: Optional[dict] = None,
+    distance_measures: List[str] = ["NeuralNet", "Wasserstein"],
+    net_cfg: Optional[Dict[str, Any]] = None,
     train_cfg: Optional[DictConfig] = None,
     pre_shuffle: bool = False,
     test_dir: str = "test_outputs",
@@ -404,7 +391,8 @@ def get_distance_scores(
     temp2: Optional[float] = None,
     tp2: Optional[float] = None,
     mnt2: Optional[float] = None,
-    **kwargs,
+    quiet: bool = False,
+    **kwargs: Any,
 ) -> pd.DataFrame:
     """ """
     np.random.seed(random_seed)
@@ -474,7 +462,7 @@ def get_distance_scores(
 
                 kf = KFold(n_splits=num_runs, shuffle=False)
 
-                for train_index, _ in kf.split(shuffled_scores1):
+                for train_index, _ in tqdm(kf.split(shuffled_scores1), desc="Training neural net distance", disable=quiet):
                     fold_scores1 = [shuffled_scores1[i] for i in train_index]
                     fold_scores2 = [shuffled_scores2[i] for i in train_index]
 
@@ -509,6 +497,7 @@ def get_distance_scores(
                                 train_cfg,
                                 pre_shuffle=pre_shuffle,
                                 random_seed=random_seed,
+                                quiet=quiet,
                             )
                             dist_dict["NeuralNet_unpaired"] = neural_net_distance_shuffled.train().item()
                         neural_net_distance = NeuralNetDistance(
@@ -520,6 +509,7 @@ def get_distance_scores(
                             train_cfg,
                             pre_shuffle=False,
                             random_seed=random_seed,
+                            quiet=quiet,
                         )
                         dist_dict["NeuralNet"] = neural_net_distance.train().item()
 
@@ -544,8 +534,9 @@ def get_distance_scores(
                     num_samples = [num_samples]
 
                 for num_train_samples in num_samples:
-                    for run in range(num_runs):
-                        logger.info(f"Num runs: {num_runs}, Run: {run}")
+                    logger.info(f"Training neural net distance on {num_train_samples} samples.")
+                    for run in tqdm(range(num_runs), desc="Num Runs", disable=quiet):
+                        logger.info(f"Run: {run}/{num_runs}")
                         np.random.seed(random_seed + run)
                         random_test_indices = np.random.choice(
                             len(scores1),
@@ -607,6 +598,7 @@ def get_distance_scores(
                                 train_cfg,
                                 pre_shuffle=pre_shuffle,
                                 random_seed=random_seed,
+                                quiet=quiet,
                             )
                             dist_dict["NeuralNet_unpaired"] = neural_net_distance_shuffled.train().item()
                         neural_net_distance = NeuralNetDistance(
@@ -618,6 +610,7 @@ def get_distance_scores(
                             train_cfg,
                             pre_shuffle=False,
                             random_seed=random_seed,
+                            quiet=quiet,
                         )
                         dist_dict["NeuralNet"] = neural_net_distance.train().item()
 
@@ -659,7 +652,7 @@ def get_distance_scores(
             logger.error(f"File for model {model_name2} does not exist yet")
 
 
-def get_mean_and_std_for_nn_distance(df):
+def get_mean_and_std_for_nn_distance(df: pd.DataFrame) -> Tuple[float, float]:
     """"""
 
     unique_sample_sizes = df["num_train_samples"].unique()

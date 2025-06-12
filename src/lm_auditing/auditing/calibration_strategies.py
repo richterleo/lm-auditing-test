@@ -5,14 +5,7 @@ import sys
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Dict, List, Union, Tuple
-
-# # Add paths to sys.path if not already present
-# project_root = Path(__file__).resolve().parents[2]
-# if str(project_root) not in sys.path:
-#     sys.path.append(str(project_root))
-
-# from src.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
+from typing import Optional, Dict, List, Union, Tuple, Any
 
 from lm_auditing.analysis.analyze import get_distance_scores, get_mean_and_std_for_nn_distance
 
@@ -20,7 +13,7 @@ SCRIPT_DIR = Path(__file__).resolve().parents[3]
 
 
 class CalibrationStrategy(ABC):
-    def __init__(self, calibration_params: Dict, overwrite: bool = False, test_dir: str = "test_outputs"):
+    def __init__(self, calibration_params: Dict[str, Any], overwrite: bool = False, test_dir: str = "test_outputs"):
         """
         Initialize the epsilon calculation strategy with any necessary parameters.
 
@@ -35,7 +28,7 @@ class CalibrationStrategy(ABC):
         self.logger = logger
 
     @abstractmethod
-    def calculate_epsilons(self, **kwargs) -> Tuple[List[float], float, float]:
+    def calculate_epsilons(self, **kwargs: Any) -> Tuple[List[float], float, float]:
         """
         Calculate a list of epsilons based on the distance dataframe.
 
@@ -50,9 +43,9 @@ class CalibrationStrategy(ABC):
         seed1: str,
         model_name2: str,
         seed2: str,
-        num_train_samples: Union[int, List],
+        num_train_samples: Union[int, List[int]],
         dir_prefix: str,
-        dist_kwargs: Dict,
+        dist_kwargs: Dict[str, Any],
         # **kwargs,
     ) -> Tuple[float, float]:
         """
@@ -74,17 +67,16 @@ class CalibrationStrategy(ABC):
                 f"on {num_train_samples} samples for {self.num_runs} runs."
             )
             distance_df = get_distance_scores(
-                model_name1,
-                seed1,
-                seed2,
+                model_name1=model_name1,
+                seed1=seed1,
+                seed2=seed2,
                 model_name2=model_name2,
+                num_runs=self.num_runs,
                 num_samples=num_train_samples,
                 overwrite=self.overwrite,
-                num_runs=self.num_runs,
                 dir_prefix=dir_prefix,
                 test_dir=self.test_dir,
                 **dist_kwargs,
-                # **kwargs,
             )
             distance_df.to_csv(dist_path, index=False)
             self.logger.info(f"Distance analysis results saved to {dist_path}.")
@@ -119,10 +111,9 @@ class DefaultStrategy(CalibrationStrategy):
         base_seed: str,
         test_model: str,
         test_seed: str,
-        num_train_samples: Union[int, List],
+        num_train_samples: Union[int, List[int]],
         dir_prefix: str,
-        dist_kwargs: Dict,
-        **kwargs,
+        dist_kwargs: Dict[str, Any],
     ) -> Tuple[List[float], float, float]:
         """
         Calculate a list of epsilons based on a predefined interval and compute

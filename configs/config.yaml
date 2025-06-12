@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - experiments: generation #test_toxicity #generation # test_toxicity
+  - experiments: test_toxicity #generation # test_toxicity
   - peft_models
   - training
   - override hydra/hydra_logging: disabled
@@ -14,9 +14,10 @@ hydra:
 # Global logging configuration
 logging:
   use_wandb: true
-  entity: LLM_Accountability
-  quiet: true # When true, logging only goes to files. When false, also shows in console
+  entity: LLM_Accountability  
   wandb_project_name: # gets overwritten by experiment config
+  quiet: true # logging to file only
+
 
 # Default metric configuration
 metric:
@@ -58,7 +59,7 @@ tau1:
 
 # Default output_path
 storing:
-  dir_prefix: ./data/behavior_data # base dir for everything
+  dir_prefix: ./data/behavior_data/${metric.metric} # base dir for everything
   output_dir: model_outputs
   score_dir: model_scores
   test_dir: test_outputs

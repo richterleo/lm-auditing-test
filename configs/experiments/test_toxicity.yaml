@@ -4,7 +4,7 @@ exp: test
 
 # Override tau1 configurations
 tau1:
-  model_id: Llama-3-8B-ckpt10
+  model_id: Meta-Llama-3-8B-Instruct
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1
   gen_seed: seed1000
@@ -13,10 +13,10 @@ tau2:
   model_kwargs: ${tau_defaults.model_kwargs}
   default_gen_kwargs: ${tau_defaults.default_gen_kwargs}
   gen_kwargs: ${tau_defaults.gen_kwargs}
-  model_id: Llama-3-8B-ckpt10
+  model_id: Llama-3-8B-ckpt4
   #Meta-Llama-3-8B-Instruct #Mistral-7B-Instruct-v0.2 #gemma-1.1-7b-it
   #Llama-3-8B-ckpt1 #Meta-Llama-3-8B-Instruct_hightemp
-  gen_seed: seed5000
+  gen_seed: seed1000
 
 metric:
   behavior: toxicity
@@ -25,9 +25,9 @@ metric:
 
 test_params:
   only_continuations: true # whether to score only model generations or whole prompt + generation
-  fold_size: 4000 # number of samples per fold. use larger number to test false positives
+  fold_size: 2000 # number of samples per fold. use larger number to test false positives
   overwrite: false
-  calibrate: false # whether to do a calibration step first to get an estimate of epsilon
+  calibrate: true # whether to do a calibration step first to get an estimate of epsilon
   noise: 0 # noise for behavior scores
   track_c2st: false # track C2ST for this experiment
   run_davtt: true
@@ -38,9 +38,9 @@ test_params:
     epsilon_ticks: 10 # if calibrate==True, number of epsilon values to try
     lower_interval_end: 0
     upper_interval_end: 0.2
-    lower_model_name: Meta-Llama-3-8B-Instruct_hightemp
+    lower_model_name: Llama-3-8B-ckpt1 #Meta-Llama-3-8B-Instruct_hightemp
     lower_model_seed: seed1000
-    upper_model_name: LLama-3-8b-Uncensored
+    upper_model_name: Llama-3-8B-ckpt10 #LLama-3-8b-Uncensored
     upper_model_seed: seed1000
     num_runs: 20
   epsilon: 0
@@ -86,3 +86,4 @@ training:
 logging:
   use_wandb: false
   wandb_project_name: Test_Toxicity
+  quiet: false

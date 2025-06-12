@@ -1,6 +1,6 @@
 # @package _global_
 
-exp: generation # Specifies the type of experiment
+exp: test_toxicity #generation # Specifies the type of experiment
 
 # Override tau1 configurations
 tau1:

@@ -8,7 +8,7 @@ import wandb
 from abc import ABC, abstractmethod
 from omegaconf import OmegaConf
 from pathlib import Path
-from typing import Optional, Dict, List, Union, Tuple
+from typing import Optional, Dict, List, Union, Tuple, Any
 
 # imports from other scripts
 from logging_config import setup_logging
@@ -70,6 +70,7 @@ class Test(ExperimentBase):
             if self.config.storing.dir_prefix is not None
             else str(self.metric_cfg.metric)
         )
+        self.dir_prefix = dir_prefix
         self.test_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.test_dir
         self.score_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.score_dir
         self.gen_dir = self.SCRIPT_DIR / dir_prefix / self.storing_cfg.output_dir
@@ -87,9 +88,9 @@ class Test(ExperimentBase):
         self.fold_size = self.test_params_cfg.fold_size
         self.epsilon = self.test_params_cfg.epsilon
 
-        # logger setup
-        if not hasattr(self, "logger"):
-            self.setup_logger(self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon)
+        # # logger setup
+        # if not hasattr(self, "logger"):
+        #     self.setup_logger(self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon)
 
 
 class AuditingTest(Test):
@@ -107,7 +108,7 @@ class AuditingTest(Test):
         """ """
         super().initialize_wandb(tags=tags)
 
-    def _initialize_network(self, for_c2st=False):
+    def _initialize_network(self, for_c2st: bool = False) -> Union[CMLP, HighCapacityCMLP, MLP]:
         """Initialize network with appropriate output size and input size
 
         Args:
@@ -184,7 +185,7 @@ class AuditingTest(Test):
                 score_dir=self.score_dir,
                 gen_dir=self.gen_dir,
                 only_continuations=self.only_continuations,
-                noise=self.noise,
+                noise=self.noise
             )
         else:
             trainer = OfflineTrainer(
@@ -265,7 +266,7 @@ class AuditingTest(Test):
 
             end = time.time()
             self.logger.info(
-                f"We have {len(folds)} folds. The whole initialization took {round(end - start, 3)} seconds."
+                f"We have {len(folds)} folds. The initialization took {round(end - start, 3)} seconds."
             )
 
             if self.logging_cfg.use_wandb:
@@ -274,10 +275,16 @@ class AuditingTest(Test):
             # Iterate over the folds and call test
             all_folds_data = pd.DataFrame()
             all_folds_stats = pd.DataFrame()
+            total_folds = len(folds)
 
             for fold_num in folds:
-                self.logger.info(f"Now starting experiment for fold {fold_num}.")
+                self.logger.info(f"Now starting experiment for fold {fold_num+1}/{total_folds}.")
+                fold_start_time = time.time()
                 data, test_positive, stat_df = self.davtt(fold_num)
+                fold_end_time = time.time()
+                self.logger.info(
+                    f"Fold {fold_num+1}/{total_folds} finished in {fold_end_time - fold_start_time:.2f} seconds."
+                )
                 all_folds_data = pd.concat(
                     [all_folds_data, data],
                     ignore_index=True,
@@ -342,6 +349,8 @@ class AuditingTest(Test):
                 only_continuations=self.only_continuations,
                 score_dir=self.score_dir,
                 noise=self.noise,
+                dir_prefix=self.dir_prefix,
+                quiet=self.logging_cfg.quiet,
             )
 
             distance_df.to_csv(dist_path, index=False)
@@ -374,18 +383,18 @@ class AuditingTest(Test):
         except FileNotFoundError as e:
             self.logger.error(f"Error plotting distance box plot: {e}")
 
-    def run(self, overrides: Optional[Dict] = None):
+    def run(self, overrides: Optional[Dict[str, Any]] = None):
         """ """
         if overrides:
             self._apply_overrides(overrides)
 
-        self.directory = f"{self.test_dir}/{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+        self.directory = Path(self.test_dir) / f"{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+        self.directory.mkdir(parents=True, exist_ok=True)
 
         # Set logger tag based on whether analysis will be performed
         logger_tag = "auditing_test_and_analyze" if self.test_params_cfg.analysis_params else "auditing_test"
-        self.setup_logger(
-            self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon, tag=logger_tag
-        )
+        self.setup_logger(self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon, tag=logger_tag)
+
 
         if self.test_params_cfg.run_davtt:
             power = self.kfold_davtt()
@@ -403,73 +412,35 @@ class AuditingTest(Test):
 class CalibratedAuditingTest(AuditingTest):
     def __init__(
         self,
-        config: Dict,
-        train_cfg: Dict,
-        dir_prefix: str,
+        config: TestConfig,
         eps_strategy: CalibrationStrategy,
-        betting_network=CMLP,
-        overwrite: bool = False,
-        use_wandb: Optional[bool] = None,
-        only_continuations: bool = True,
-        noise: float = 0,
-        track_c2st: bool = False,
-        betting_network_type: str = "CMLP",
     ):
         super().__init__(
-            config,
-            train_cfg,
-            dir_prefix,
-            betting_network=betting_network,
-            overwrite=overwrite,
-            use_wandb=use_wandb,
-            only_continuations=only_continuations,
-            noise=noise,
-            track_c2st=track_c2st,
-            betting_network_type=betting_network_type,
+            config
         )
         self.eps_strategy = eps_strategy
         self.power_dict = {}
         self.num_runs = self.eps_strategy.num_runs
 
-    def setup_logger(self, tag: str = "test_results"):
-        """ """
-        setup_logging(
-            self.model_name1,
-            self.seed1,
-            self.model_name2,
-            self.seed2,
-            self.fold_size,
-            tag=tag,
-            quiet=self.config["logging"].get("quiet", True),
-        )
-        self.logger = logging.getLogger(__name__)
-
     def run(
         self,
-        model_name1=None,
-        seed1=None,
-        model_name2=None,
-        seed2=None,
-        fold_size=2000,
-        calibrate_only=False,
-        **kwargs,
+        overrides: Optional[Dict[str, Any]] = None,
     ):
         """ """
 
-        self.model_name1 = model_name1 if model_name1 else self.config["tau1"]["model_id"]
-        self.seed1 = seed1 if seed1 else self.config["tau1"]["gen_seed"]
-        self.model_name2 = model_name2 if model_name2 else self.config["tau2"]["model_id"]
-        self.seed2 = seed2 if seed2 else self.config["tau2"]["gen_seed"]
-        self.fold_size = fold_size if fold_size else self.config["test_params"]["fold_size"]
-
-        self.directory = self.test_dir / f"{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
+        if overrides:
+            self._apply_overrides(overrides)
+        
+        self.directory = Path(self.test_dir) / f"{self.model_name1}_{self.seed1}_{self.model_name2}_{self.seed2}"
         self.directory.mkdir(parents=True, exist_ok=True)
 
         cont_string = "_continuations" if self.only_continuations else ""
         noise_string = f"_noise_{self.noise}" if self.noise > 0 else ""
         c2st_string = "_c2st" if self.track_c2st else ""
 
-        self.setup_logger(tag="calibrated_test_results" if not calibrate_only else "calbrations")
+        # logger setup
+        logger_tag = "calibrated_test_results" if not self.test_params_cfg.calibrate_only else "calibrations"
+        self.setup_logger(self.model_name1, self.seed1, self.model_name2, self.seed2, self.fold_size, self.epsilon, tag=logger_tag)
 
         num_train_samples = (
             self.fold_size // self.train_cfg.batch_size
@@ -495,12 +466,14 @@ class CalibratedAuditingTest(AuditingTest):
         else:
             self.eps_strategy.attach_logger(self.logger)
             dist_cfg = {
-                "metric": self.metric,
-                "net_cfg": self.config["net"],
+                "metric": self.metric_cfg.metric,
+                "net_cfg": self.net_cfg.to_dict(),
                 "train_cfg": self.train_cfg,
                 "num_test_samples": self.train_cfg.batch_size,
                 "only_continuations": self.only_continuations,
+                "score_dir": self.score_dir,
                 "noise": self.noise,
+                "quiet": self.logging_cfg.quiet,
             }
 
             epsilons, true_epsilon, std_epsilon = self.eps_strategy.calculate_epsilons(
@@ -521,20 +494,13 @@ class CalibratedAuditingTest(AuditingTest):
 
             epsilons.append(true_epsilon)
 
-            if not calibrate_only:
+            if not self.test_params_cfg.calibrate_only:
                 power_dict = {}
 
                 for epsilon in epsilons:
                     self.epsilon = epsilon
                     self.logger.info(f"Running test for epsilon: {epsilon}.")
-                    power_dict[epsilon] = super().run(
-                        model_name1=self.model_name1,
-                        seed1=self.seed1,
-                        model_name2=self.model_name2,
-                        seed2=self.seed2,
-                        fold_size=self.fold_size,
-                        analyze_distance=False,
-                    )
+                    power_dict[epsilon] = super().run()
 
                 power_df = pd.DataFrame(
                     power_dict.items(),

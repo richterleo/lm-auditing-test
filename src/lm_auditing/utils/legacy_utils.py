@@ -149,7 +149,7 @@ def rename_continuation_files(metric_dir):
                 print(f"Error renaming {old_path}: {str(e)}")
 
 
-def rename_perspective_continuation_scores(root_dir):
+def rename_perspective_continuation_scores(root_dir, old_name="perspective_continuation_scores.json", new_name="continuation_scores.json"):
     """
     Rename all 'perspective_continuation_scores.json' files to 'continuation_scores.json'
     in the given directory and its subdirectories.
@@ -157,8 +157,6 @@ def rename_perspective_continuation_scores(root_dir):
     Args:
         root_dir (str): Root directory path to start the search from
     """
-    old_name = "perspective_continuation_scores.json"
-    new_name = "continuation_scores.json"
 
     # Walk through all directories and files
     for dirpath, dirnames, filenames in os.walk(root_dir):
@@ -180,24 +178,24 @@ def rename_perspective_continuation_scores(root_dir):
 
 if __name__ == "__main__":
     # Define the folder path
-    folder_path = "/root/Auditing_Test_for_LMs/model_scores"  # Replace with the actual path
+    folder_path = "/workspace/lm-auditing-test/data/behavior_data/perspective/model_scores"  # Replace with the actual path
 
-    # Walk through the directory and process each JSON file
-    # for root, dirs, files in os.walk(folder_path):
-    #     for file_name in files:
-    #         if file_name.endswith(".json"):
-    #             json_file_path = os.path.join(root, file_name)
-    #             print(f"Processing: {json_file_path}")
-    #             remove_zero_key_and_flatten(json_file_path)
+    #Walk through the directory and process each JSON file
+    for root, dirs, files in os.walk(folder_path):
+        for file_name in files:
+            if file_name.endswith(".json"):
+                json_file_path = os.path.join(root, file_name)
+                print(f"Processing: {json_file_path}")
+                #remove_zero_key_and_flatten(json_file_path)
 
-    # model_scores_path = "/root/Auditing_test_for_LMs/Auditing_test_for_LMs/Auditing_test_for_LMs/perspective/model_scores"  # Replace with your actual path
-    # rename_specific_json_files(model_scores_path)
+    model_scores_path = "/root/Auditing_test_for_LMs/Auditing_test_for_LMs/Auditing_test_for_LMs/perspective/model_scores"  # Replace with your actual path
+    #rename_specific_json_files(model_scores_path)
 
-    # Add this to rename continuation files
-    metric_path = "/root/Auditing_Test_for_LMs/toxicity"  # Replace with your actual metric path
-    #rename_continuation_files(metric_path)
+    # # Add this to rename continuation files
+    # metric_path = "/root/Auditing_Test_for_LMs/toxicity"  # Replace with your actual metric path
+    #rename_continuation_files(folder_path)
 
-    # Example usage of the new function
-    perspective_scores_path = "/root/Auditing_Test_for_LMs/perspective/model_scores"  # Replace with actual path
+    # # Example usage of the new function
+    # perspective_scores_path = "/root/Auditing_Test_for_LMs/perspective/model_scores"  # Replace with actual path
     
-    rename_perspective_continuation_scores(perspective_scores_path)
+    rename_perspective_continuation_scores(folder_path, old_name="perspective_scores.json")

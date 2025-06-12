@@ -220,7 +220,7 @@ class OfflineTrainer(Trainer):
         )
 
         if self.test_positive:
-            logger.info("Reject null at %f", betting_score)
+            logger.info(f"Reject null at {betting_score} after {self.seqs} sequences.")
             # Fill remaining sequences with placeholder data
             for remaining_seq in range(1, min(self.seqs, self.num_batches)):
                 self.add_sequence_data(

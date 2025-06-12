@@ -59,11 +59,11 @@ def get_calibration_strategy(cfg: TestConfig) -> Any:
         "std": StdStrategy,
         "interval": IntervalStrategy,
     }
-    strategy_class = strategy_map.get(cfg.calibration_params.epsilon_strategy)
+    strategy_class = strategy_map.get(cfg.test_params.calibration_params.epsilon_strategy)
     if not strategy_class:
-        raise ValueError(f"Unknown calibration strategy: {cfg.calibration_params.epsilon_strategy}")
+        raise ValueError(f"Unknown calibration strategy: {cfg.test_params.calibration_params.epsilon_strategy}")
     return strategy_class(
-        cfg.calibration_params,
+        cfg.test_params.calibration_params.to_dict(),
         overwrite=cfg.test_params.overwrite,
     )
 
@@ -88,9 +88,9 @@ def main(cfg: DictConfig):
         import debugpy
 
         debugpy.listen(("0.0.0.0", 5678))
-        logger.info("waiting for debugger attach...")
+        logger.info("Waiting for debugger attach...")
         debugpy.wait_for_client()
-        logger.info("Debugger attached")
+        logger.info("Debugger attached.")
 
     cfg_dict = OmegaConf.to_container(cfg, resolve=True)
 
@@ -107,7 +107,7 @@ def main(cfg: DictConfig):
         )
         run_generation(generation_cfg)
 
-    elif cfg.exp == "test":
+    elif "test" in cfg.exp:
         # Instantiate and run the appropriate TestExperiment
         model1_cfg = ModelConfig.from_dict(cfg_dict["tau1"])
         model2_cfg = ModelConfig.from_dict(cfg_dict["tau2"])

@@ -13,26 +13,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import List
 
-# # Add paths to sys.path if not already present
-# project_root = Path(__file__).resolve().parents[2]
-# if str(project_root) not in sys.path:
-#     sys.path.append(str(project_root))
-
-# # Now you can import everything relative to project root
-# # from train_cfg import TrainCfg
-# from src.utils.utils import (
-#     initialize_from_config,
-#     time_block,
-#     load_config,
-# )
-# from src.test.dataloader import ScoresDataset, collate_fn
-# from src.analysis.nn_distance import CMLP
-
-# # Import from submodule (which is at project root)
-# submodule_path = project_root / "deep-anytime-testing"
-# if str(submodule_path) not in sys.path:
-#     sys.path.append(str(submodule_path))
-
 from lm_auditing.utils.utils import initialize_from_config, time_block, load_config
 from lm_auditing.auditing.dataloader import ScoresDataset, collate_fn
 from lm_auditing.analysis.nn_distance import CMLP
@@ -179,6 +159,7 @@ class NeuralNetDistance:
         random_seed=0,
         epochs=100,
         pre_shuffle=False,
+        quiet=False,
     ):
         """
         Initializes the NeuralNetDistance object.
@@ -241,6 +222,8 @@ class NeuralNetDistance:
             np.random.shuffle(self.test_samples1)
             np.random.shuffle(self.test_samples2)
 
+        self.quiet = quiet
+
     def l1_regularization(self):
         l1_regularization = torch.tensor(0.0, requires_grad=True)
         for name, param in self.net.named_parameters():
@@ -278,7 +261,7 @@ class NeuralNetDistance:
             collate_fn=collate_fn,
         )
 
-        for epoch in tqdm(range(self.epochs)):
+        for epoch in tqdm(range(self.epochs), desc="Training neural net distance", disable=self.quiet):
             self.train_evaluate_epoch(train_loader)
             val_loss = self.train_evaluate_epoch(val_loader, mode="val")
 

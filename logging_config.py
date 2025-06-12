@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 from logging.config import dictConfig
-from typing import Optional
+from typing import Optional, Any
 from pathlib import Path
 
 # console = Console()
@@ -13,30 +13,61 @@ from pathlib import Path
 
 
 def setup_logging(
-    *args,
-    default_level=logging.INFO,
+    *args: Any,
+    default_level: int = logging.INFO,
     log_file: Optional[str] = None,
-    log_format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    tag="test_results",
-    directory="logs",
-    use_rich=True,  # Added to toggle rich logging
-    quiet=True,  # Controls whether to show logs in console
-):
-    """Sets up logging configuration with optional rich logging."""
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    tag: str = "test_results",
+    directory: str = "logs",
+    use_rich: bool = True,
+    quiet: bool = True,
+) -> Optional[Path]:
+    """Sets up logging configuration with optional rich logging.
 
-    # Create logs directory if it doesn't exist
-    if not Path(directory).exists():
-        Path(directory).mkdir(parents=True, exist_ok=True)
+    Returns:
+        Optional[Path]: The path to the log file if one is created, otherwise None.
+    """
 
-    # Determine the log file name
-    if log_file:
-        log_file = Path(directory) / log_file
-    else:
-        log_file = tag
-        for item in args:
-            if item:
-                log_file = log_file + "_" + str(item)
-        log_file = Path(directory) / f"{log_file}.log"
+    handlers = {}
+    root_handlers = []
+    log_file_path = None
+
+    if quiet:
+        # Create logs directory if it doesn't exist
+        log_dir = Path(directory)
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Determine the log file name
+        if log_file:
+            log_file_path = log_dir / log_file
+        else:
+            log_file_name = tag
+            for item in args:
+                if item:
+                    log_file_name = log_file_name + "_" + str(item)
+            log_file_path = log_dir / f"{log_file_name}.log"
+
+        handlers["file"] = {
+            "class": "logging.FileHandler",
+            "formatter": "default",
+            "filename": log_file_path,
+        }
+        root_handlers.append("file")
+
+    else:  # Log to console only
+        console_handler_config = {
+            "class": "rich.logging.RichHandler" if use_rich else "logging.StreamHandler",
+            "formatter": "default",
+        }
+        if use_rich:
+            console_handler_config.update(
+                {
+                    "rich_tracebacks": True,
+                    "markup": True,
+                }
+            )
+        handlers["console"] = console_handler_config
+        root_handlers.append("console")
 
     # Logging configuration dictionary
     logging_config = {
@@ -47,46 +78,24 @@ def setup_logging(
                 "format": log_format,
             },
         },
-        "handlers": {
-            "file": {
-                "class": "logging.FileHandler",
-                "formatter": "default",
-                "filename": log_file,
-            },
-        },
+        "handlers": handlers,
         "root": {
-            "handlers": ["file"],
+            "handlers": root_handlers,
             "level": default_level,
         },
         "loggers": {
             "": {  # root logger
                 "level": default_level,
-                "handlers": ["file"],
+                "handlers": root_handlers,
             },
             "__main__": {
                 "level": default_level,
-                "handlers": ["file"],
+                "handlers": root_handlers,
                 "propagate": False,
             },
         },
     }
 
-    # Add console handler if not quiet
-    if not quiet:
-        console_handler = {
-            "class": "rich.logging.RichHandler" if use_rich else "logging.StreamHandler",
-            "formatter": "default",
-            "rich_tracebacks": True,
-            "markup": True,
-        } if use_rich else {
-            "class": "logging.StreamHandler",
-            "formatter": "default",
-        }
-        
-        logging_config["handlers"]["console"] = console_handler
-        logging_config["root"]["handlers"].append("console")
-        logging_config["loggers"][""]["handlers"].append("console")
-        logging_config["loggers"]["__main__"]["handlers"].append("console")
-
     # Apply the logging configuration
     dictConfig(logging_config)
+    return log_file_path
