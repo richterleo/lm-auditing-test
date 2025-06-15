@@ -97,17 +97,17 @@ def extract_data_for_models(
     logger.info(f"File path we are checking: {file_path}")
 
     data = pd.read_csv(file_path)
+    batch_size = data.loc[data['sequence'] == 0, 'samples'].mean()
     if c2st:
         # Group by sequence and calculate means, handling NaN values for time and epochs
         test_data = data.groupby("sequence").agg(
             {
-                "samples": lambda x: int(x[~np.isnan(x)].mean()),
                 "test_positive_c2st": "mean",
                 "test_positive_davt": "mean",
-                "epochs_davt": lambda x: x[~np.isnan(x)].mean(),
-                "epochs_c2st": lambda x: x[~np.isnan(x)].mean(),
-                "time_davt": lambda x: x[~np.isnan(x)].mean(),
-                "time_c2st": lambda x: x[~np.isnan(x)].mean(),
+                "epochs_davt": lambda x: np.nan if x.dropna().empty else x[~np.isnan(x)].mean(),
+                "epochs_c2st": lambda x: np.nan if x.dropna().empty else x[~np.isnan(x)].mean(),
+                "time_davt": lambda x: np.nan if x.dropna().empty else x[~np.isnan(x)].mean(),
+                "time_c2st": lambda x: np.nan if x.dropna().empty else x[~np.isnan(x)].mean(),
             }
         )
 
@@ -115,12 +115,12 @@ def extract_data_for_models(
         # Group by sequence and calculate means, handling NaN values for time and epochs
         test_data = data.groupby("sequence").agg(
             {
-                "samples": lambda x: int(x[~np.isnan(x)].mean()),
                 "test_positive": "mean",
-                "epochs": lambda x: x[~np.isnan(x)].mean(),
-                "time": lambda x: x[~np.isnan(x)].mean(),
+                "epochs": lambda x: np.nan if x.dropna().empty else x[~np.isnan(x)].mean(),
+                "time": lambda x: np.nan if x.dropna().empty else x[~np.isnan(x)].mean(),
             }
         )
+    test_data["samples"] = batch_size * (test_data.index+1)
 
     logger.info(f"Number of folds: {data['fold_number'].max()}")
 
@@ -338,7 +338,7 @@ def get_power_over_sequences(
             result_df["epsilon"] = epsilon
 
             if calc_distance:
-                result_df[f"{distance_measure.lower()}_distance"] = dist
+                result_df[f"{distance_measure.lower()}_distance"] = dist.round(3)
 
             result_dfs.append(result_df)
 
@@ -348,7 +348,7 @@ def get_power_over_sequences(
             else:
                 logger.error(f"File for model {item} does not exist yet")
 
-    final_df = pd.concat(result_dfs, ignore_index=True)
+    final_df = pd.concat(result_dfs, ignore_index=False)
 
     if rank:
         final_df[f"rank_by_{distance_measure.lower()}_distance"] = (
@@ -746,6 +746,7 @@ def extract_power_from_sequence_df(
     """ """
 
     cols_to_remove = [
+        "samples",
         "epochs",
         "time",
         "epochs_c2st",
@@ -851,13 +852,13 @@ def get_alpha_wrapper(
 def get_mean_tox_scores(
     model_names: Optional[None] = None,
     seeds: Optional[None] = None,
-    score_dir="model_scores",
+    score_dir: str = "model_scores",
     dir_prefix: Optional[str] = None,
-    metric="perspective",
-    only_on_toxic_prompts=False,
-    high_tox_file="high_toxicity_indices.json",
-    only_continuations=False,
-    diff=False,
+    metric: str = "perspective",
+    only_on_toxic_prompts: bool = False,
+    high_tox_file: str = "high_toxicity_indices.json",
+    only_continuations: bool = False,
+    diff: bool = False,
     noise: float = 0,
     base_model_temp: Optional[float] = None,
     base_model_tp: Optional[float] = None,
@@ -1013,25 +1014,8 @@ if __name__ == "__main__":
     base_model_name = "Meta-Llama-3-8B-Instruct"
     base_seed = "seed1000"
 
-    model_name1 = "Llama-3-8B-ckpt1"
-    model_name2 = "Llama-3-8B-ckpt5"
-    model_name3 = "Llama-3-8B-ckpt10"
-    model_name4 = "Meta-Llama-3-8B-Instruct-hightemp"
-    model_name5 = "Meta-Llama-3-8B-Instruct"
-    model_names = [
-        model_name1,
-        model_name2,
-        model_name3,
-        model_name4,
-        model_name5,
-    ]
-    seeds = [
-        "seed1000",
-        "seed1000",
-        "seed1000",
-        "seed1000",
-        "seed2000",
-    ]
+    seeds = ["seed1000" for i in range(1, 10)]
+    checkpoints = [i for i in range(1, int(10))]
 
     num_train_samples = [
         100,
@@ -1043,40 +1027,8 @@ if __name__ == "__main__":
         100000,
     ]
 
-    train_cfg = TrainCfg()
-    net_config = {
-        "input_size": 1,
-        "hidden_layer_size": [32, 32],
-        "layer_norm": True,
-        "bias": True,
-    }
-
-    seeds = [
-        "seed2000",
-        "seed2000",
-        "seed2000",
-        "seed2000",
-        "seed1000",
-        "seed1000",
-        "seed1000",
-        "seed1000",
-        "seed1000",
-        "seed1000",
-    ]
-
     checkpoints = [i for i in range(1, int(10))]
 
-    df = extract_data_for_models(
-        "Meta-Llama-3-8B-Instruct",
-        "seed1000",
-        "seed1000",
-        model_name2="Llama-3-8B-ckpt5",
-        fold_size=2000,
-        test_dir="test_outputs",
-        epsilon=0,
-        only_continuations=True,
-        metric="toxicity",
-    )
-
-    small_df = extract_power_from_sequence_df(df)
-    print(small_df)
+    power_seq_df = get_power_over_sequences("Meta-Llama-3-8B-Instruct", "seed1000", seeds, checkpoints, fold_size=2000, only_continuations=True, epsilon=0, test_dir="test_outputs", dir_prefix="data/behavior_data/perspective", noise=0, extract_stats=False, c2st=False, calc_distance=True, base_model_temp=None, base_model_tp=None, base_model_mnt=None, model_temps=None, model_tps=None, model_mnts=None)
+    print(power_seq_df)
+    print(power_seq_df.columns)

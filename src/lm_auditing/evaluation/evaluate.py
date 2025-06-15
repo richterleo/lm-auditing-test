@@ -18,7 +18,7 @@ from lm_auditing.utils.utils import (
 from lm_auditing.utils.wandb_utils import download_file_from_wandb
 from lm_auditing.evaluation.score import eval_on_metric
 from lm_auditing.utils.legacy_utils import remove_zero_key_and_flatten
-from logging_config import setup_logging
+from lm_auditing.utils.logging_config import setup_logging
 
 # setup_logging()
 logger = logging.getLogger(__name__)

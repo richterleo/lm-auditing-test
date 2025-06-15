@@ -7,7 +7,7 @@ import wandb
 import sys
 from configs.experiment_config import ExperimentConfig
 from lm_auditing.utils.utils import create_run_string
-from logging_config import setup_logging
+from lm_auditing.utils.logging_config import setup_logging
 
 
 class ExperimentBase(ABC):

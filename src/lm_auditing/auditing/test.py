@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Union, Tuple, Any
 
 # imports from other scripts
-from logging_config import setup_logging
+from lm_auditing.utils.logging_config import setup_logging
 
 from configs.experiment_config import (
     TestConfig,
@@ -38,7 +38,6 @@ from lm_auditing.analysis.analyze import (
     get_mean_and_std_for_nn_distance,
 )
 from lm_auditing.analysis.plot import (
-    distance_box_plot,
     plot_calibrated_detection_rate,
 )
 
@@ -369,19 +368,6 @@ class AuditingTest(Test):
                 }
             )
 
-        try:
-            # Plot the results
-            distance_box_plot(
-                distance_df,
-                self.model_name1,
-                self.seed1,
-                self.seed2,
-                self.model_name2,
-                metric=self.metric_cfg.metric,
-            )
-
-        except FileNotFoundError as e:
-            self.logger.error(f"Error plotting distance box plot: {e}")
 
     def run(self, overrides: Optional[Dict[str, Any]] = None):
         """ """

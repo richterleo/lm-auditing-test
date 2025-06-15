@@ -24,7 +24,7 @@ test_params:
   overwrite: false
   calibrate: false
   noise: 0
-  track_c2st: true
+  track_c2st: false
   analyze_distance: true
   calibrate_only: false
 

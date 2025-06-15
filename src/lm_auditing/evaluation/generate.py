@@ -40,7 +40,7 @@ from lm_auditing.utils.utils import (
 
 from lm_auditing.base.experiment_base import ExperimentBase
 
-from logging_config import setup_logging
+from lm_auditing.utils.logging_config import setup_logging
 
 from configs.experiment_config import (
     GenerationConfig,

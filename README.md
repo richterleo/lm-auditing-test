@@ -1,143 +1,135 @@
-# Auditing Test to Detect Behavioral Shift in Language Models
+# An Auditing Test to Detect Behavioral Shift in Language Models
 
-## Overview
+[![arxiv](https://img.shields.io/badge/arXiv-2410.19406-b31b1b.svg)](https://arxiv.org/abs/2410.19406)
 
-[IN PROGRESS]
+This repository contains the official implementation for the ICLR 2025 paper: **[An Auditing Test to Detect Behavioral Shift in Language Models](https://arxiv.org/abs/2410.19406)**.
 
-This repository accompanies the paper [An Auditing Test to Detect Behavioral Shift in Language Models](https://arxiv.org/abs/2410.19406) and provides tools to run two sets of experiments:
+The project provides a framework to audit language models for behavioral shifts. The core idea is to test whether the behavior of a candidate model has changed significantly relative to a baseline model.
 
+![Auditing Test Overview](overall.png)
+A high-level overview of the auditing test.
 
-1. **Evaluating a Model with Respect to a Certain Behavior and Metric**: This involves evaluating a model, logging results to Weights and Biases (wandb), and generating plots.
-2. **Detecting Change in Model Behavior using our Auditing Test**: This tests to distinguish between two distributions of model behavior based on individual paired samples.
+## Core Functionality
+
+This repository supports two main workflows:
+
+1.  **Model Generation and Evaluation**: Generate outputs from language models for specific tasks and evaluate them using various metrics.
+2.  **Behavioral Auditing**: Run our auditing test to detect statistically significant changes in behavior between two models.
+
+### 1. Model Generation and Evaluation
+
+You can evaluate models from the Llama-3, Gemma, and Mistral families. The chat formatting is currently optimized for these model families.
+
+#### Supported Tasks & Datasets:
+
+*   **Toxicity**: Using the `allenai/real-toxicity-prompts` dataset.
+*   **Translation**: Using a pre-processed subset of the SuperNI dataset.
+
+#### Configuration:
+
+All settings for generation and evaluation can be configured in `configs/experiments/generation.yaml`. This includes selecting the model, task, dataset, and evaluation metric.
+
+To evaluate translation performance, you first need to prepare the dataset:
+```bash
+git clone https://github.com/allenai/natural-instructions.git
+python ./src/lm_auditing/utils/preprocessing_superni.py
+```
+
+To run the evaluation, use the following command:
+```bash
+uv run python main.py exp=generation
+```
+
+### 2. Behavioral Auditing Test
+
+The main contribution of this work is the auditing test, which can compare two models to identify behavioral shifts. This is particularly useful for assessing the impact of fine-tuning, quantization, or other model modifications.
+
+#### Supported Tasks & Metrics:
+
+*   **Toxicity**:
+    *   **Perspective API**: Measures toxicity scores using Google's Perspective API.
+    *   **Toxicity Classifier**: Uses a Hugging Face-based RoBERTa model to classify toxicity.
+*   **Translation**:
+    *   **BLEU**: Bilingual Evaluation Understudy score.
+    *   **ROUGE**: Recall-Oriented Understudy for Gisting Evaluation (Note: significantly slower than BLEU).
+
+#### Configuration & Execution:
+
+The test configurations for toxicity and translation are located in `configs/experiments/test_toxicity.yaml` and `configs/experiments/test_translation.yaml` respectively. You can specify the baseline and test models in these files.
+
+To run a test, execute:
+```bash
+uv run python main.py exp=<test_config_name>
+```
+For example, to run the toxicity test:
+```bash
+uv run python main.py exp=test_toxicity
+```
+
+The core implementation of the auditing test can be found in the `src/lm_auditing/auditing/` directory.
 
 ## Quick Setup
 
-1. **Install uv** (if not already installed):
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
+1.  **Install uv** (if not already installed):
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
 
-2. **Install dependencies**:
-   ```bash
-   uv sync
-   ```
+2.  **Clone the repository and initialize submodules**:
+    The project uses `deep-anytime-testing` as a git submodule.
+    ```bash
+    git clone --recursive https://github.com/richterleo/lm-auditing-test.git
+    cd lm-auditing-test
+    ```
 
-3. **Configure API keys**:
-   ```bash
-   cp .env.example .env
-   ```
-   Then edit `.env` and add your actual API keys:
-   - **WANDB_API_KEY**: Get from [Weights & Biases Settings](https://wandb.ai/settings)
-   - **HF_TOKEN**: Get from [Hugging Face Tokens](https://huggingface.co/settings/tokens)
-   - **PERSPECTIVE_API_KEY**: Get from [Perspective API](https://developers.perspectiveapi.com/s/docs-get-started)
+3.  **Install dependencies**:
+    ```bash
+    uv sync
+    ```
 
-4. **Run the project**:
-   ```bash
-   uv run python main.py
-   ```
+4.  **Configure API keys**:
+    Create a `.env` file from the example and add your API keys.
+    ```bash
+    cp .env.example .env
+    ```
+    You will need keys for:
+    - **WANDB_API_KEY**: For experiment tracking.
+    - **HF_TOKEN**: For accessing gated models on Hugging Face.
+    - **PERSPECTIVE_API_KEY**: For using the Perspective API toxicity metric.
+
+## Logging and Plotting
+
+### Logging
+
+The framework supports multiple logging options:
+*   **Console**: Default logging to the standard output.
+*   **File**: Logging to a file.
+*   **Weights & Biases**: Comprehensive experiment tracking, enabled by default. To disable it, add the `logging.use_wandb=false` flag to your command.
+
+### Plotting
+
+The code for generating plots from the experimental results is provided. Please note that while the scripts are functional, they may require some adjustments to reproduce all figures from the paper exactly. We are working on improving the plotting pipeline to make it more robust and user-friendly.
 
 ## Memory Optimization
 
 If you encounter "No space left on device" errors or memory issues:
 
-1. **Clean HuggingFace cache**:
-   ```bash
-   python clear_hf_cache.py
-   ```
+1.  **Clean HuggingFace cache**:
+    ```bash
+    python clear_hf_cache.py
+    ```
 
-2. **Set custom cache directories** (in your `.env` file):
-   ```bash
-   TRANSFORMERS_CACHE=/path/to/larger/disk/transformers_cache
-   HF_HOME=/path/to/larger/disk/hf_home
-   ```
+2.  **Set custom cache directories** (in your `.env` file):
+    ```bash
+    TRANSFORMERS_CACHE=/path/to/larger/disk/transformers_cache
+    HF_HOME=/path/to/larger/disk/hf_home
+    ```
 
-3. **Memory optimizations** are already configured in `configs/config.yaml`:
-   - 4-bit quantization with bfloat16
-   - Automatic device mapping (`device_map: auto`)
-   - Low CPU memory usage during loading
-
-## Setup
-
-This project uses `uv` to manage dependencies. Install `uv` by following the instructions [here](https://docs.astral.sh/uv/getting-started/installation/). Then clone the repository and initialize the submodule:
-
-```bash
-git clone --recursive https://github.com/richterleo/lm-auditing-test.git
-```
-Alternatively, clone the repository and initialize the submodule separately:
-
-```bash
-git clone https://github.com/richterleo/lm-auditing-test.git
-git submodule init
-git submodule update
-```
-The project uses [deep-anytime-testing](https://github.com/tpandeva/deep-anytime-testing) as a git submodule. 
-The specific version of deep-anytime-testing is can be found in `.gitmodules`.
-
-Install the dependencies by running:
-```bash
-uv sync
-```
-
-
-
-
-```bash
-./setup.sh
-```
-(or `source ./setup.sh` if using tmux). You will be prompted to enter your wandb API key and huggingface token.
-
-The folder `configs` contains general configuration and specific configurations for experiments. 
-
-## Evaluating a Model
-The repository currently supports evaluating LLMs of the `Llama`, `Gemma`, `Mistral` and `aya`-families. When using LoRA, make sure to include the model in the list in `./configs/peft_models.yaml`. 
-
-Behaviors supported are **toxicity** and **translation_performance** with different metrics each. Other models, behaviors and metrics can be added easily (see section ...)
-
-When evaluating translation performance, execute 
-
-```bash
-git clone https://github.com/allenai/natural-instructions.git
-python ./src/utils/preprocessing_superni.py
-```
-
-Specify model, dataset and metric in `./configs/experiments/generation.yaml` and run
-
-```bash
-python main.py --exp generation
-```
-By default, generations will be saved locally and uploaded to wandb. 
-
-## Auditing Test 
-To run the Auditing test and compare two model distributions based on a behavior, use the following command:
-
-```bash
-python main.py --exp <test_config>
-```
-`<test_config>`s for toxicity and translation can be found in `./configs/experiments/`. Change models accordingly. 
-
-## Configuration
-The hyperparameters for the experiments are specified in the config files in `./configs` as well as in `arguments.py`. This file contains the training configuration settings.
-
-
-## Logging and Plotting
-
-Generation experiments store results on wandb by default. Add
-
-```bash
-python main.py --exp generation --no_wandb
-```
-to avoid tracking on wandb.
-
-## Dependencies
-
-This project uses [deep-anytime-testing](https://github.com/tpandeva/deep-anytime-testing) as a git submodule. After cloning this repository, initialize and update the submodule:
-
-```bash
-git submodule init
-git submodule update
-```
-The specific version of deep-anytime-testing is can be found in `.gitmodules`.
+3.  **Memory optimizations** are already configured in `configs/config.yaml`:
+    - 4-bit quantization with bfloat16
+    - Automatic device mapping (`device_map: auto`)
+    - Low CPU memory usage during loading
 
 ## Contact
 
-For any questions or issues, please contact [the authors](leonie.richter.23@ucl.ac.uk).
+For any questions or issues, please contact the authors at [leonie.richter.23@ucl.ac.uk](mailto:leonie.richter.23@ucl.ac.uk).

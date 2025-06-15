@@ -22,7 +22,7 @@ from lm_auditing.utils.utils import (
     cleanup_files,
     load_entire_json,
 )
-from logging_config import setup_logging
+from lm_auditing.utils.logging_config import setup_logging
 
 # setup_logging()
 logger = logging.getLogger(__name__)

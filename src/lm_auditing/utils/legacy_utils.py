@@ -186,7 +186,7 @@ if __name__ == "__main__":
             if file_name.endswith(".json"):
                 json_file_path = os.path.join(root, file_name)
                 print(f"Processing: {json_file_path}")
-                #remove_zero_key_and_flatten(json_file_path)
+                remove_zero_key_and_flatten(json_file_path)
 
     model_scores_path = "/root/Auditing_test_for_LMs/Auditing_test_for_LMs/Auditing_test_for_LMs/perspective/model_scores"  # Replace with your actual path
     #rename_specific_json_files(model_scores_path)
