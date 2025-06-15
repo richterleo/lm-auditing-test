@@ -29,7 +29,7 @@ You can evaluate models from the Llama-3, Gemma, and Mistral families. The chat 
 
 All settings for generation and evaluation can be configured in `configs/experiments/generation.yaml`. This includes selecting the model, task, dataset, and evaluation metric.
 
-To evaluate translation performance, you first need to prepare the dataset:
+To evaluate translation performance, you first need to prepare the dataset from the [natural-instructions repository](https://github.com/allenai/natural-instructions):
 ```bash
 git clone https://github.com/allenai/natural-instructions.git
 python ./src/lm_auditing/utils/preprocessing_superni.py
@@ -108,7 +108,7 @@ The framework supports multiple logging options:
 
 ### Plotting
 
-The code for generating plots from the experimental results is provided. Please note that while the scripts are functional, they may require some adjustments to reproduce all figures from the paper exactly. We are working on improving the plotting pipeline to make it more robust and user-friendly.
+The provided plotting scripts are functional but may require minor adjustments to reproduce the paper's figures exactly.
 
 ## Memory Optimization
 
