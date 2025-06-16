@@ -4,7 +4,7 @@
 
 This repository contains the official implementation for the ICLR 2025 paper: **[An Auditing Test to Detect Behavioral Shift in Language Models](https://arxiv.org/abs/2410.19406)**.
 
-The project provides a framework to audit language models for behavioral shifts. The core idea is to test whether the behavior of a candidate model has changed significantly relative to a baseline model.
+The project provides a framework to audit language models for behavioral shifts. The core idea is to test whether the behavior of a candidate model has changed significantly relative to a baseline model using a *testing-by-betting* framework.
 
 ![Auditing Test Overview](overall.png)
 A high-level overview of the auditing test.
@@ -14,7 +14,7 @@ A high-level overview of the auditing test.
 This repository supports two main workflows:
 
 1.  **Model Generation and Evaluation**: Generate outputs from language models for specific tasks and evaluate them using various metrics.
-2.  **Behavioral Auditing**: Run our auditing test to detect statistically significant changes in behavior between two models.
+2.  **Behavioral Auditing**: Run the auditing test to detect statistically significant changes in behavior between two models.
 
 ### 1. Model Generation and Evaluation
 
@@ -32,7 +32,7 @@ All settings for generation and evaluation can be configured in `configs/experim
 To evaluate translation performance, you first need to prepare the dataset from the [natural-instructions repository](https://github.com/allenai/natural-instructions):
 ```bash
 git clone https://github.com/allenai/natural-instructions.git
-python ./src/lm_auditing/utils/preprocessing_superni.py
+uv run python ./src/lm_auditing/utils/preprocessing_superni.py
 ```
 
 To run the evaluation, use the following command:
@@ -42,7 +42,7 @@ uv run python main.py exp=generation
 
 ### 2. Behavioral Auditing Test
 
-The main contribution of this work is the auditing test, which can compare two models to identify behavioral shifts. This is particularly useful for assessing the impact of fine-tuning, quantization, or other model modifications.
+The main contribution of this work is the auditing test, which can compare two models to identify behavioral shifts. This is particularly useful for assessing the impact of fine-tuning, detecting a model-swap or other model modifications. 
 
 #### Supported Tasks & Metrics:
 
@@ -51,7 +51,7 @@ The main contribution of this work is the auditing test, which can compare two m
     *   **Toxicity Classifier**: Uses a Hugging Face-based RoBERTa model to classify toxicity.
 *   **Translation**:
     *   **BLEU**: Bilingual Evaluation Understudy score.
-    *   **ROUGE**: Recall-Oriented Understudy for Gisting Evaluation (Note: significantly slower than BLEU).
+    *   **ROUGE**: Recall-Oriented Understudy for Gisting Evaluation.
 
 #### Configuration & Execution:
 
@@ -108,7 +108,7 @@ The framework supports multiple logging options:
 
 ### Plotting
 
-The provided plotting scripts are functional but may require minor adjustments to reproduce the paper's figures exactly.
+The provided plotting scripts are functional but may require minor adjustments to the use-case.
 
 ## Memory Optimization
 
